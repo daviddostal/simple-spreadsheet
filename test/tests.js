@@ -1,0 +1,15 @@
+// testParser('=2.2*2+3*3');
+// testParser('=2+2*3+3');
+// testParser('=(2+2)*(3+3)');
+// testParser('=2+--+-2*3+3');
+// testParser('=PI/2');
+// testParser('=HELLO()');
+// testParser('=HELLO()()');
+// testParser('=HELLO(1,2+3)(4)');
+// testParser('=POW(2,3)');
+// testParser('=POW(2,3)');
+// testParser('=A2+4');
+// testParser('=A2:B3');
+// testParser('lorem ipsum');
+// testParser('2+8');
+// testParser('=TEST("Hello, world")');

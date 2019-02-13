@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Spreadsheet evaluator test</title>
+    <script src="../dist/simple-spreadsheet.js"></script>
+</head>
+<body>
+    <script>
+        const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+            A1: 'column 1', B1: 'column 2', C1: 'sum',
+            A2: '2', B2: '5', C2: '=SUM(A2:B2)', C3: '=SUM(3, 4)',
+            C4: '=AVERAGE(2, 5)', C5: '=AVERAGE(A2:B2)',
+            D3: '= A2 + B2',
+            D5: '=Z87',
+            D4: '=SUM(A2:A342)',
+            // D3: '=A2:B2',
+        });
+
+        for (let cell in spreadsheet.cells) {
+            console.log(`${cell}: '${spreadsheet.text(cell)}'`);
+            console.log('    ' + spreadsheet._expression(cell).toString());
+            console.log(' -> ' + spreadsheet.value(cell));
+            console.log('');
+        }
+    </script>
+</body>
+</html>
