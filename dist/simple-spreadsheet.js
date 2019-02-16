@@ -105,7 +105,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-class RuntimeError extends Error { constructor(message) { super(message); } }
+class RuntimeError extends Error {
+    constructor(message) { super(message); }
+    toString() { return `RuntimeError: ${this.message}`; }
+}
 
 class Environment {
     constructor(cells = {}, builtinFunctions = {}) {
@@ -149,6 +152,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Evaluator; });
 /* harmony import */ var _environment__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./environment */ "./src/environment.js");
 /* harmony import */ var _expressions__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./expressions */ "./src/expressions.js");
+/* harmony import */ var _tokenizer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./tokenizer */ "./src/tokenizer.js");
+
 
 
 
@@ -158,8 +163,9 @@ class Evaluator {
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"]:
                 return cell.value;
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["Reference"]:
-                const entry = environment.getExpression(cell.position) || new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](null);
-                return this.evaluateCell(entry, environment);
+                return this.evaluateReference(cell.position, environment);
+            case _expressions__WEBPACK_IMPORTED_MODULE_1__["UnaryOp"]:
+                return this.evaluateUnary(cell.op, cell.value, environment);
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["BinaryOp"]:
                 return this.evaluateBinary(cell.left, cell.op, cell.right, environment);
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["FunctionCall"]:
@@ -171,10 +177,30 @@ class Evaluator {
         }
     }
 
+    evaluateReference(position, environment) {
+        try {
+            const entry = environment.getExpression(position) || new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](null);
+            return this.evaluateCell(entry, environment);
+        } catch (e) {
+            if (e instanceof _tokenizer__WEBPACK_IMPORTED_MODULE_2__["ParsingError"])
+                throw new _environment__WEBPACK_IMPORTED_MODULE_0__["RuntimeError"](`Error in referenced cell: ${position}`);
+            else throw e;
+        }
+    }
+
     evaluateExpression(value, environment) {
         switch (value.constructor) {
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["Range"]: return this.evaluateRange(value.from, value.to, environment);
             default: return this.evaluateCell(value, environment);
+        }
+    }
+
+    evaluateUnary(op, expression, environment) {
+        const value = this.evaluateCell(expression, environment);
+        switch (op) {
+            case '+': return value;
+            case '-': return -value;
+            default: throw new _environment__WEBPACK_IMPORTED_MODULE_0__["RuntimeError"](`Unknown unary operator: '${op}'`);
         }
     }
 
@@ -186,7 +212,7 @@ class Evaluator {
             case '-': return leftValue - rightValue;
             case '*': return leftValue * rightValue;
             case '/': return leftValue / rightValue;
-            default: throw new _environment__WEBPACK_IMPORTED_MODULE_0__["RuntimeError"](`Unknown binary operator: ${op.type}`);
+            default: throw new _environment__WEBPACK_IMPORTED_MODULE_0__["RuntimeError"](`Unknown binary operator: '${op}'`);
         }
     }
 
@@ -447,13 +473,20 @@ class Parser {
 /*!****************************!*\
   !*** ./src/spreadsheet.js ***!
   \****************************/
-/*! exports provided: Spreadsheet */
+/*! exports provided: RuntimeError, ParsingError, Spreadsheet */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Spreadsheet", function() { return Spreadsheet; });
 /* harmony import */ var _environment__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./environment */ "./src/environment.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "RuntimeError", function() { return _environment__WEBPACK_IMPORTED_MODULE_0__["RuntimeError"]; });
+
+/* harmony import */ var _tokenizer__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./tokenizer */ "./src/tokenizer.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "ParsingError", function() { return _tokenizer__WEBPACK_IMPORTED_MODULE_1__["ParsingError"]; });
+
+
+
 
 
 class Spreadsheet {

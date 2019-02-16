@@ -1,5 +1,6 @@
 import { RuntimeError } from './environment';
-import { Value, Reference, BinaryOp, FunctionCall, Range } from './expressions';
+import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp } from './expressions';
+import { ParsingError } from './tokenizer';
 
 export default class Evaluator {
     evaluateCell(cell, environment) {
@@ -7,8 +8,9 @@ export default class Evaluator {
             case Value:
                 return cell.value;
             case Reference:
-                const entry = environment.getExpression(cell.position) || new Value(null);
-                return this.evaluateCell(entry, environment);
+                return this.evaluateReference(cell.position, environment);
+            case UnaryOp:
+                return this.evaluateUnary(cell.op, cell.value, environment);
             case BinaryOp:
                 return this.evaluateBinary(cell.left, cell.op, cell.right, environment);
             case FunctionCall:
@@ -20,10 +22,30 @@ export default class Evaluator {
         }
     }
 
+    evaluateReference(position, environment) {
+        try {
+            const entry = environment.getExpression(position) || new Value(null);
+            return this.evaluateCell(entry, environment);
+        } catch (e) {
+            if (e instanceof ParsingError)
+                throw new RuntimeError(`Error in referenced cell: ${position}`);
+            else throw e;
+        }
+    }
+
     evaluateExpression(value, environment) {
         switch (value.constructor) {
             case Range: return this.evaluateRange(value.from, value.to, environment);
             default: return this.evaluateCell(value, environment);
+        }
+    }
+
+    evaluateUnary(op, expression, environment) {
+        const value = this.evaluateCell(expression, environment);
+        switch (op) {
+            case '+': return value;
+            case '-': return -value;
+            default: throw new RuntimeError(`Unknown unary operator: '${op}'`);
         }
     }
 
@@ -35,7 +57,7 @@ export default class Evaluator {
             case '-': return leftValue - rightValue;
             case '*': return leftValue * rightValue;
             case '/': return leftValue / rightValue;
-            default: throw new RuntimeError(`Unknown binary operator: ${op.type}`);
+            default: throw new RuntimeError(`Unknown binary operator: '${op}'`);
         }
     }
 

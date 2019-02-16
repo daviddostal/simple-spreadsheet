@@ -2,7 +2,10 @@ import { Tokenizer, ParsingError } from './tokenizer';
 import Parser from './parser';
 import Evaluator from './evaluator';
 
-export class RuntimeError extends Error { constructor(message) { super(message); } }
+export class RuntimeError extends Error {
+    constructor(message) { super(message); }
+    toString() { return `RuntimeError: ${this.message}`; }
+}
 
 export class Environment {
     constructor(cells = {}, builtinFunctions = {}) {
