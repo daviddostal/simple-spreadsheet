@@ -91,27 +91,41 @@ var SimpleSpreadsheet =
 /*!****************************!*\
   !*** ./src/environment.js ***!
   \****************************/
-/*! exports provided: RuntimeError, default */
+/*! exports provided: RuntimeError, Environment */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "RuntimeError", function() { return RuntimeError; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Environment; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Environment", function() { return Environment; });
+/* harmony import */ var _tokenizer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./tokenizer */ "./src/tokenizer.js");
+/* harmony import */ var _parser__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./parser */ "./src/parser.js");
+/* harmony import */ var _evaluator__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./evaluator */ "./src/evaluator.js");
+
+
+
+
 class RuntimeError extends Error { constructor(message) { super(message); } }
 
 class Environment {
     constructor(cells = {}, builtinFunctions = {}) {
-        this.cells = cells
+        this.cells = cells;
         this.functions = builtinFunctions;
+        this._parser = new _parser__WEBPACK_IMPORTED_MODULE_1__["default"](new _tokenizer__WEBPACK_IMPORTED_MODULE_0__["Tokenizer"]());
+        this._evaluator = new _evaluator__WEBPACK_IMPORTED_MODULE_2__["default"]();
     }
 
-    getEntry(position) {
-        return this.cells[position] === undefined ? null : this.cells[position];
+    getText(position) {
+        return this.cells[position] === undefined ? "" : this.cells[position];
     }
 
-    setEntry(position, entry) {
-        this.cells[position] = entry;
+    getExpression(position) {
+        const value = this.cells[position] === undefined ? null : this.cells[position];
+        return this._parser.parse(value);
+    }
+
+    getValue(position) {
+        return this._evaluator.evaluateCell(this.getExpression(position), this);
     }
 
     getFunction(name) {
@@ -119,7 +133,7 @@ class Environment {
             throw new Error(`Unknown function: ${name}`);
         return this.functions[name];
     }
-}
+};
 
 /***/ }),
 
@@ -144,7 +158,7 @@ class Evaluator {
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"]:
                 return cell.value;
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["Reference"]:
-                const entry = environment.getEntry(cell.position) || new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](null);
+                const entry = environment.getExpression(cell.position) || new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](null);
                 return this.evaluateCell(entry, environment);
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["BinaryOp"]:
                 return this.evaluateBinary(cell.left, cell.op, cell.right, environment);
@@ -439,62 +453,27 @@ class Parser {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Spreadsheet", function() { return Spreadsheet; });
-/* harmony import */ var _tokenizer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./tokenizer */ "./src/tokenizer.js");
-/* harmony import */ var _parser__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./parser */ "./src/parser.js");
-/* harmony import */ var _environment__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./environment */ "./src/environment.js");
-/* harmony import */ var _evaluator__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./evaluator */ "./src/evaluator.js");
-
-
-
+/* harmony import */ var _environment__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./environment */ "./src/environment.js");
 
 
 class Spreadsheet {
     constructor(cells = {}) {
-        this._parser = new _parser__WEBPACK_IMPORTED_MODULE_1__["default"](new _tokenizer__WEBPACK_IMPORTED_MODULE_0__["Tokenizer"]());
-        this._evaluator = new _evaluator__WEBPACK_IMPORTED_MODULE_3__["default"]();
-
         this.cells = cells;
 
         this.builtinFunctions = {
-            SUM: (...values) =>
-                values.flat().reduce((a, b) => a + b, 0),
-            AVERAGE: (...values) =>
-                values.flat().reduce((a, b) => a + b, 0) / values.flat().length,
+            SUM: (...values) => values.flat().reduce((a, b) => a + b, 0),
+            AVERAGE: (...values) => values.flat().reduce((a, b) => a + b, 0) / values.flat().length,
         };
 
-        const parsedExpressions = this._mapValues(this.cells, cell => {
-            try {
-                return this._parser.parse(cell);
-            } catch (ex) {
-                if (ex instanceof _tokenizer__WEBPACK_IMPORTED_MODULE_0__["ParsingError"]) return ex;
-                else throw ex;
-            }
-        });
-        this.environment = new _environment__WEBPACK_IMPORTED_MODULE_2__["default"](parsedExpressions, this.builtinFunctions);
+        this.environment = new _environment__WEBPACK_IMPORTED_MODULE_0__["Environment"](cells, this.builtinFunctions);
     }
 
     text(position) {
-        return this.cells[position] === undefined ? "" : this.cells[position];
+        return this.environment.getText(position);
     }
 
     value(position) {
-        return this._evaluator.evaluateCell(this._expression(position), this.environment);
-    }
-
-    _expression(position) {
-        const value = this.environment.getEntry(position);
-        if(value instanceof _tokenizer__WEBPACK_IMPORTED_MODULE_0__["ParsingError"]) throw value;
-        else return value;
-        // const value = this.cells[position] === undefined ? null : this.cells[position];;
-        // return this._parser.parse(value);
-    }
-
-    _mapValues(obj, fn) {
-        const result = {};
-        for (let prop in obj) {
-            result[prop] = fn(obj[prop]);
-        }
-        return result;
+        return this.environment.getValue(position);
     }
 }
 

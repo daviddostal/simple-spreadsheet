@@ -16,13 +16,13 @@
             D3: '= A2 + B2',
             D4: '=Z87',
             D5: '=D6',
-            D6: '=SUM(A2:A342)',
+            D6: '=SUM(A2:A342)(',
             // D3: '=A2:B2',
         });
 
         for (let cell in spreadsheet.cells) {
             console.log(`${cell}: '${spreadsheet.text(cell)}'`);
-            console.log('    ' + spreadsheet._expression(cell).toString());
+            console.log('    ' + spreadsheet.environment.getExpression(cell).toString());
             console.log(' -> ' + spreadsheet.value(cell));
             console.log('');
         }

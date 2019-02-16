@@ -7,7 +7,7 @@ export default class Evaluator {
             case Value:
                 return cell.value;
             case Reference:
-                const entry = environment.getEntry(cell.position) || new Value(null);
+                const entry = environment.getExpression(cell.position) || new Value(null);
                 return this.evaluateCell(entry, environment);
             case BinaryOp:
                 return this.evaluateBinary(cell.left, cell.op, cell.right, environment);

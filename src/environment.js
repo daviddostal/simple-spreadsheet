@@ -1,17 +1,28 @@
+import { Tokenizer, ParsingError } from './tokenizer';
+import Parser from './parser';
+import Evaluator from './evaluator';
+
 export class RuntimeError extends Error { constructor(message) { super(message); } }
 
-export default class Environment {
+export class Environment {
     constructor(cells = {}, builtinFunctions = {}) {
-        this.cells = cells
+        this.cells = cells;
         this.functions = builtinFunctions;
+        this._parser = new Parser(new Tokenizer());
+        this._evaluator = new Evaluator();
     }
 
-    getEntry(position) {
-        return this.cells[position] === undefined ? null : this.cells[position];
+    getText(position) {
+        return this.cells[position] === undefined ? "" : this.cells[position];
     }
 
-    setEntry(position, entry) {
-        this.cells[position] = entry;
+    getExpression(position) {
+        const value = this.cells[position] === undefined ? null : this.cells[position];
+        return this._parser.parse(value);
+    }
+
+    getValue(position) {
+        return this._evaluator.evaluateCell(this.getExpression(position), this);
     }
 
     getFunction(name) {
@@ -19,4 +30,4 @@ export default class Environment {
             throw new Error(`Unknown function: ${name}`);
         return this.functions[name];
     }
-}
+};
