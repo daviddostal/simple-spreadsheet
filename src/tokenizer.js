@@ -1,23 +1,26 @@
-export class ParsingError extends Error { constructor(message) { super(message); } }
+export class ParsingError extends Error {
+    constructor(message) { super(message); }
+    toString() { return `ParsingError: ${this.message}`; }
+}
 
 export const TokenType = Object.freeze({
-    EOF: Symbol('EOF'),
-    WHITESPACE: Symbol('WHITESPACE'),
-    PLUS: Symbol('PLUS'),
-    MINUS: Symbol('MINUS'),
-    STAR: Symbol('STAR'),
-    SLASH: Symbol('SLASH'),
-    LPAREN: Symbol('LPAREN'),
-    RPAREN: Symbol('RPAREN'),
-    COLON: Symbol('COLON'),
-    EQUALS: Symbol('EQUALS'),
-    COMMA: Symbol('COMMA'),
-    NUMBER: Symbol('NUMBER'),
-    STRING: Symbol('STRING'),
-    IDENTIFIER: Symbol('IDENTIFIER'),
+    EOF: 'EOF',
+    WHITESPACE: 'WHITESPACE',
+    PLUS: 'PLUS',
+    MINUS: 'MINUS',
+    STAR: 'STAR',
+    SLASH: 'SLASH',
+    LPAREN: 'LPAREN',
+    RPAREN: 'RPAREN',
+    COLON: 'COLON',
+    EQUALS: 'EQUALS',
+    COMMA: 'COMMA',
+    NUMBER: 'NUMBER',
+    STRING: 'STRING',
+    IDENTIFIER: 'IDENTIFIER',
 });
 
-export default class Tokenizer {
+export class Tokenizer {
     constructor(rules = {
         '$': TokenType.EOF,
         '\\s+': TokenType.WHITESPACE,

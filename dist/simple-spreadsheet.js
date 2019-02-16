@@ -106,12 +106,12 @@ class Environment {
         this.functions = builtinFunctions;
     }
 
-    getEntry(col, row) {
-        return this.cells[`${col}${row}`] === undefined ? null : this.cells[`${col}${row}`];
+    getEntry(position) {
+        return this.cells[position] === undefined ? null : this.cells[position];
     }
 
-    setEntry(col, row, entry) {
-        this.cells[`${col}${row}`] = entry;
+    setEntry(position, entry) {
+        this.cells[position] = entry;
     }
 
     getFunction(name) {
@@ -144,7 +144,7 @@ class Evaluator {
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"]:
                 return cell.value;
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["Reference"]:
-                const entry = environment.getEntry(cell.col, cell.row) || new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](null);
+                const entry = environment.getEntry(cell.position) || new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](null);
                 return this.evaluateCell(entry, environment);
             case _expressions__WEBPACK_IMPORTED_MODULE_1__["BinaryOp"]:
                 return this.evaluateBinary(cell.left, cell.op, cell.right, environment);
@@ -238,6 +238,7 @@ class Value extends Expression {
 
 class Reference extends Expression {
     constructor(col, row) { super(); this.col = col; this.row = row; }
+    get position() { return `${this.col}${this.row}`; }
     toString() { return `Reference(${this.col}${this.row})`; }
 }
 
@@ -284,6 +285,7 @@ class Parser {
     }
 
     parse(text) {
+        if (text === null) return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](null);
         this.tokens.begin(text);
         const result = this.parseCell();
         return result;
@@ -298,8 +300,7 @@ class Parser {
             return result;
         } else {
             const value = this.tokens.rest();
-            if (value == '') return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](null);
-            else if (!isNaN(value)) return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](parseFloat(value));
+            if (value.match(/^\d+(?:\.\d+)?$/)) return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](parseFloat(value));
             else return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](value);
         }
     }
@@ -449,15 +450,27 @@ __webpack_require__.r(__webpack_exports__);
 
 class Spreadsheet {
     constructor(cells = {}) {
-        this._parser = new _parser__WEBPACK_IMPORTED_MODULE_1__["default"](new _tokenizer__WEBPACK_IMPORTED_MODULE_0__["default"]());
+        this._parser = new _parser__WEBPACK_IMPORTED_MODULE_1__["default"](new _tokenizer__WEBPACK_IMPORTED_MODULE_0__["Tokenizer"]());
         this._evaluator = new _evaluator__WEBPACK_IMPORTED_MODULE_3__["default"]();
 
         this.cells = cells;
-        this.expressions = this._mapValues(cells, cell => this._parser.parse(cell));
-        this._environment = new _environment__WEBPACK_IMPORTED_MODULE_2__["default"](this.expressions, {
-            SUM: (...values) => values.flat().reduce((a, b) => a + b, 0),
-            AVERAGE: (...values) => values.flat().reduce((a, b) => a + b, 0) / values.flat().length,
+
+        this.builtinFunctions = {
+            SUM: (...values) =>
+                values.flat().reduce((a, b) => a + b, 0),
+            AVERAGE: (...values) =>
+                values.flat().reduce((a, b) => a + b, 0) / values.flat().length,
+        };
+
+        const parsedExpressions = this._mapValues(this.cells, cell => {
+            try {
+                return this._parser.parse(cell);
+            } catch (ex) {
+                if (ex instanceof _tokenizer__WEBPACK_IMPORTED_MODULE_0__["ParsingError"]) return ex;
+                else throw ex;
+            }
         });
+        this.environment = new _environment__WEBPACK_IMPORTED_MODULE_2__["default"](parsedExpressions, this.builtinFunctions);
     }
 
     text(position) {
@@ -465,11 +478,15 @@ class Spreadsheet {
     }
 
     value(position) {
-        return this._evaluator.evaluateCell(this._expression(position), this._environment);
+        return this._evaluator.evaluateCell(this._expression(position), this.environment);
     }
 
     _expression(position) {
-        return this._parser.parse(this.text(position));
+        const value = this.environment.getEntry(position);
+        if(value instanceof _tokenizer__WEBPACK_IMPORTED_MODULE_0__["ParsingError"]) throw value;
+        else return value;
+        // const value = this.cells[position] === undefined ? null : this.cells[position];;
+        // return this._parser.parse(value);
     }
 
     _mapValues(obj, fn) {
@@ -487,31 +504,34 @@ class Spreadsheet {
 /*!**************************!*\
   !*** ./src/tokenizer.js ***!
   \**************************/
-/*! exports provided: ParsingError, TokenType, default */
+/*! exports provided: ParsingError, TokenType, Tokenizer */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ParsingError", function() { return ParsingError; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TokenType", function() { return TokenType; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Tokenizer; });
-class ParsingError extends Error { constructor(message) { super(message); } }
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Tokenizer", function() { return Tokenizer; });
+class ParsingError extends Error {
+    constructor(message) { super(message); }
+    toString() { return `ParsingError: ${this.message}`; }
+}
 
 const TokenType = Object.freeze({
-    EOF: Symbol('EOF'),
-    WHITESPACE: Symbol('WHITESPACE'),
-    PLUS: Symbol('PLUS'),
-    MINUS: Symbol('MINUS'),
-    STAR: Symbol('STAR'),
-    SLASH: Symbol('SLASH'),
-    LPAREN: Symbol('LPAREN'),
-    RPAREN: Symbol('RPAREN'),
-    COLON: Symbol('COLON'),
-    EQUALS: Symbol('EQUALS'),
-    COMMA: Symbol('COMMA'),
-    NUMBER: Symbol('NUMBER'),
-    STRING: Symbol('STRING'),
-    IDENTIFIER: Symbol('IDENTIFIER'),
+    EOF: 'EOF',
+    WHITESPACE: 'WHITESPACE',
+    PLUS: 'PLUS',
+    MINUS: 'MINUS',
+    STAR: 'STAR',
+    SLASH: 'SLASH',
+    LPAREN: 'LPAREN',
+    RPAREN: 'RPAREN',
+    COLON: 'COLON',
+    EQUALS: 'EQUALS',
+    COMMA: 'COMMA',
+    NUMBER: 'NUMBER',
+    STRING: 'STRING',
+    IDENTIFIER: 'IDENTIFIER',
 });
 
 class Tokenizer {

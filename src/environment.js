@@ -6,12 +6,12 @@ export default class Environment {
         this.functions = builtinFunctions;
     }
 
-    getEntry(col, row) {
-        return this.cells[`${col}${row}`] === undefined ? null : this.cells[`${col}${row}`];
+    getEntry(position) {
+        return this.cells[position] === undefined ? null : this.cells[position];
     }
 
-    setEntry(col, row, entry) {
-        this.cells[`${col}${row}`] = entry;
+    setEntry(position, entry) {
+        this.cells[position] = entry;
     }
 
     getFunction(name) {

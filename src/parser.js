@@ -7,6 +7,7 @@ export default class Parser {
     }
 
     parse(text) {
+        if (text === null) return new Value(null);
         this.tokens.begin(text);
         const result = this.parseCell();
         return result;
@@ -21,8 +22,7 @@ export default class Parser {
             return result;
         } else {
             const value = this.tokens.rest();
-            if (value == '') return new Value(null);
-            else if (!isNaN(value)) return new Value(parseFloat(value));
+            if (value.match(/^\d+(?:\.\d+)?$/)) return new Value(parseFloat(value));
             else return new Value(value);
         }
     }
