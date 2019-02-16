@@ -4,7 +4,7 @@ import Evaluator from './evaluator';
 
 export class RuntimeError extends Error {
     constructor(message) { super(message); }
-    toString() { return `RuntimeError: ${this.message}`; }
+    toString() { return `Runtime error: ${this.message}`; }
 }
 
 export class Environment {

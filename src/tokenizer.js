@@ -1,6 +1,6 @@
 export class ParsingError extends Error {
     constructor(message) { super(message); }
-    toString() { return `ParsingError: ${this.message}`; }
+    toString() { return `Syntax error: ${this.message}`; }
 }
 
 export const TokenType = Object.freeze({

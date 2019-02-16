@@ -107,7 +107,7 @@ __webpack_require__.r(__webpack_exports__);
 
 class RuntimeError extends Error {
     constructor(message) { super(message); }
-    toString() { return `RuntimeError: ${this.message}`; }
+    toString() { return `Runtime error: ${this.message}`; }
 }
 
 class Environment {
@@ -526,7 +526,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Tokenizer", function() { return Tokenizer; });
 class ParsingError extends Error {
     constructor(message) { super(message); }
-    toString() { return `ParsingError: ${this.message}`; }
+    toString() { return `Syntax error: ${this.message}`; }
 }
 
 const TokenType = Object.freeze({
