@@ -78,14 +78,11 @@ export default class Evaluator {
     }
 
     _cellsInRange(from, to) {
-        if (from.col === to.col)
-            return this._range(from.row, to.row)
-                .map(row => new Reference(from.col, row));
-        else if (from.row === to.row)
-            return this._range(from.col.charCodeAt(0), to.col.charCodeAt(0))
-                .map(col => new Reference(String.fromCharCode(col), from.row));
-        else
-            throw new RuntimeError(`Range must be in same row or column. From: ${from}, To: ${to}`);
+        const cells = [];
+        for (let col of this._range(from.col.charCodeAt(0), to.col.charCodeAt(0)))
+            for (let row of this._range(from.row, to.row))
+                cells.push(new Reference(String.fromCharCode(col), row));
+        return cells;
     }
 
     _range(from, to) {

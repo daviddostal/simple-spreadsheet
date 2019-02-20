@@ -22,7 +22,7 @@ export default class Parser {
             return result;
         } else {
             const value = this.tokens.rest();
-            if (value.match(/^\d+(?:\.\d+)?$/)) return new Value(parseFloat(value));
+            if (value.match(/^[+-]?\d+(?:\.\d+)?$/)) return new Value(parseFloat(value));
             else return new Value(value);
         }
     }
@@ -75,7 +75,11 @@ export default class Parser {
 
         // String
         const string = this._expectAny(TokenType.STRING);
-        if (string !== null) { return new Value(string.value.substring(1, string.value.length - 1)); }
+        if (string !== null) {
+            const withoutQuotes = string.value.substring(1, string.value.length - 1);
+            const escapedString = withoutQuotes; // TODO: handle escape characters?
+            return new Value(escapedString);
+        }
 
         const identifier = this._require(TokenType.IDENTIFIER);
         // Range
@@ -83,8 +87,6 @@ export default class Parser {
             const endIdentifier = this._require(TokenType.IDENTIFIER);
             const from = this._parseReference(identifier.value);
             const to = this._parseReference(endIdentifier.value);
-            if (!(from.col === to.col || from.row === to.row))
-                throw new ParsingError(`Range start and end not in same column or row: ${identifier.value}:${endIdentifier.value}`);
             return new Range(from, to);
         }
 

@@ -233,14 +233,11 @@ class Evaluator {
     }
 
     _cellsInRange(from, to) {
-        if (from.col === to.col)
-            return this._range(from.row, to.row)
-                .map(row => new _expressions__WEBPACK_IMPORTED_MODULE_1__["Reference"](from.col, row));
-        else if (from.row === to.row)
-            return this._range(from.col.charCodeAt(0), to.col.charCodeAt(0))
-                .map(col => new _expressions__WEBPACK_IMPORTED_MODULE_1__["Reference"](String.fromCharCode(col), from.row));
-        else
-            throw new _environment__WEBPACK_IMPORTED_MODULE_0__["RuntimeError"](`Range must be in same row or column. From: ${from}, To: ${to}`);
+        const cells = [];
+        for (let col of this._range(from.col.charCodeAt(0), to.col.charCodeAt(0)))
+            for (let row of this._range(from.row, to.row))
+                cells.push(new _expressions__WEBPACK_IMPORTED_MODULE_1__["Reference"](String.fromCharCode(col), row));
+        return cells;
     }
 
     _range(from, to) {
@@ -340,7 +337,7 @@ class Parser {
             return result;
         } else {
             const value = this.tokens.rest();
-            if (value.match(/^\d+(?:\.\d+)?$/)) return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](parseFloat(value));
+            if (value.match(/^[+-]?\d+(?:\.\d+)?$/)) return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](parseFloat(value));
             else return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](value);
         }
     }
@@ -393,7 +390,11 @@ class Parser {
 
         // String
         const string = this._expectAny(_tokenizer__WEBPACK_IMPORTED_MODULE_0__["TokenType"].STRING);
-        if (string !== null) { return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](string.value.substring(1, string.value.length - 1)); }
+        if (string !== null) {
+            const withoutQuotes = string.value.substring(1, string.value.length - 1);
+            const escapedString = withoutQuotes; // TODO: handle escape characters?
+            return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Value"](escapedString);
+        }
 
         const identifier = this._require(_tokenizer__WEBPACK_IMPORTED_MODULE_0__["TokenType"].IDENTIFIER);
         // Range
@@ -401,8 +402,6 @@ class Parser {
             const endIdentifier = this._require(_tokenizer__WEBPACK_IMPORTED_MODULE_0__["TokenType"].IDENTIFIER);
             const from = this._parseReference(identifier.value);
             const to = this._parseReference(endIdentifier.value);
-            if (!(from.col === to.col || from.row === to.row))
-                throw new _tokenizer__WEBPACK_IMPORTED_MODULE_0__["ParsingError"](`Range start and end not in same column or row: ${identifier.value}:${endIdentifier.value}`);
             return new _expressions__WEBPACK_IMPORTED_MODULE_1__["Range"](from, to);
         }
 
