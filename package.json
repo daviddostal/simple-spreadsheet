@@ -4,11 +4,13 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack --watch src/spreadsheet.js -o dist/simple-spreadsheet.js --mode development --output-library SimpleSpreadsheet --devtool source-map",
-    "build:prod": "webpack src/spreadsheet.js -o dist/simple-spreadsheet.min.js --mode production --output-library SimpleSpreadsheet --devtool source-map"
+    "build": "rollup -c --watch",
+    "build:prod": "rollup -c"
   },
   "author": "David Dostal",
   "devDependencies": {
+    "rollup": "^1.2.3",
+    "rollup-plugin-terser": "^4.0.4",
     "webpack": "^4.29.3",
     "webpack-cli": "^3.2.3"
   }
