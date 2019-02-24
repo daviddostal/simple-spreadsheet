@@ -1,6 +1,5 @@
 import { Environment } from './environment';
-export { RuntimeError } from './environment';
-export { ParsingError } from './tokenizer';
+export { SpreadsheetError, RuntimeError, ParsingError } from './errors';
 
 export class Spreadsheet {
     constructor(cells = {}) {

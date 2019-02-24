@@ -1,4 +1,5 @@
-import { ParsingError, TokenType } from './tokenizer';
+import { TokenType } from './tokenizer';
+import { ParsingError } from './errors';
 import { Value, Reference, BinaryOp, UnaryOp, Range, FunctionCall } from './expressions';
 
 export default class Parser {
@@ -7,7 +8,9 @@ export default class Parser {
     }
 
     parse(text) {
-        if (text === null) return new Value(null);
+        if (text === null || text === undefined || text.constructor !== String)
+            return new Value(text); // if there is nothing to parse, return the value.
+
         this.tokens.begin(text);
         const result = this.parseCell();
         return result;
@@ -77,7 +80,7 @@ export default class Parser {
         const string = this._expectAny(TokenType.STRING);
         if (string !== null) {
             const withoutQuotes = string.value.substring(1, string.value.length - 1);
-            const escapedString = withoutQuotes; // TODO: handle escape characters?
+            const escapedString = withoutQuotes.replace(/\\(.)/g, '$1');
             return new Value(escapedString);
         }
 

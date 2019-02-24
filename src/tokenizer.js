@@ -1,7 +1,4 @@
-export class ParsingError extends Error {
-    constructor(message) { super(message); }
-    toString() { return `Syntax error: ${this.message}`; }
-}
+import { ParsingError } from './errors';
 
 export const TokenType = Object.freeze({
     EOF: 'EOF',

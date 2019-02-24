@@ -1,11 +1,7 @@
-import { Tokenizer, ParsingError } from './tokenizer';
+import { Tokenizer } from './tokenizer';
 import Parser from './parser';
 import Evaluator from './evaluator';
-
-export class RuntimeError extends Error {
-    constructor(message) { super(message); }
-    toString() { return `Runtime error: ${this.message}`; }
-}
+import { RuntimeError } from './errors';
 
 export class Environment {
     constructor(cells = {}, builtinFunctions = {}) {
@@ -16,11 +12,11 @@ export class Environment {
     }
 
     getText(position) {
-        return this.cells[position] === undefined ? "" : this.cells[position];
+        return this.cells.hasOwnProperty(position) ? this.cells[position].toString() : "";
     }
 
     getExpression(position) {
-        const value = this.cells[position] === undefined ? null : this.cells[position];
+        const value = this.cells.hasOwnProperty(position) ? this.cells[position] : null;
         return this._parser.parse(value);
     }
 
@@ -30,7 +26,7 @@ export class Environment {
 
     getFunction(name) {
         if (this.functions[name] === undefined)
-            throw new Error(`Unknown function: ${name}`);
+            throw new RuntimeError(`Unknown function: ${name} is not a function`);
         return this.functions[name];
     }
 };

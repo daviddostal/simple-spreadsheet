@@ -1,6 +1,5 @@
-import { RuntimeError } from './environment';
 import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp } from './expressions';
-import { ParsingError } from './tokenizer';
+import { RuntimeError, ParsingError } from './errors';
 
 export default class Evaluator {
     evaluateCell(cell, environment) {
