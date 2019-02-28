@@ -52,6 +52,7 @@ test('Number literals are evaluated in formulas', () => {
     expectValue('=-2.5', -2.5);
     expectValue('=+2.5', 2.5);
     expectValue('=0.908098', 0.908098);
+    expectValue('=10000000.000000', 10000000);
 });
 
 test('String literals are evaluated in formulas', () => {
@@ -105,6 +106,13 @@ test('Unary operators work properly', () => {
     expectValue('=--+-+-0.2', 0.2);
     expectValue('=-23', -23);
     expectValue('=- -- + -   -23', -23);
+});
+
+test('Unary operators have precedence over binary operators', () => {
+    expectValue('=-3 + 2', -1);
+    expectValue('=-(3 + 2)', -5);
+    expectValue('=-3 - 2', -5);
+    expectValue('=-(3 - 2)', -1);
 });
 
 test('Binary operators work properly', () => {
@@ -268,10 +276,69 @@ test('Range references work for any start and end position', () => {
     expect(spreadsheet.value('A12')).toBe(45);
 })
 
-test('', () => {
+test('Spreadsheet accepts user defined functions in js', () => {
+    const cells = {
+        A1: '=ADD1(4)',
+        A2: '=ADD1(4.2 + -0.25)',
+        A3: '=ADD1(A2)',
+        A4: '=ADD1("abc")',
+    };
+    const functions = { ADD1: x => x + 1 };
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(cells, functions);
+    expect(spreadsheet.value('A1')).toBe(5);
+    expect(spreadsheet.value('A2')).toBe(4.95);
+    expect(spreadsheet.value('A3')).toBe(5.95);
+    expect(spreadsheet.value('A4')).toBe('abc1');
+});
+
+test('Spreadsheet functions can have multiple arguments and be any JS function', () => {
+    const functions = {
+        GET_1: () => 1,
+        SUB_3: (x) => x - 3,
+        POW: (base, exponent) => Math.pow(base, exponent),
+        POW2: Math.pow,
+        SUB_THEN_ADD: function (a, b, c) { return a - b + c },
+        MULTIPLY_ALL: (...values) => values.reduce((a, b) => a * b, 1),
+    };
+    const cells = {
+        A1: '=GET_1',
+        A2: '=SUB_3(100)',
+        A3: '=POW(2,5)',
+        A4: '=POW2(2, 5)',
+        A5: '=SUB_THEN_ADD(1, 2, 3)',
+        A6: '=MULTIPLY_ALL(2, 3, 4)',
+        A7: '=MULTIPLY_ALL()',
+    };
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(cells, functions);
+    expect(spreadsheet.value('A1')).toBe(5);
+    expect(spreadsheet.value('A2')).toBe(4.95);
+    expect(spreadsheet.value('A3')).toBe(5.95);
+    expect(spreadsheet.value('A4')).toBe('abc1');
+});
+
+test('Ranges are passed to functions as arrays', () => {
 
 });
 
+test('Functions can be nested', () => {
+
+});
+
+test('Functions can return arbitrary JS values, even functions', () => {
+
+});
+
+test('Functions can accept any JS values as arguments', () => {
+
+});
+
+test('Exceptions in functions cause RuntimeErrors when evaluated', () => {
+
+});
+
+test('Function arguments can be expressions, which are evaluated', () => {
+
+});
 
 // test functions (builtin, user defined, argument handling, errors, functions
 // returning functions, expressions as arguments etc)
