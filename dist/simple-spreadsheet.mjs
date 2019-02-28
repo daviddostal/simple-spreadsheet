@@ -378,16 +378,16 @@ class Environment {
     }
 }
 
+const builtinFunctions = {
+    SUM: (...values) => values.flat().reduce((a, b) => a + b, 0),
+    AVERAGE: (...values) => values.flat().reduce((a, b) => a + b, 0) / values.flat().length,
+};
+
 class Spreadsheet {
-    constructor(cells = {}) {
+    constructor(cells = {}, functions = builtinFunctions) {
         this.cells = cells;
-
-        this.builtinFunctions = {
-            SUM: (...values) => values.flat().reduce((a, b) => a + b, 0),
-            AVERAGE: (...values) => values.flat().reduce((a, b) => a + b, 0) / values.flat().length,
-        };
-
-        this.environment = new Environment(cells, this.builtinFunctions);
+        this.builtinFunctions = functions;
+        this.environment = new Environment(this.cells, this.builtinFunctions);
     }
 
     text(position) {
@@ -399,5 +399,5 @@ class Spreadsheet {
     }
 }
 
-export { Spreadsheet, SpreadsheetError, RuntimeError, ParsingError };
+export { builtinFunctions, Spreadsheet, SpreadsheetError, RuntimeError, ParsingError };
 //# sourceMappingURL=simple-spreadsheet.mjs.map
