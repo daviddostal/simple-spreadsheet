@@ -17,4 +17,8 @@ export class Spreadsheet {
     value(position) {
         return this.environment.getValue(position);
     }
+
+    query(expression) {
+        return this.environment.evaluateExpression(expression);
+    }
 }

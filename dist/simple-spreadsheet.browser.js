@@ -374,6 +374,12 @@ var SimpleSpreadsheet = (function (exports) {
             return this._evaluator.evaluateCell(this.getExpression(position), this);
         }
 
+        evaluateExpression(expression) {
+            const parsed = this._parser.parse(expression);
+            const evaluated = this._evaluator.evaluateCell(parsed, this);
+            return evaluated;
+        }
+
         getFunction(name) {
             if (this.functions[name] === undefined)
                 throw new RuntimeError(`Unknown function: ${name} is not a function`);
@@ -399,6 +405,10 @@ var SimpleSpreadsheet = (function (exports) {
 
         value(position) {
             return this.environment.getValue(position);
+        }
+
+        query(expression) {
+            return this.environment.evaluateExpression(expression);
         }
     }
 
