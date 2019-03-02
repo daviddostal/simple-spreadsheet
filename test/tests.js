@@ -259,21 +259,14 @@ test('Range references work for any start and end position', () => {
         A3: 09, B3: 10, C3: 11, D3: 12,
         A4: 13, B4: 14, C4: 15, D4: 16,
         A5: 17, B5: 18, C5: 19, D5: 20,
-        A6: '=SUM(A1:C3)',
-        A7: '=SUM(C3:A1)',
-        A8: '=SUM(A1:A1)',
-        A9: '=SUM(A1:D1)',
-        A10: '=SUM(D1:A1)',
-        A11: '=SUM(A1:A5)',
-        A12: '=SUM(A5:A1)',
     });
-    expect(spreadsheet.value('A6')).toBe(54);
-    expect(spreadsheet.value('A7')).toBe(54);
-    expect(spreadsheet.value('A8')).toBe(1);
-    expect(spreadsheet.value('A9')).toBe(10);
-    expect(spreadsheet.value('A10')).toBe(10);
-    expect(spreadsheet.value('A11')).toBe(45);
-    expect(spreadsheet.value('A12')).toBe(45);
+    expect(spreadsheet.query('=SUM(A1:C3)')).toBe(54)
+    expect(spreadsheet.query('=SUM(C3:A1)')).toBe(54);
+    expect(spreadsheet.query('=SUM(A1:A1)')).toBe(1);
+    expect(spreadsheet.query('=SUM(A1:D1)')).toBe(10);
+    expect(spreadsheet.query('=SUM(D1:A1)')).toBe(10);
+    expect(spreadsheet.query('=SUM(A1:A5)')).toBe(45);
+    expect(spreadsheet.query('=SUM(A5:A1)')).toBe(45);
 })
 
 test('Spreadsheet accepts user defined functions in js', () => {
@@ -300,20 +293,14 @@ test('Spreadsheet functions can have multiple arguments and be any JS function',
         SUB_THEN_ADD: function (a, b, c) { return a - b + c },
         MULTIPLY_ALL: (...values) => values.reduce((a, b) => a * b, 1),
     };
-    const cells = {
-        A1: '=GET_1',
-        A2: '=SUB_3(100)',
-        A3: '=POW(2,5)',
-        A4: '=POW2(2, 5)',
-        A5: '=SUB_THEN_ADD(1, 2, 3)',
-        A6: '=MULTIPLY_ALL(2, 3, 4)',
-        A7: '=MULTIPLY_ALL()',
-    };
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(cells, functions);
-    expect(spreadsheet.value('A1')).toBe(5);
-    expect(spreadsheet.value('A2')).toBe(4.95);
-    expect(spreadsheet.value('A3')).toBe(5.95);
-    expect(spreadsheet.value('A4')).toBe('abc1');
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({}, functions);
+    expect(spreadsheet.query('=GET_1()')).toBe(1);
+    expect(spreadsheet.query('=SUB_3(100)')).toBe(97);
+    expect(spreadsheet.query('=POW(2,5)')).toBe(32);
+    expect(spreadsheet.query('=POW2(2, 5)')).toBe(32);
+    expect(spreadsheet.query('=SUB_THEN_ADD(1, 2, 3)')).toBe(2);
+    expect(spreadsheet.query('=MULTIPLY_ALL(2, 3, 4)')).toBe(24);
+    expect(spreadsheet.query('=MULTIPLY_ALL()')).toBe(1);
 });
 
 test('Ranges are passed to functions as arrays', () => {
