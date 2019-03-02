@@ -1,5 +1,5 @@
 const testResults = getTestResults();
-console.log('ALL TESTS PASSED: ', testResults.passed);
+console.log('TESTS PASSED: ', testResults.passed);
 document.addEventListener('DOMContentLoaded', function () {
     if (!testResults.passed) {
         document.body.insertAdjacentHTML('beforeend',
