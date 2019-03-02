@@ -90,7 +90,6 @@
 
     class Reference extends Expression {
         constructor(col, row) { super(); this.col = col; this.row = row; }
-        get position() { return `${this.col}${this.row}`; }
         toString() { return `Reference(${this.col}${this.row})`; }
     }
 
@@ -113,6 +112,57 @@
         constructor(from, to) { super(); this.from = from; this.to = to; }
         toString() { return `Range(${this.from}, ${this.to})`; }
     }
+
+    function positionsInRange(from, to) {
+        const positions = [];
+        for (let col of _range(columnIndex(from.col), columnIndex(to.col)))
+            for (let row of _range(from.row, to.row))
+                positions.push({ col: columnLetter(col), row: row });
+        return positions;
+    }
+
+    function _range(from, to) {
+        return from <= to
+            ? Array.from({ length: to - from + 1 }, (_, i) => i + from)
+            : Array.from({ length: from - to + 1 }, (_, i) => from - i);
+    }
+
+    function parseRange(range) {
+        const [from, to] = range.split(':');
+        return { from: parsePosition(from), to: parsePosition(to) };
+    }
+
+    function makeRange(from, to) {
+        return `${from}:${to}`;
+    }
+
+    function parsePosition(position) {
+        const positionParts = position.match(/^([A-Za-z]+)(\d+)$/);
+        return positionParts === null ? null :
+            { col: positionParts[1], row: parseInt(positionParts[2]) };
+    }
+
+    function makePosition(col, row) {
+        return `${col}${row}`;
+    }
+
+    function columnIndex(colLetter) {
+        return colLetter.charCodeAt(0) - 65;
+    }
+
+    function columnLetter(colIndex) {
+        return String.fromCharCode(colIndex + 65);
+    }
+
+    var helpers = /*#__PURE__*/Object.freeze({
+        positionsInRange: positionsInRange,
+        parseRange: parseRange,
+        makeRange: makeRange,
+        parsePosition: parsePosition,
+        makePosition: makePosition,
+        columnIndex: columnIndex,
+        columnLetter: columnLetter
+    });
 
     class Parser {
         constructor(tokenizer) {
@@ -221,10 +271,10 @@
 
         // Reference -> [A-Za-z]+\d+
         _parseReference(reference) {
-            const referenceParts = reference.match(/^([A-Za-z]+)(\d+)$/);
-            if (referenceParts === null)
+            const position = parsePosition(reference);
+            if (position === null)
                 throw new ParsingError(`Invalid format of cell reference: ${reference}`);
-            return new Reference(referenceParts[1], parseInt(referenceParts[2]));
+            return new Reference(position.col, position.row);
         }
 
         // Arguments -> (Expression (, Expression)*)?
@@ -272,7 +322,7 @@
                 case Value:
                     return cell.value;
                 case Reference:
-                    return this.evaluateReference(cell.position, environment);
+                    return this.evaluateReference(makePosition(cell.col, cell.row), environment);
                 case UnaryOp:
                     return this.evaluateUnary(cell.op, cell.value, environment);
                 case BinaryOp:
@@ -336,23 +386,9 @@
         }
 
         evaluateRange(from, to, environment) {
-            const cells = this._cellsInRange(from, to);
-            const cellValues = cells.map(cell => this.evaluateCell(cell, environment));
-            return cellValues;
-        }
-
-        _cellsInRange(from, to) {
-            const cells = [];
-            for (let col of this._range(from.col.charCodeAt(0), to.col.charCodeAt(0)))
-                for (let row of this._range(from.row, to.row))
-                    cells.push(new Reference(String.fromCharCode(col), row));
-            return cells;
-        }
-
-        _range(from, to) {
-            return from <= to
-                ? Array.from({ length: to - from + 1 }, (_, i) => i + from)
-                : Array.from({ length: from - to + 1 }, (_, i) => from - i);
+            const cells = positionsInRange(from, to)
+                .map(pos => new Reference(pos.col, pos.row));
+            return cells.map(cell => this.evaluateCell(cell, environment));
         }
     }
 
@@ -415,6 +451,7 @@
         }
     }
 
+    exports.Helpers = helpers;
     exports.builtinFunctions = builtinFunctions;
     exports.Spreadsheet = Spreadsheet;
     exports.SpreadsheetError = SpreadsheetError;

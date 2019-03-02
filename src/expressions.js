@@ -7,7 +7,6 @@ export class Value extends Expression {
 
 export class Reference extends Expression {
     constructor(col, row) { super(); this.col = col; this.row = row; }
-    get position() { return `${this.col}${this.row}`; }
     toString() { return `Reference(${this.col}${this.row})`; }
 }
 

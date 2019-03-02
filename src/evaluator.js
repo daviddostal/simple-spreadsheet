@@ -1,5 +1,6 @@
 import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp } from './expressions';
 import { RuntimeError, ParsingError } from './errors';
+import * as Helpers from './helpers';
 
 export default class Evaluator {
     evaluateCell(cell, environment) {
@@ -7,7 +8,7 @@ export default class Evaluator {
             case Value:
                 return cell.value;
             case Reference:
-                return this.evaluateReference(cell.position, environment);
+                return this.evaluateReference(Helpers.makePosition(cell.col, cell.row), environment);
             case UnaryOp:
                 return this.evaluateUnary(cell.op, cell.value, environment);
             case BinaryOp:
@@ -71,22 +72,8 @@ export default class Evaluator {
     }
 
     evaluateRange(from, to, environment) {
-        const cells = this._cellsInRange(from, to);
-        const cellValues = cells.map(cell => this.evaluateCell(cell, environment));
-        return cellValues;
-    }
-
-    _cellsInRange(from, to) {
-        const cells = [];
-        for (let col of this._range(from.col.charCodeAt(0), to.col.charCodeAt(0)))
-            for (let row of this._range(from.row, to.row))
-                cells.push(new Reference(String.fromCharCode(col), row));
-        return cells;
-    }
-
-    _range(from, to) {
-        return from <= to
-            ? Array.from({ length: to - from + 1 }, (_, i) => i + from)
-            : Array.from({ length: from - to + 1 }, (_, i) => from - i);
+        const cells = Helpers.positionsInRange(from, to)
+            .map(pos => new Reference(pos.col, pos.row));
+        return cells.map(cell => this.evaluateCell(cell, environment));
     }
 }

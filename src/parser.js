@@ -1,6 +1,7 @@
 import { TokenType } from './tokenizer';
 import { ParsingError } from './errors';
 import { Value, Reference, BinaryOp, UnaryOp, Range, FunctionCall } from './expressions';
+import * as Helpers from './helpers';
 
 export default class Parser {
     constructor(tokenizer) {
@@ -109,10 +110,10 @@ export default class Parser {
 
     // Reference -> [A-Za-z]+\d+
     _parseReference(reference) {
-        const referenceParts = reference.match(/^([A-Za-z]+)(\d+)$/);
-        if (referenceParts === null)
+        const position = Helpers.parsePosition(reference);
+        if (position === null)
             throw new ParsingError(`Invalid format of cell reference: ${reference}`);
-        return new Reference(referenceParts[1], parseInt(referenceParts[2]));
+        return new Reference(position.col, position.row);
     }
 
     // Arguments -> (Expression (, Expression)*)?

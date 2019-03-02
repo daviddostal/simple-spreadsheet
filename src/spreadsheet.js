@@ -1,5 +1,7 @@
 import { Environment } from './environment';
 import { builtinFunctions } from './functions';
+import * as Helpers from './helpers';
+export { Helpers };
 export { SpreadsheetError, RuntimeError, ParsingError } from './errors';
 export { builtinFunctions };
 
