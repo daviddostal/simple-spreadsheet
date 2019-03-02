@@ -33,6 +33,9 @@
                 if (typeof (value) !== typeof (expected)) {
                     error(`Type mismatch - expected (${typeof (expected)}) ${JSON.stringify(expected)}, got (${typeof (value)}) ${JSON.stringify(value)}`);
                     return false;
+                } else if (value instanceof Function && value === expected) {
+                    success(`(function) ${value.name} === (function) ${expected.name}`);
+                    return true;
                 } else if (value === expected || (Number.isNaN(value) && Number.isNaN(expected))) {
                     success(`${JSON.stringify(value)} === ${JSON.stringify(expected)}`);
                     return true;

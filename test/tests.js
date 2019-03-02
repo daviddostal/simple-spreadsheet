@@ -1,19 +1,3 @@
-// testParser('=2.2*2+3*3');
-// testParser('=2+2*3+3');
-// testParser('=(2+2)*(3+3)');
-// testParser('=2+--+-2*3+3');
-// testParser('=PI/2');
-// testParser('=HELLO()');
-// testParser('=HELLO()()');
-// testParser('=HELLO(1,2+3)(4)');
-// testParser('=POW(2,3)');
-// testParser('=POW(2,3)');
-// testParser('=A2+4');
-// testParser('=A2:B3');
-// testParser('lorem ipsum');
-// testParser('2+8');
-// testParser('=TEST("Hello, world")');
-
 function expectValue(formula, expected) {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: formula });
     value = spreadsheet.value('A1');
@@ -304,30 +288,59 @@ test('Spreadsheet functions can have multiple arguments and be any JS function',
 });
 
 test('Ranges are passed to functions as arrays', () => {
-
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: 1, A2: 2, B1: 3, B2: 4 },
+        {
+            TEST_RANGE: (numbers) => {
+                if (!numbers instanceof Array) throw new Error('Not an array');
+                return numbers.reduce((a, b) => a + b, 0);
+            }
+        });
+    expect(spreadsheet.query('=TEST_RANGE(A1:B2)')).toBe(10);
 });
 
 test('Functions can be nested', () => {
-
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: 1, A2: 2, B1: 3, B2: 4 },
+        { ADD: (a, b) => a + b });
+    expect(spreadsheet.query('=ADD(A1, ADD(ADD(2, A2), ADD(B1, B2)))')).toBe(12);
 });
 
 test('Functions can return arbitrary JS values, even functions', () => {
-
+    const testFunction1 = function (name) { return `Hello, ${name}` };
+    const testFunction2 = function () { return testFunction1 };
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({},
+        { TEST: testFunction2 });
+    expect(spreadsheet.query('=TEST()')).toBe(testFunction1);
 });
 
 test('Functions can accept any JS values as arguments', () => {
-
+    const fn = () => 2;
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: 1, A2: fn, B1: 3, B2: 4 }, {});
+    expect(spreadsheet.query('=A2')).toBe(fn);
 });
 
 test('Exceptions in functions cause RuntimeErrors when evaluated', () => {
-
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({},
+        { THROW: () => { throw new Error('Testing...'); } });
+    expect(() => spreadsheet.query('=THROW()')).toThrow(SimpleSpreadsheet.RuntimeError);
 });
 
 test('Function arguments can be expressions, which are evaluated', () => {
-
+    expectValue('=SUM(1, 2 + 8, SUM(3, 4, 5))', 23);
 });
 
-// test functions (builtin, user defined, argument handling, errors, functions
-// returning functions, expressions as arguments etc)
-// A01 != A1
-// consider adding spreadsheet.query(formula)
+test('Cell references are case sensitive', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ a1: 1, A2: 2 });
+    expect(spreadsheet.query('=a1')).toBe(1);
+    expect(spreadsheet.query('=A1')).toBe(null);
+    expect(spreadsheet.query('=A2')).toBe(2);
+    expect(spreadsheet.query('=a2')).toBe(null);
+});
+
+test('Cell reference rows are parsed as numbers', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: 1 });
+    expect(spreadsheet.query('=A1')).toBe(1);
+    expect(spreadsheet.query('=A01')).toBe(1);
+});
