@@ -31,23 +31,24 @@ var SimpleSpreadsheet = (function (exports) {
     });
 
     class Tokenizer {
-        constructor(rules = {
-            '$': TokenType.EOF,
-            '\\s+': TokenType.WHITESPACE,
-            '\\+': TokenType.PLUS,
-            '-': TokenType.MINUS,
-            '\\*': TokenType.STAR,
-            '\\/': TokenType.SLASH,
-            '\\(': TokenType.LPAREN,
-            '\\)': TokenType.RPAREN,
-            '=': TokenType.EQUALS,
-            ':': TokenType.COLON,
-            ',': TokenType.COMMA,
-            '\\d+(?:\\.\\d+)?': TokenType.NUMBER,
-            '\\"(?:[^"\\\\]|\\\\.)*\\"': TokenType.STRING,
-            '[a-zA-Z]\\w+': TokenType.IDENTIFIER,
-        }) {
-            this.rules = rules;
+        constructor() {
+            this.rules = {
+                // NUMBER and IDENTIFIER are used the most so keep them at the top
+                '\\d+(?:\\.\\d+)?': TokenType.NUMBER,
+                '[a-zA-Z]\\w+': TokenType.IDENTIFIER,
+                '\\s+': TokenType.WHITESPACE,
+                '\\+': TokenType.PLUS,
+                '-': TokenType.MINUS,
+                '\\*': TokenType.STAR,
+                '\\/': TokenType.SLASH,
+                '\\(': TokenType.LPAREN,
+                '\\)': TokenType.RPAREN,
+                '=': TokenType.EQUALS,
+                ':': TokenType.COLON,
+                ',': TokenType.COMMA,
+                '\\"(?:[^"\\\\]|\\\\.)*\\"': TokenType.STRING,
+                '$': TokenType.EOF,
+            };
         }
 
         begin(str) {
@@ -395,6 +396,9 @@ var SimpleSpreadsheet = (function (exports) {
             this.functions = builtinFunctions;
             this._parser = new Parser(new Tokenizer());
             this._evaluator = new Evaluator();
+            this._expressionsCache = {};
+            // caching values assumes the spreadsheet cells don't change
+            this._valuesCache = {};
         }
 
         getText(position) {
@@ -402,12 +406,20 @@ var SimpleSpreadsheet = (function (exports) {
         }
 
         getExpression(position) {
-            const value = this.cells.hasOwnProperty(position) ? this.cells[position] : null;
-            return this._parser.parse(value);
+            if (this._expressionsCache.hasOwnProperty(position))
+                return this._expressionsCache[position];
+            const text = this.cells.hasOwnProperty(position) ? this.cells[position] : null;
+            const parsed = this._parser.parse(text);
+            this._expressionsCache[position] = parsed;
+            return parsed;
         }
 
         getValue(position) {
-            return this._evaluator.evaluateCell(this.getExpression(position), this);
+            if (this._valuesCache.hasOwnProperty(position))
+                return this._valuesCache[position];
+            const value = this._evaluator.evaluateCell(this.getExpression(position), this);
+            this._valuesCache[position] = value;
+            return value;
         }
 
         evaluateExpression(expression) {

@@ -9,6 +9,9 @@ export class Environment {
         this.functions = builtinFunctions;
         this._parser = new Parser(new Tokenizer());
         this._evaluator = new Evaluator();
+        this._expressionsCache = {};
+        // caching values assumes the spreadsheet cells don't change
+        this._valuesCache = {};
     }
 
     getText(position) {
@@ -16,12 +19,20 @@ export class Environment {
     }
 
     getExpression(position) {
-        const value = this.cells.hasOwnProperty(position) ? this.cells[position] : null;
-        return this._parser.parse(value);
+        if (this._expressionsCache.hasOwnProperty(position))
+            return this._expressionsCache[position];
+        const text = this.cells.hasOwnProperty(position) ? this.cells[position] : null;
+        const parsed = this._parser.parse(text);
+        this._expressionsCache[position] = parsed;
+        return parsed;
     }
 
     getValue(position) {
-        return this._evaluator.evaluateCell(this.getExpression(position), this);
+        if (this._valuesCache.hasOwnProperty(position))
+            return this._valuesCache[position];
+        const value = this._evaluator.evaluateCell(this.getExpression(position), this);
+        this._valuesCache[position] = value;
+        return value;
     }
 
     evaluateExpression(expression) {

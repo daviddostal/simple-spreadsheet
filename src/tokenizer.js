@@ -18,23 +18,24 @@ export const TokenType = Object.freeze({
 });
 
 export class Tokenizer {
-    constructor(rules = {
-        '$': TokenType.EOF,
-        '\\s+': TokenType.WHITESPACE,
-        '\\+': TokenType.PLUS,
-        '-': TokenType.MINUS,
-        '\\*': TokenType.STAR,
-        '\\/': TokenType.SLASH,
-        '\\(': TokenType.LPAREN,
-        '\\)': TokenType.RPAREN,
-        '=': TokenType.EQUALS,
-        ':': TokenType.COLON,
-        ',': TokenType.COMMA,
-        '\\d+(?:\\.\\d+)?': TokenType.NUMBER,
-        '\\"(?:[^"\\\\]|\\\\.)*\\"': TokenType.STRING,
-        '[a-zA-Z]\\w+': TokenType.IDENTIFIER,
-    }) {
-        this.rules = rules;
+    constructor() {
+        this.rules = {
+            // NUMBER and IDENTIFIER are used the most so keep them at the top
+            '\\d+(?:\\.\\d+)?': TokenType.NUMBER,
+            '[a-zA-Z]\\w+': TokenType.IDENTIFIER,
+            '\\s+': TokenType.WHITESPACE,
+            '\\+': TokenType.PLUS,
+            '-': TokenType.MINUS,
+            '\\*': TokenType.STAR,
+            '\\/': TokenType.SLASH,
+            '\\(': TokenType.LPAREN,
+            '\\)': TokenType.RPAREN,
+            '=': TokenType.EQUALS,
+            ':': TokenType.COLON,
+            ',': TokenType.COMMA,
+            '\\"(?:[^"\\\\]|\\\\.)*\\"': TokenType.STRING,
+            '$': TokenType.EOF,
+        };
     }
 
     begin(str) {
