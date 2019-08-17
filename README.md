@@ -124,3 +124,17 @@ new SimpleSpreadsheet.Spreadsheet(
 The value of the cell `A1` above would have the value `"Bananas - Apples - Ninjas"`, which uses your own custom CONCAT function.
 
 You may want to improve your CONCAT function by for example validating the input types and throwing an error with a more meaningful error message. But this is standard JS stuff, which you probably already know :-)
+
+### Keeping the builtin functions when adding your own
+
+```javascript
+new SimpleSpreadsheet.Spreadsheet(
+    { A1: '=JOIN(" - ", "Bananas", "Apples", "Ninjas")'},
+    {
+        // Add the builtin functions
+        ...SimpleSpreadsheet.builtinFunctions,
+
+        // Your own awesome functions
+        MAKE_SPARKLY: (text) => `O*°.*${text}*.°*O`
+    }
+);
