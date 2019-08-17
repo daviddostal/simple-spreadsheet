@@ -457,5 +457,5 @@ class Spreadsheet {
     }
 }
 
-export { helpers as Helpers, builtinFunctions, Spreadsheet, SpreadsheetError, RuntimeError, ParsingError };
+export { helpers as Helpers, ParsingError, RuntimeError, Spreadsheet, SpreadsheetError, builtinFunctions };
 //# sourceMappingURL=simple-spreadsheet.mjs.map

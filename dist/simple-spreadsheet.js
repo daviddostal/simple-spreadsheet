@@ -464,11 +464,11 @@
     }
 
     exports.Helpers = helpers;
-    exports.builtinFunctions = builtinFunctions;
+    exports.ParsingError = ParsingError;
+    exports.RuntimeError = RuntimeError;
     exports.Spreadsheet = Spreadsheet;
     exports.SpreadsheetError = SpreadsheetError;
-    exports.RuntimeError = RuntimeError;
-    exports.ParsingError = ParsingError;
+    exports.builtinFunctions = builtinFunctions;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 

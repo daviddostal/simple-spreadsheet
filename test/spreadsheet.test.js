@@ -1,3 +1,5 @@
+const SimpleSpreadsheet = require('../dist/simple-spreadsheet');
+
 function expectValue(formula, expected) {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: formula });
     value = spreadsheet.value('A1');
@@ -179,7 +181,7 @@ test('Mathematical properties of multiplication are true', () => {
     expectValue('=34', 34)
 
     // Property of 0
-    expectValue('=0 * -232', 0);
+    expectValue('=0 * 232', 0);
     expectValue('=0', 0);
 
     // Negation
@@ -238,9 +240,9 @@ test('Cell references give value at referenced cell', () => {
 
 test('Range references work for any start and end position', () => {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
-        A1: 01, B1: 02, C1: 03, D1: 04,
-        A2: 05, B2: 06, C2: 07, D2: 08,
-        A3: 09, B3: 10, C3: 11, D3: 12,
+        A1:  1, B1:  2, C1:  3, D1:  4,
+        A2:  5, B2:  6, C2:  7, D2:  8,
+        A3:  9, B3: 10, C3: 11, D3: 12,
         A4: 13, B4: 14, C4: 15, D4: 16,
         A5: 17, B5: 18, C5: 19, D5: 20,
     });

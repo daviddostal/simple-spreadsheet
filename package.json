@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --watchAll --config ./jest.config.json",
     "build": "rollup -c --watch",
     "build:prod": "rollup -c"
   },
   "author": "David Dostal",
   "devDependencies": {
+    "jest": "^24.9.0",
+    "jest-cli": "^24.9.0",
     "rollup": "^1.2.3",
-    "rollup-plugin-terser": "^4.0.4",
-    "webpack": "^4.29.3",
-    "webpack-cli": "^3.2.3"
+    "rollup-plugin-terser": "^4.0.4"
   }
 }
