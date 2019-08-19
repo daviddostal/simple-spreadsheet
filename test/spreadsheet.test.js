@@ -240,9 +240,9 @@ test('Cell references give value at referenced cell', () => {
 
 test('Range references work for any start and end position', () => {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
-        A1:  1, B1:  2, C1:  3, D1:  4,
-        A2:  5, B2:  6, C2:  7, D2:  8,
-        A3:  9, B3: 10, C3: 11, D3: 12,
+        A1: 1, B1: 2, C1: 3, D1: 4,
+        A2: 5, B2: 6, C2: 7, D2: 8,
+        A3: 9, B3: 10, C3: 11, D3: 12,
         A4: 13, B4: 14, C4: 15, D4: 16,
         A5: 17, B5: 18, C5: 19, D5: 20,
     });
@@ -322,6 +322,19 @@ test('Functions can accept any JS values as arguments', () => {
         { A1: 1, A2: fn, B1: 3, B2: 4 }, {});
     expect(spreadsheet.query('=A2')).toBe(fn);
 });
+
+// TODO??
+// Should the spreadsheet support higher order functions? This would make it harder to
+// distinguish between functions and cell references and would delay the checking of
+// the range reference syntax from parse time (now) to runtime.
+//
+// test('Functions can be passed as arguments', () => {
+//     const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+//         {},
+//         { INCREMENT: x => x + 1, TWICE: (fn, value) => fn(fn(value)) }
+//     );
+//     expect(spreadsheet.query('=TWICE(INCREMENT, 3')).toBe(5);
+// });
 
 test('Exceptions in functions cause RuntimeErrors when evaluated', () => {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet({},

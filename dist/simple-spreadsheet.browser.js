@@ -176,7 +176,7 @@ var SimpleSpreadsheet = (function (exports) {
             return result;
         }
 
-        // Cell -> Expression | simple value (string or number)
+        // Cell => '=' Expression | SimpleValue
         parseCell() {
             if (this.tokens.remaining.startsWith('=')) {
                 this._expectAny(TokenType.EQUALS);
@@ -184,18 +184,23 @@ var SimpleSpreadsheet = (function (exports) {
                 this._require(TokenType.EOF);
                 return result;
             } else {
-                const value = this.tokens.rest();
-                if (value.match(/^[+-]?\d+(?:\.\d+)?$/)) return new Value(parseFloat(value));
-                else return new Value(value);
+                return this.parseSimpleValue();
             }
         }
 
-        // Expression -> Factor
+        // SimpleValue => number | text
+        parseSimpleValue() {
+            const value = this.tokens.rest();
+            if (value.match(/^[+-]?\d+(?:\.\d+)?$/)) return new Value(parseFloat(value));
+            else return new Value(value);
+        }
+
+        // Expression => Term
         parseExpression() {
             return this.parseTerm();
         }
 
-        // Term -> Factor ([+-] Factor)*
+        // Term => Factor ([+-] Factor)*
         parseTerm() {
             let left = this.parseFactor();
             let operation;
@@ -205,7 +210,7 @@ var SimpleSpreadsheet = (function (exports) {
             return left;
         }
 
-        // Factor -> Unary ([*/] Unary)*
+        // Factor => Unary ([*/] Unary)*
         parseFactor() {
             let left = this.parseUnary();
             let operation;
@@ -215,7 +220,7 @@ var SimpleSpreadsheet = (function (exports) {
             return left;
         }
 
-        // Unary -> [+-] Unary | Value
+        // Unary => [+-] Unary | Value
         parseUnary() {
             let operation = this._expectAny(TokenType.PLUS, TokenType.MINUS);
             return operation !== null
@@ -223,51 +228,70 @@ var SimpleSpreadsheet = (function (exports) {
                 : this.parseValue();
         }
 
-        // Value -> Identifier | number | string | ( Expression ) | RangeReference
+        // Value => Parenthesized | number | string | RangeReference | FunctionCall | Reference
         parseValue() {
-            // Parenthesized expression
-            if (this._expectAny(TokenType.LPAREN)) {
-                const contents = this.parseExpression();
-                this._require(TokenType.RPAREN);
-                return contents;
-            }
+            if (this._expectAny(TokenType.LPAREN))
+                return this._parseParenthesized();
 
-            // Number
             const number = this._expectAny(TokenType.NUMBER);
-            if (number !== null) { return new Value(parseFloat(number.value)); }
+            if (number !== null)
+                return this._parseNumber(number);
 
-            // String
             const string = this._expectAny(TokenType.STRING);
-            if (string !== null) {
-                const withoutQuotes = string.value.substring(1, string.value.length - 1);
-                const escapedString = withoutQuotes.replace(/\\(.)/g, '$1');
-                return new Value(escapedString);
-            }
+            if (string !== null)
+                return this._parseString(string);
+
 
             const identifier = this._require(TokenType.IDENTIFIER);
-            // Range
-            if (identifier !== null && this._expectAny(TokenType.COLON)) {
-                const endIdentifier = this._require(TokenType.IDENTIFIER);
-                const from = this._parseReference(identifier.value);
-                const to = this._parseReference(endIdentifier.value);
-                return new Range(from, to);
-            }
 
-            // Function call
-            if (this._expectAny(TokenType.LPAREN)) {
-                let value = identifier.value;
-                do {
-                    const args = this.parseArguments();
-                    value = new FunctionCall(value, args);
-                } while (this._expectAny(TokenType.LPAREN))
-                return value;
-            }
+            if (identifier !== null && this._expectAny(TokenType.COLON))
+                return this._parseRangeReference(identifier);
 
-            // Reference
+            if (this._expectAny(TokenType.LPAREN))
+                return this._parseFunctionCall(identifier);
+
             return this._parseReference(identifier.value);
         }
 
-        // Reference -> [A-Za-z]+\d+
+        // Parenthesized => ( Expression )
+        _parseParenthesized() {
+            // ( is already parsed by parseValue
+            const contents = this.parseExpression();
+            this._require(TokenType.RPAREN);
+            return contents;
+        }
+
+        _parseNumber(number) {
+            return new Value(parseFloat(number.value));
+        }
+
+        _parseString(string) {
+            const withoutQuotes = string.value.substring(1, string.value.length - 1);
+            const escapedString = withoutQuotes.replace(/\\(.)/g, '$1');
+            return new Value(escapedString);
+        }
+
+        // RangeReference => identifier ':' identifier
+        _parseRangeReference(identifier) {
+            // start identifier and : are already parsed
+            const endIdentifier = this._require(TokenType.IDENTIFIER);
+            const from = this._parseReference(identifier.value);
+            const to = this._parseReference(endIdentifier.value);
+            return new Range(from, to);
+        }
+
+        // FunctionCall => identifier ( '(' Arguments ')' )*
+        _parseFunctionCall(identifier) {
+            // function name identifier is already parsed
+            let value = identifier.value;
+            do {
+                const args = this.parseArguments();
+                value = new FunctionCall(value, args);
+            } while (this._expectAny(TokenType.LPAREN))
+            return value;
+        }
+
+        // Reference => [A-Za-z]+\d+
         _parseReference(reference) {
             const position = parsePosition(reference);
             if (position === null)
@@ -275,7 +299,7 @@ var SimpleSpreadsheet = (function (exports) {
             return new Reference(position.col, position.row);
         }
 
-        // Arguments -> (Expression (, Expression)*)?
+        // Arguments => (Expression (',' Expression)*)?
         parseArguments() {
             const args = [];
             while (!this._expectAny(TokenType.RPAREN)) {
