@@ -13,5 +13,8 @@
     "jest-cli": "^24.9.0",
     "rollup": "^1.2.3",
     "rollup-plugin-terser": "^4.0.4"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }
