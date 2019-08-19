@@ -12,20 +12,20 @@ const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
     A2: 'Yoghurt', B2: '14',
     A3: 'Tacos',   B3: '8',
     A4: 'Eggs',    B4: '=6 * 3',
-    A4: '-----',   B4: '-----',
-    A5: 'TOTAL',   B5: '=SUM(B2:B4)',
+    A5: '-----',   B5: '-----',
+    A6: 'TOTAL',   B6: '=SUM(B2:B4)',
 });
 ```
 
 ### Get text entered in cell
 ```javascript
-const totalText = spreadsheet.text('B5');
-// returns "=SUM(B1:B4)"
+const totalText = spreadsheet.text('B6');
+// returns "=SUM(B2:B4)"
 ```
 
 ### Get calculated value of cell (evaluated formula)
 ```javascript
-const totalCalculated = spreadsheet.value('B5');
+const totalCalculated = spreadsheet.value('B6');
 // returns 40
 ```
 
@@ -35,7 +35,7 @@ for (let cell in spreadsheet.cells) {
     console.log(`Position: ${cell}`);
     console.log(`Text: ${spreadsheet.text(cell)}`);
     console.log(`Value: ${spreadsheet.value(cell)}`);
-    );
+    console.log('');
 }
 ```
 
@@ -53,10 +53,10 @@ const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
 
 try {
     const val = spreadsheet.value('A1'); // Syntax error (missing parenthesis)
-    const val = spreadsheet.value('B1'); // Evaluation error (cannot sum string)
+    const val2 = spreadsheet.value('B1'); // Evaluation error (cannot sum string)
 } catch(ex) {
     if(ex instanceof SimpleSpreadsheet.SpreadsheetError)
-        console.error(ex);
+        console.error(ex); // handle error here
     else throw ex;
 }
 ```
@@ -115,8 +115,8 @@ Just pass an object with the function names as keys and the actual functions as 
 Strings and numbers from the spreadsheet are passed to you as normal js strings and numbers, ranges are passed as an array of values.
 
 ```javascript
-new SimpleSpreadsheet.Spreadsheet(
-    { A1: '=JOIN(" - ", "Bananas", "Apples", "Ninjas")'},
+const withCustomFunction = new SimpleSpreadsheet.Spreadsheet(
+    { A1: '=CONCAT(" - ", "Bananas", "Apples", "Ninjas")'},
     { CONCAT: (separator, ...strings) => strings.join(separator) }
 );
 ```
@@ -127,14 +127,26 @@ You may want to improve your CONCAT function by for example validating the input
 
 ### Keeping the builtin functions when adding your own
 
+When you aren't adding any custom functions, the builtin functions are added by default.
+Specifying your own functions overwrites the defaults, so they are no longer available.
+But you can include the default functions, which are available from `SimpleSpreadsheet.builtinFunctions`.
+
 ```javascript
-new SimpleSpreadsheet.Spreadsheet(
-    { A1: '=JOIN(" - ", "Bananas", "Apples", "Ninjas")'},
+const withOriginalAndCustomFUnctions = new SimpleSpreadsheet.Spreadsheet(
+    { A1: '=MAKE_SPARKLY("Unicorns")'},
     {
-        // Add the builtin functions
+        // Include the builtin functions
         ...SimpleSpreadsheet.builtinFunctions,
 
         // Your own awesome functions
-        MAKE_SPARKLY: (text) => `O*°.*${text}*.°*O`
+        MAKE_SPARKLY: (text) => `O*°.* ${text} *.°*O`
     }
 );
+```
+
+### Spreadsheet without builtin functions
+Just pass an empty object as the second argument when constructing the spreadsheet.
+
+```javascript
+const withoutFunctions = new SimpleSpreadsheet.Spreadsheet({ A1: '=1 + 2'}, {});
+```
