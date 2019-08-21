@@ -3,11 +3,12 @@ const SimpleSpreadsheet = require('../dist/simple-spreadsheet');
 function expectValue(formula, expected) {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: formula });
     value = spreadsheet.value('A1');
-    return expect(value).toBe(expected);
+    expect(value).toBe(expected);
+    expect(spreadsheet.query(formula)).toBe(expected);
 }
 
 function expectException(formula, exceptionType) {
-    return expect(() => new SimpleSpreadsheet.Spreadsheet({ A1: formula }).value('A1'))
+    expect(() => new SimpleSpreadsheet.Spreadsheet({ A1: formula }).value('A1'))
         .toThrow(exceptionType);
 }
 
@@ -358,4 +359,28 @@ test('Cell reference rows are parsed as numbers', () => {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: 1 });
     expect(spreadsheet.query('=A1')).toBe(1);
     expect(spreadsheet.query('=A01')).toBe(1);
+});
+
+test('Cell values can be edited', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: 1 });
+    expect(spreadsheet.value('A1')).toBe(1);
+    spreadsheet.set('A1', '5');
+    expect(spreadsheet.value('A1')).toBe(5);
+});
+
+test('Cell edit propagates to referencing cells', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '=A1 + A3' }
+    );
+
+    expect(spreadsheet.value('A1')).toBe(1);
+    expect(spreadsheet.value('A2')).toBe(2);
+    expect(spreadsheet.value('A3')).toBe(4);
+    expect(spreadsheet.value('A4')).toBe(5);
+
+    spreadsheet.set('A1', '=3+2');
+    expect(spreadsheet.value('A1')).toBe(5);
+    expect(spreadsheet.value('A2')).toBe(10);
+    expect(spreadsheet.value('A3')).toBe(20);
+    expect(spreadsheet.value('A4')).toBe(25);
 });

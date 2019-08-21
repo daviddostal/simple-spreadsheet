@@ -426,6 +426,17 @@ class Environment {
         return this.cells.hasOwnProperty(position) ? this.cells[position].toString() : "";
     }
 
+    setText(position, value) {
+        this.cells[position] = value;
+        delete this._expressionsCache[position];
+        delete this._valuesCache[position];
+
+        // TODO: reevaluate only cells, which reference position.
+        // This is just a hack to get the unit test passing,
+        // it is pretty slow to reevaluate every value in the spreadsheet just for one change.
+        this._valuesCache = {};
+    }
+
     getExpression(position) {
         if (this._expressionsCache.hasOwnProperty(position))
             return this._expressionsCache[position];
@@ -492,6 +503,10 @@ class Spreadsheet {
 
     text(position) {
         return this.environment.getText(position);
+    }
+
+    set(position, text) {
+        this.environment.setText(position, text);
     }
 
     value(position) {

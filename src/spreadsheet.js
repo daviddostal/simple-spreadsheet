@@ -16,6 +16,10 @@ export class Spreadsheet {
         return this.environment.getText(position);
     }
 
+    set(position, text) {
+        this.environment.setText(position, text);
+    }
+
     value(position) {
         return this.environment.getValue(position);
     }
