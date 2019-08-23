@@ -327,7 +327,8 @@ test('Functions can accept any JS values as arguments', () => {
 // TODO??
 // Should the spreadsheet support higher order functions? This would make it harder to
 // distinguish between functions and cell references and would delay the checking of
-// the range reference syntax from parse time (now) to runtime.
+// the range reference syntax from parse time (now) to runtime. Also the behavior would
+// shift away from how Excel works, so it would be less familiar to users.
 //
 // test('Functions can be passed as arguments', () => {
 //     const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
@@ -370,17 +371,33 @@ test('Cell values can be edited', () => {
 
 test('Cell edit propagates to referencing cells', () => {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
-        { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '=A1 + A3' }
+        { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' }
     );
 
     expect(spreadsheet.value('A1')).toBe(1);
     expect(spreadsheet.value('A2')).toBe(2);
     expect(spreadsheet.value('A3')).toBe(4);
-    expect(spreadsheet.value('A4')).toBe(5);
+    expect(spreadsheet.value('A4')).toBe(8);
 
     spreadsheet.set('A1', '=3+2');
     expect(spreadsheet.value('A1')).toBe(5);
     expect(spreadsheet.value('A2')).toBe(10);
     expect(spreadsheet.value('A3')).toBe(20);
-    expect(spreadsheet.value('A4')).toBe(25);
+    expect(spreadsheet.value('A4')).toBe(40);
+});
+
+test('Cell edits work properly even without evaluating other cells first', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' }
+    );
+
+    // evaluates A3, which depends on A2, but on A1 only indirectly
+    spreadsheet.value('A3');
+
+    // changes A1, A3 should be invalidated even though A2 was never queried
+    spreadsheet.set('A1', '=3+2');
+    expect(spreadsheet.value('A1')).toBe(5);
+    expect(spreadsheet.value('A2')).toBe(10);
+    expect(spreadsheet.value('A3')).toBe(20);
+    expect(spreadsheet.value('A4')).toBe(40);
 });

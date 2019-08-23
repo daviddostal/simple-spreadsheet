@@ -339,18 +339,35 @@ var SimpleSpreadsheet = (function (exports) {
     }
 
     class Evaluator {
-        evaluateCell(cell, environment) {
+        constructor() {
+            this._currentCellStack = [];
+            this._currentCell = () => this._currentCellStack[this._currentCellStack.length - 1];
+        }
+
+        evaluateCellAt(position, cell, environment) {
+            // TODO: here we could check for cycles in cell references
+            // if the stack already contains the position.
+            this._currentCellStack.push({ position, references: new Set() });
+            const result = this._evaluateCell(cell, environment);
+            return { result, references: this._currentCellStack.pop().references };
+        }
+
+        evaluateQuery(cell, environment) {
+            return this._evaluateCell(cell, environment);
+        }
+
+        _evaluateCell(cell, environment) {
             switch (cell.constructor) {
                 case Value:
                     return cell.value;
                 case Reference:
-                    return this.evaluateReference(makePosition(cell.col, cell.row), environment);
+                    return this._evaluateReference(makePosition(cell.col, cell.row), environment);
                 case UnaryOp:
-                    return this.evaluateUnary(cell.op, cell.value, environment);
+                    return this._evaluateUnary(cell.op, cell.value, environment);
                 case BinaryOp:
-                    return this.evaluateBinary(cell.left, cell.op, cell.right, environment);
+                    return this._evaluateBinary(cell.left, cell.op, cell.right, environment);
                 case FunctionCall:
-                    return this.evaluateFunction(cell.functionName, cell.args, environment);
+                    return this._evaluateFunction(cell.functionName, cell.args, environment);
                 case Range:
                     throw new RuntimeError(`Range references are allowed only as arguments of functions`);
                 default:
@@ -358,10 +375,13 @@ var SimpleSpreadsheet = (function (exports) {
             }
         }
 
-        evaluateReference(position, environment) {
+        _evaluateReference(position, environment) {
             try {
-                const entry = environment.getExpression(position) || new Value(null);
-                return this.evaluateCell(entry, environment);
+                const value = environment.getValue(position);
+                const currentCell = this._currentCellStack[this._currentCellStack.length - 1];
+                if (currentCell)
+                    currentCell.references.add(position);
+                return value;
             } catch (e) {
                 if (e instanceof ParsingError)
                     throw new RuntimeError(`Error in referenced cell: ${position}`);
@@ -369,15 +389,15 @@ var SimpleSpreadsheet = (function (exports) {
             }
         }
 
-        evaluateExpression(value, environment) {
+        _evaluateExpression(value, environment) {
             switch (value.constructor) {
-                case Range: return this.evaluateRange(value.from, value.to, environment);
-                default: return this.evaluateCell(value, environment);
+                case Range: return this._evaluateRange(value.from, value.to, environment);
+                default: return this._evaluateCell(value, environment);
             }
         }
 
-        evaluateUnary(op, expression, environment) {
-            const value = this.evaluateCell(expression, environment);
+        _evaluateUnary(op, expression, environment) {
+            const value = this._evaluateCell(expression, environment);
             switch (op) {
                 case '+': return value;
                 case '-': return -value;
@@ -385,9 +405,9 @@ var SimpleSpreadsheet = (function (exports) {
             }
         }
 
-        evaluateBinary(left, op, right, environment) {
-            const leftValue = this.evaluateCell(left, environment);
-            const rightValue = this.evaluateCell(right, environment);
+        _evaluateBinary(left, op, right, environment) {
+            const leftValue = this._evaluateCell(left, environment);
+            const rightValue = this._evaluateCell(right, environment);
             switch (op) {
                 case '+': return leftValue + rightValue;
                 case '-': return leftValue - rightValue;
@@ -397,8 +417,8 @@ var SimpleSpreadsheet = (function (exports) {
             }
         }
 
-        evaluateFunction(functionName, args, environment) {
-            const argumentValues = args.map(arg => this.evaluateExpression(arg, environment));
+        _evaluateFunction(functionName, args, environment) {
+            const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
             const func = environment.getFunction(functionName);
             try {
                 return func(...argumentValues);
@@ -407,10 +427,10 @@ var SimpleSpreadsheet = (function (exports) {
             }
         }
 
-        evaluateRange(from, to, environment) {
+        _evaluateRange(from, to, environment) {
             const cells = positionsInRange(from, to)
                 .map(pos => new Reference(pos.col, pos.row));
-            return cells.map(cell => this.evaluateCell(cell, environment));
+            return cells.map(cell => this._evaluateCell(cell, environment));
         }
     }
 
@@ -420,9 +440,9 @@ var SimpleSpreadsheet = (function (exports) {
             this.functions = builtinFunctions;
             this._parser = new Parser(new Tokenizer());
             this._evaluator = new Evaluator();
-            this._expressionsCache = {};
-            // caching values assumes the spreadsheet cells don't change
-            this._valuesCache = {};
+            this._expressionsCache = {}; // position => expression tree
+            this._valuesCache = {}; // position => value;
+            this._referencesTo = {}; // position => [referenced by]
         }
 
         getText(position) {
@@ -432,12 +452,16 @@ var SimpleSpreadsheet = (function (exports) {
         setText(position, value) {
             this.cells[position] = value;
             delete this._expressionsCache[position];
-            delete this._valuesCache[position];
+            this._resetReferences(position);
+        }
 
-            // TODO: reevaluate only cells, which reference position.
-            // This is just a hack to get the unit test passing,
-            // it is pretty slow to reevaluate every value in the spreadsheet just for one change.
-            this._valuesCache = {};
+        _resetReferences(position) {
+            delete this._valuesCache[position];
+            const references = this._referencesTo[position];
+            if (references) {
+                for (let reference of references) {
+                    this._resetReferences(reference);
+                }        }
         }
 
         getExpression(position) {
@@ -452,14 +476,27 @@ var SimpleSpreadsheet = (function (exports) {
         getValue(position) {
             if (this._valuesCache.hasOwnProperty(position))
                 return this._valuesCache[position];
-            const value = this._evaluator.evaluateCell(this.getExpression(position), this);
-            this._valuesCache[position] = value;
-            return value;
+            const { result, references } = this._evaluator.evaluateCellAt(position, this.getExpression(position), this);
+            this._addReferences(references, position);
+            this._valuesCache[position] = result;
+            return result;
         }
 
-        evaluateExpression(expression) {
+        _addReferences(references, position) {
+            // TODO: check for circular references, probably somewhere here?
+            // Maybe on evaluation we can just track already visited cells,
+            // because else detecting cycles in a DAG can be O(E) when there is NO cycle.
+
+            references.forEach(reference => {
+                if (!this._referencesTo[reference])
+                    this._referencesTo[reference] = [];
+                this._referencesTo[reference].push(position);
+            });
+        }
+
+        evaluateQuery(expression) {
             const parsed = this._parser.parse(expression);
-            const evaluated = this._evaluator.evaluateCell(parsed, this);
+            const evaluated = this._evaluator.evaluateQuery(parsed, this);
             return evaluated;
         }
 
@@ -500,24 +537,23 @@ var SimpleSpreadsheet = (function (exports) {
     class Spreadsheet {
         constructor(cells = {}, functions = builtinFunctions) {
             this.cells = cells;
-            this.builtinFunctions = functions;
-            this.environment = new Environment(this.cells, this.builtinFunctions);
+            this._environment = new Environment(this.cells, functions);
         }
 
         text(position) {
-            return this.environment.getText(position);
+            return this._environment.getText(position);
         }
 
         set(position, text) {
-            this.environment.setText(position, text);
+            this._environment.setText(position, text);
         }
 
         value(position) {
-            return this.environment.getValue(position);
+            return this._environment.getValue(position);
         }
 
         query(expression) {
-            return this.environment.evaluateExpression(expression);
+            return this._environment.evaluateQuery(expression);
         }
     }
 

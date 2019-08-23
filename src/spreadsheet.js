@@ -8,23 +8,22 @@ export { builtinFunctions };
 export class Spreadsheet {
     constructor(cells = {}, functions = builtinFunctions) {
         this.cells = cells;
-        this.builtinFunctions = functions;
-        this.environment = new Environment(this.cells, this.builtinFunctions);
+        this._environment = new Environment(this.cells, functions);
     }
 
     text(position) {
-        return this.environment.getText(position);
+        return this._environment.getText(position);
     }
 
     set(position, text) {
-        this.environment.setText(position, text);
+        this._environment.setText(position, text);
     }
 
     value(position) {
-        return this.environment.getValue(position);
+        return this._environment.getValue(position);
     }
 
     query(expression) {
-        return this.environment.evaluateExpression(expression);
+        return this._environment.evaluateQuery(expression);
     }
 }

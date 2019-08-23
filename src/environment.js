@@ -9,9 +9,9 @@ export class Environment {
         this.functions = builtinFunctions;
         this._parser = new Parser(new Tokenizer());
         this._evaluator = new Evaluator();
-        this._expressionsCache = {};
-        // caching values assumes the spreadsheet cells don't change
-        this._valuesCache = {};
+        this._expressionsCache = {}; // position => expression tree
+        this._valuesCache = {}; // position => value;
+        this._referencesTo = {}; // position => [referenced by]
     }
 
     getText(position) {
@@ -21,12 +21,17 @@ export class Environment {
     setText(position, value) {
         this.cells[position] = value;
         delete this._expressionsCache[position];
-        delete this._valuesCache[position];
+        this._resetReferences(position);
+    }
 
-        // TODO: reevaluate only cells, which reference position.
-        // This is just a hack to get the unit test passing,
-        // it is pretty slow to reevaluate every value in the spreadsheet just for one change.
-        this._valuesCache = {};
+    _resetReferences(position) {
+        delete this._valuesCache[position];
+        const references = this._referencesTo[position];
+        if (references) {
+            for (let reference of references) {
+                this._resetReferences(reference);
+            };
+        }
     }
 
     getExpression(position) {
@@ -41,14 +46,27 @@ export class Environment {
     getValue(position) {
         if (this._valuesCache.hasOwnProperty(position))
             return this._valuesCache[position];
-        const value = this._evaluator.evaluateCell(this.getExpression(position), this);
-        this._valuesCache[position] = value;
-        return value;
+        const { result, references } = this._evaluator.evaluateCellAt(position, this.getExpression(position), this);
+        this._addReferences(references, position);
+        this._valuesCache[position] = result;
+        return result;
     }
 
-    evaluateExpression(expression) {
+    _addReferences(references, position) {
+        // TODO: check for circular references, probably somewhere here?
+        // Maybe on evaluation we can just track already visited cells,
+        // because else detecting cycles in a DAG can be O(E) when there is NO cycle.
+
+        references.forEach(reference => {
+            if (!this._referencesTo[reference])
+                this._referencesTo[reference] = [];
+            this._referencesTo[reference].push(position);
+        });
+    }
+
+    evaluateQuery(expression) {
         const parsed = this._parser.parse(expression);
-        const evaluated = this._evaluator.evaluateCell(parsed, this);
+        const evaluated = this._evaluator.evaluateQuery(parsed, this);
         return evaluated;
     }
 
