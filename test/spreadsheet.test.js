@@ -446,3 +446,36 @@ test('Cyclic references cause runtime exception', () => {
 
     expect(() => spreadsheet2.value('A1')).toThrow(SimpleSpreadsheet.RuntimeError);
 });
+
+test('Cell changes are reported', () => {
+    const changedPositions = [];
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: 1, A2: '=A1' }, {}, changed => changedPositions.push(changed)
+    );
+
+
+    expect(spreadsheet.value('A1')).toBe(1);
+    expect(spreadsheet.value('A2')).toBe(1);
+
+    spreadsheet.set('A1', 2);
+    expect(changedPositions).toStrictEqual([['A1', 'A2']]);
+
+    expect(spreadsheet.value('A1')).toBe(2);
+    expect(spreadsheet.value('A2')).toBe(2);
+});
+
+test('Cell changes are reported only for already evaluated cells', () => {
+    const changedPositions = [];
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' },
+        {},
+        changed => changedPositions.push(changed)
+    );
+
+    // evaluates A3, A2 and A1
+    spreadsheet.value('A3');
+
+    // changes A1, A2, A1 but not A4 since A4 was never evaluated
+    spreadsheet.set('A1', '=3+2');
+    expect(changedPositions).toStrictEqual([['A1', 'A2', 'A3']]);
+});

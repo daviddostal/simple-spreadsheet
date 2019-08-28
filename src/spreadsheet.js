@@ -6,9 +6,9 @@ export { SpreadsheetError, RuntimeError, ParsingError } from './errors';
 export { builtinFunctions };
 
 export class Spreadsheet {
-    constructor(cells = {}, functions = builtinFunctions) {
+    constructor(cells = {}, functions = builtinFunctions, cellsChangedListener) {
         this.cells = cells;
-        this._environment = new Environment(this.cells, functions);
+        this._environment = new Environment(this.cells, functions, cellsChangedListener);
     }
 
     text(position) {

@@ -487,9 +487,10 @@ class ReferencesMap {
 }
 
 class Environment {
-    constructor(cells = {}, builtinFunctions = {}) {
+    constructor(cells = {}, builtinFunctions = {}, cellsChangedListener = (() => { })) {
         this.cells = cells;
         this.functions = builtinFunctions;
+        this.cellsChangedListener = cellsChangedListener;
         this._parser = new Parser(new Tokenizer());
         this._evaluator = new Evaluator();
 
@@ -505,13 +506,15 @@ class Environment {
     setText(position, value) {
         this.cells[position] = value;
 
-        delete this._valuesCache[position];
-        for (let pos of this._referencesMap.getAffectedCells(position))
+        const affectedCells = [position, ...this._referencesMap.getAffectedCells(position)];
+        for (let pos of affectedCells)
             delete this._valuesCache[pos];
 
         delete this._expressionsCache[position];
         if (this._referencesMap.getReferencesFrom(position))
             this._referencesMap.removeReferencesFrom(position);
+
+        this.cellsChangedListener(affectedCells);
     }
 
     getExpression(position) {
@@ -577,9 +580,9 @@ const builtinFunctions = {
 };
 
 class Spreadsheet {
-    constructor(cells = {}, functions = builtinFunctions) {
+    constructor(cells = {}, functions = builtinFunctions, cellsChangedListener) {
         this.cells = cells;
-        this._environment = new Environment(this.cells, functions);
+        this._environment = new Environment(this.cells, functions, cellsChangedListener);
     }
 
     text(position) {

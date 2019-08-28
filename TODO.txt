@@ -1,5 +1,5 @@
 ✔ Reference cycle detection
-- Events for cell changes
+✔ Events for cell changes
 - Constants like PI, E etc.
 - Macro functions like IF(...; ...; ...)
 - Performance profiling and optimizations
