@@ -2,7 +2,7 @@ import { Tokenizer } from './tokenizer';
 import Parser from './parser';
 import Evaluator from './evaluator';
 import { RuntimeError } from './errors';
-import TwoWayMap from './twoWayMap';
+import ReferencesMap from './referencesMap';
 
 export class Environment {
     constructor(cells = {}, builtinFunctions = {}) {
@@ -14,7 +14,7 @@ export class Environment {
         this._expressionsCache = {}; // position => expression tree
 
         this._valuesCache = {}; // position => value;
-        this._referencesMap = new TwoWayMap();
+        this._referencesMap = new ReferencesMap();
     }
 
     getText(position) {
@@ -24,11 +24,11 @@ export class Environment {
     setText(position, value) {
         this.cells[position] = value;
         delete this._expressionsCache[position];
-        this._referencesMap.traverseIncoming(position,
+        this._referencesMap.traverseReferencesTo(position,
             pos => delete this._valuesCache[pos]);
 
-        if (this._referencesMap.getFrom(position))
-            this._referencesMap.removeNodesFrom(position);
+        if (this._referencesMap.getReferencesIn(position))
+            this._referencesMap.removeReferencesFrom(position);
     }
 
     getExpression(position) {
@@ -40,7 +40,7 @@ export class Environment {
         this._expressionsCache[position] = parsed;
 
         for (let reference of references)
-            this._referencesMap.addNode(position, reference);
+            this._referencesMap.addReference(position, reference);
 
         return parsed;
     }

@@ -458,72 +458,41 @@ var SimpleSpreadsheet = (function (exports) {
         }
     }
 
-    class TwoWayMap {
+    class ReferencesMap {
         constructor() {
-            this._nodesFrom = {};
-            this._nodesTo = {};
+            this._referencesIn = {};
+            this._referencesTo = {};
         }
 
-        getFrom(from) { return this._nodesFrom[from]; }
-        getTo(to) { return this._nodesTo[to]; }
+        getReferencesIn(position) { return this._referencesIn[position]; }
+        getReferencesTo(position) { return this._referencesTo[position]; }
 
-        addNode(from, to) {
-            this._addToNode(this._nodesFrom, from, to);
-            this._addToNode(this._nodesTo, to, from);
+        addReference(positionFrom, referenceTo) {
+            if (!this._referencesIn[positionFrom])
+                this._referencesIn[positionFrom] = [];
+            this._referencesIn[positionFrom].push(referenceTo);
+
+            if (!this._referencesTo[referenceTo])
+                this._referencesTo[referenceTo] = [];
+            this._referencesTo[referenceTo].push(positionFrom);
         }
 
-        removeNode(from, to) {
-            this._removeFromNode(this._nodesFrom, from, to);
-            this._removeFromNode(this._nodesTo, to, from);
-        }
-
-        removeNodesFrom(node) {
-            this._removeNodes(this._nodesFrom, this._nodesTo, node);
-        }
-
-        removeNodesTo(node) {
-            this._removeNodes(this._nodesTo, this._nodesFrom, node);
-        }
-
-        traverseIncoming(node, callback) {
-            callback(node);
-            const sourceNodes = this.getTo(node);
-            if (sourceNodes) {
-                for (let sourceNode of sourceNodes) {
-                    this.traverseIncoming(sourceNode, callback);
-                }        }
-        }
-
-        _addToNode(map, node, value) {
-            if (!map[node]) map[node] = [];
-            map[node].push(value);
-        }
-
-        _removeFromNode(map, node, value) {
-            const valueIndex = map[node].indexOf(value);
-            if (valueIndex > -1) map[node].splice(valueIndex, 1);
-        }
-
-        _removeNodes(targetMap, sourceMap, node) {
-            const targetNodes = targetMap[node];
+        removeReferencesFrom(position) {
+            const targetNodes = this._referencesIn[position];
             for (let target of targetNodes) {
-                this._removeFromNode(sourceMap, target, node);
+                const valueIndex = this._referencesTo[target].indexOf(position);
+                if (valueIndex > -1) this._referencesTo[target].splice(valueIndex, 1);
             }
-            delete targetMap[node];
+            delete this._referencesIn[position];
         }
 
-        toString() {
-            if (Object.entries(this._nodesFrom).length === 0 && Object.entries(this._nodesTo).length === 0)
-                return "{ }";
-            let result = "{\n    ";
-            for (let nodeFrom in this._nodesFrom)
-                result += `${nodeFrom} => [${this._nodesFrom[nodeFrom].join(', ')}]; `;
-
-            result += "\n    ";
-            for (let nodeTo in this._nodesTo)
-                result += `${nodeTo} <= [${this._nodesTo[nodeTo].join(', ')}]; `;
-            result += "\n}";
-            return result;
+        traverseReferencesTo(position, callback) {
+            callback(position);
+            const referencesTo = this.getReferencesTo(position);
+            if (referencesTo) {
+                for (let reference of referencesTo) {
+                    this.traverseReferencesTo(reference, callback);
+                }        }
         }
     }
 
@@ -537,7 +506,7 @@ var SimpleSpreadsheet = (function (exports) {
             this._expressionsCache = {}; // position => expression tree
 
             this._valuesCache = {}; // position => value;
-            this._referencesMap = new TwoWayMap();
+            this._referencesMap = new ReferencesMap();
         }
 
         getText(position) {
@@ -547,11 +516,11 @@ var SimpleSpreadsheet = (function (exports) {
         setText(position, value) {
             this.cells[position] = value;
             delete this._expressionsCache[position];
-            this._referencesMap.traverseIncoming(position,
+            this._referencesMap.traverseReferencesTo(position,
                 pos => delete this._valuesCache[pos]);
 
-            if (this._referencesMap.getFrom(position))
-                this._referencesMap.removeNodesFrom(position);
+            if (this._referencesMap.getReferencesIn(position))
+                this._referencesMap.removeReferencesFrom(position);
         }
 
         getExpression(position) {
@@ -563,7 +532,7 @@ var SimpleSpreadsheet = (function (exports) {
             this._expressionsCache[position] = parsed;
 
             for (let reference of references)
-                this._referencesMap.addNode(position, reference);
+                this._referencesMap.addReference(position, reference);
 
             return parsed;
         }
