@@ -432,3 +432,17 @@ test('Cell edits propagate with ranges even if not all evaluated', () => {
     expect(spreadsheet.value('A3')).toBe(5);
     expect(spreadsheet.value('A4')).toBe(5);
 });
+
+test('Cyclic references cause runtime exception', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+        A1: '=A2', A2: '=A1'
+    });
+
+    expect(() => spreadsheet.value('A1')).toThrow(SimpleSpreadsheet.RuntimeError);
+
+    const spreadsheet2 = new SimpleSpreadsheet.Spreadsheet({
+        A1: '=2 * A1'
+    });
+
+    expect(() => spreadsheet2.value('A1')).toThrow(SimpleSpreadsheet.RuntimeError);
+});

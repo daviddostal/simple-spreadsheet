@@ -4,17 +4,17 @@ import * as Helpers from './helpers';
 
 export default class Evaluator {
     constructor() {
-        this._currentCellStack = [];
+        this.visitedCellStack = [];
     }
 
     evaluateCellAt(position, cell, environment) {
-        // TODO: here we could check for cycles in cell references
-        // if the stack already contains the position.
+        if (this.visitedCellStack.includes(position))
+            throw new RuntimeError(`Circular reference detected (${this.visitedCellStack.join(' -> ')} -> ${position})`);
 
-        this._currentCellStack.push({ position, references: new Set() });
+        this.visitedCellStack.push(position);
         const result = this._evaluateCell(cell, environment);
+        this.visitedCellStack.pop();
         return result;
-        return { result, references: this._currentCellStack.pop().references };
     }
 
     evaluateQuery(cell, environment) {
@@ -42,11 +42,7 @@ export default class Evaluator {
 
     _evaluateReference(position, environment) {
         try {
-            const value = environment.getValue(position);
-            const currentCell = this._currentCellStack[this._currentCellStack.length - 1];
-            if (currentCell)
-                currentCell.references.add(position);
-            return value;
+            return environment.getValue(position);
         } catch (e) {
             if (e instanceof ParsingError)
                 throw new RuntimeError(`Error in referenced cell: ${position}`);
@@ -96,9 +92,5 @@ export default class Evaluator {
         return Helpers.positionsInRange(from, to)
             .map(pos => Helpers.makePosition(pos.col, pos.row))
             .map(pos => this._evaluateReference(pos, environment));
-
-        const cells = Helpers.positionsInRange(from, to)
-            .map(pos => new Reference(pos.col, pos.row));
-        return cells.map(cell => this._evaluateCell(cell, environment));
     }
 }
