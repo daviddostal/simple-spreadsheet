@@ -22,11 +22,13 @@ export class Environment {
 
     setText(position, value) {
         this.cells[position] = value;
-        delete this._expressionsCache[position];
-        this._referencesMap.traverseReferencesTo(position,
-            pos => delete this._valuesCache[pos]);
 
-        if (this._referencesMap.getReferencesIn(position))
+        delete this._valuesCache[position];
+        for (let pos of this._referencesMap.getAffectedCells(position))
+            delete this._valuesCache[pos];
+
+        delete this._expressionsCache[position];
+        if (this._referencesMap.getReferencesFrom(position))
             this._referencesMap.removeReferencesFrom(position);
     }
 
