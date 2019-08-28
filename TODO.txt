@@ -1,0 +1,6 @@
+- Reference cycle detection
+- Constants like PI, E etc.
+- Macro functions like IF(...; ...; ...)
+- Performance profiling and optimizations
+? Spreadsheet functions inside custom functions
+?? Parser, lexer and evaluator extensions (custom operators etc)

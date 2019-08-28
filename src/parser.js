@@ -11,65 +11,66 @@ export default class Parser {
     parse(text) {
         if (text === null || text === undefined || text.constructor !== String)
             return { parsed: new Value(text), references: [] }; // if there is nothing to parse, return the value.
+
         this.tokens.begin(text);
-        const parsed = this.parseCell();
-        return { parsed, references: [...new Set(this._getReferencesIn(parsed))] };
+        const parsed = this._parseCell();
+        return { parsed, references: [...new Set(this._getReferences(parsed))] };
     }
 
     // Cell => '=' Expression | SimpleValue
-    parseCell() {
+    _parseCell() {
         if (this.tokens.remaining.startsWith('=')) {
             this._expectAny(TokenType.EQUALS);
-            const result = this.parseExpression();
+            const result = this._parseExpression();
             this._require(TokenType.EOF);
             return result;
         } else {
-            return this.parseSimpleValue();
+            return this._parseSimpleValue();
         }
     }
 
     // SimpleValue => number | text
-    parseSimpleValue() {
+    _parseSimpleValue() {
         const value = this.tokens.rest();
         if (value.match(/^[+-]?\d+(?:\.\d+)?$/)) return new Value(parseFloat(value));
         else return new Value(value);
     }
 
     // Expression => Term
-    parseExpression() {
-        return this.parseTerm();
+    _parseExpression() {
+        return this._parseTerm();
     }
 
     // Term => Factor ([+-] Factor)*
-    parseTerm() {
-        let left = this.parseFactor();
+    _parseTerm() {
+        let left = this._parseFactor();
         let operation;
         while ((operation = this._expectAny(TokenType.PLUS, TokenType.MINUS)) !== null) {
-            left = new BinaryOp(left, operation.value, this.parseFactor());
+            left = new BinaryOp(left, operation.value, this._parseFactor());
         }
         return left;
     }
 
     // Factor => Unary ([*/] Unary)*
-    parseFactor() {
-        let left = this.parseUnary();
+    _parseFactor() {
+        let left = this._parseUnary();
         let operation;
         while ((operation = this._expectAny(TokenType.STAR, TokenType.SLASH)) !== null) {
-            left = new BinaryOp(left, operation.value, this.parseUnary());
+            left = new BinaryOp(left, operation.value, this._parseUnary());
         }
         return left;
     }
 
     // Unary => [+-] Unary | Value
-    parseUnary() {
+    _parseUnary() {
         let operation = this._expectAny(TokenType.PLUS, TokenType.MINUS);
         return operation !== null
-            ? new UnaryOp(operation.value, this.parseUnary())
-            : this.parseValue();
+            ? new UnaryOp(operation.value, this._parseUnary())
+            : this._parseValue();
     }
 
     // Value => Parenthesized | number | string | RangeReference | FunctionCall | Reference
-    parseValue() {
+    _parseValue() {
         if (this._expectAny(TokenType.LPAREN))
             return this._parseParenthesized();
 
@@ -96,7 +97,7 @@ export default class Parser {
     // Parenthesized => ( Expression )
     _parseParenthesized() {
         // ( is already parsed by parseValue
-        const contents = this.parseExpression();
+        const contents = this._parseExpression();
         this._require(TokenType.RPAREN);
         return contents;
     }
@@ -125,7 +126,7 @@ export default class Parser {
         // function name identifier is already parsed
         let value = identifier.value;
         do {
-            const args = this.parseArguments();
+            const args = this._parseArguments();
             value = new FunctionCall(value, args);
         } while (this._expectAny(TokenType.LPAREN))
         return value;
@@ -140,12 +141,12 @@ export default class Parser {
     }
 
     // Arguments => (Expression (',' Expression)*)?
-    parseArguments() {
+    _parseArguments() {
         const args = [];
         while (!this._expectAny(TokenType.RPAREN)) {
             if (args.length != 0)
                 this._require(TokenType.COMMA);
-            args.push(this.parseExpression());
+            args.push(this._parseExpression());
         }
         return args;
     }
@@ -177,18 +178,18 @@ export default class Parser {
         return current;
     }
 
-    _getReferencesIn(expression) {
+    _getReferences(expression) {
         switch (expression.constructor) {
             case Value:
                 return [];
             case Reference:
                 return [Helpers.makePosition(expression.col, expression.row)];
             case UnaryOp:
-                return this._getReferencesIn(expression.value);
+                return this._getReferences(expression.value);
             case BinaryOp:
-                return [...this._getReferencesIn(expression.left), ...this._getReferencesIn(expression.right)];
+                return [...this._getReferences(expression.left), ...this._getReferences(expression.right)];
             case FunctionCall:
-                return expression.args.flatMap(arg => this._getReferencesIn(arg));
+                return expression.args.flatMap(arg => this._getReferences(arg));
             case Range:
                 return Helpers.positionsInRange(expression.from, expression.to)
                     .map(pos => Helpers.makePosition(pos.col, pos.row));

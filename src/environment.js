@@ -12,7 +12,6 @@ export class Environment {
         this._evaluator = new Evaluator();
 
         this._expressionsCache = {}; // position => expression tree
-
         this._valuesCache = {}; // position => value;
         this._referencesMap = new ReferencesMap();
     }
