@@ -401,3 +401,34 @@ test('Cell edits work properly even without evaluating other cells first', () =>
     expect(spreadsheet.value('A3')).toBe(20);
     expect(spreadsheet.value('A4')).toBe(40);
 });
+
+test('Cell edits propagate with ranges', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: 1, A2: 2, A3: 4, A4: '=SUM(A1:A3)' }
+    );
+
+    expect(spreadsheet.value('A1')).toBe(1);
+    expect(spreadsheet.value('A2')).toBe(2);
+    expect(spreadsheet.value('A3')).toBe(4);
+    expect(spreadsheet.value('A4')).toBe(7);
+
+    spreadsheet.set('A1', 5);
+    expect(spreadsheet.value('A1')).toBe(5);
+    expect(spreadsheet.value('A2')).toBe(2);
+    expect(spreadsheet.value('A3')).toBe(4);
+    expect(spreadsheet.value('A4')).toBe(11);
+});
+
+test('Cell edits propagate with ranges even if not all evaluated', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: 1, A2: '=SUM(A1:A1)', A3: '=SUM(A2:A2)', A4: '=SUM(A3:A3)' }
+    );
+
+    spreadsheet.value('A3');
+
+    spreadsheet.set('A1', 5);
+    expect(spreadsheet.value('A1')).toBe(5);
+    expect(spreadsheet.value('A2')).toBe(5);
+    expect(spreadsheet.value('A3')).toBe(5);
+    expect(spreadsheet.value('A4')).toBe(5);
+});

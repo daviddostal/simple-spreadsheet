@@ -5,14 +5,15 @@ import * as Helpers from './helpers';
 export default class Evaluator {
     constructor() {
         this._currentCellStack = [];
-        this._currentCell = () => this._currentCellStack[this._currentCellStack.length - 1];
     }
 
     evaluateCellAt(position, cell, environment) {
         // TODO: here we could check for cycles in cell references
         // if the stack already contains the position.
+
         this._currentCellStack.push({ position, references: new Set() });
         const result = this._evaluateCell(cell, environment);
+        return result;
         return { result, references: this._currentCellStack.pop().references };
     }
 
@@ -92,6 +93,10 @@ export default class Evaluator {
     }
 
     _evaluateRange(from, to, environment) {
+        return Helpers.positionsInRange(from, to)
+            .map(pos => Helpers.makePosition(pos.col, pos.row))
+            .map(pos => this._evaluateReference(pos, environment));
+
         const cells = Helpers.positionsInRange(from, to)
             .map(pos => new Reference(pos.col, pos.row));
         return cells.map(cell => this._evaluateCell(cell, environment));

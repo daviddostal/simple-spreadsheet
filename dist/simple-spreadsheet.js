@@ -172,11 +172,10 @@
 
         parse(text) {
             if (text === null || text === undefined || text.constructor !== String)
-                return new Value(text); // if there is nothing to parse, return the value.
-
+                return { parsed: new Value(text), references: [] }; // if there is nothing to parse, return the value.
             this.tokens.begin(text);
-            const result = this.parseCell();
-            return result;
+            const parsed = this.parseCell();
+            return { parsed, references: [...new Set(this._getReferencesIn(parsed))] };
         }
 
         // Cell => '=' Expression | SimpleValue
@@ -339,19 +338,40 @@
             }
             return current;
         }
+
+        _getReferencesIn(expression) {
+            switch (expression.constructor) {
+                case Value:
+                    return [];
+                case Reference:
+                    return [makePosition(expression.col, expression.row)];
+                case UnaryOp:
+                    return this._getReferencesIn(expression.value);
+                case BinaryOp:
+                    return [...this._getReferencesIn(expression.left), ...this._getReferencesIn(expression.right)];
+                case FunctionCall:
+                    return expression.args.flatMap(arg => this._getReferencesIn(arg));
+                case Range:
+                    return positionsInRange(expression.from, expression.to)
+                        .map(pos => makePosition(pos.col, pos.row));
+                default:
+                    throw new ParsingError(`Unknown expression type: ${typeof expression}`);
+            }
+        }
     }
 
     class Evaluator {
         constructor() {
             this._currentCellStack = [];
-            this._currentCell = () => this._currentCellStack[this._currentCellStack.length - 1];
         }
 
         evaluateCellAt(position, cell, environment) {
             // TODO: here we could check for cycles in cell references
             // if the stack already contains the position.
+
             this._currentCellStack.push({ position, references: new Set() });
             const result = this._evaluateCell(cell, environment);
+            return result;
             return { result, references: this._currentCellStack.pop().references };
         }
 
@@ -431,9 +451,82 @@
         }
 
         _evaluateRange(from, to, environment) {
+            return positionsInRange(from, to)
+                .map(pos => makePosition(pos.col, pos.row))
+                .map(pos => this._evaluateReference(pos, environment));
+
             const cells = positionsInRange(from, to)
                 .map(pos => new Reference(pos.col, pos.row));
             return cells.map(cell => this._evaluateCell(cell, environment));
+        }
+    }
+
+    class TwoWayMap {
+        constructor() {
+            this._nodesFrom = {};
+            this._nodesTo = {};
+        }
+
+        getFrom(from) { return this._nodesFrom[from]; }
+        getTo(to) { return this._nodesTo[to]; }
+
+        addNode(from, to) {
+            this._addToNode(this._nodesFrom, from, to);
+            this._addToNode(this._nodesTo, to, from);
+        }
+
+        removeNode(from, to) {
+            this._removeFromNode(this._nodesFrom, from, to);
+            this._removeFromNode(this._nodesTo, to, from);
+        }
+
+        removeNodesFrom(node) {
+            this._removeNodes(this._nodesFrom, this._nodesTo, node);
+        }
+
+        removeNodesTo(node) {
+            this._removeNodes(this._nodesTo, this._nodesFrom, node);
+        }
+
+        traverseIncoming(node, callback) {
+            callback(node);
+            const sourceNodes = this.getTo(node);
+            if (sourceNodes) {
+                for (let sourceNode of sourceNodes) {
+                    this.traverseIncoming(sourceNode, callback);
+                }        }
+        }
+
+        _addToNode(map, node, value) {
+            if (!map[node]) map[node] = [];
+            map[node].push(value);
+        }
+
+        _removeFromNode(map, node, value) {
+            const valueIndex = map[node].indexOf(value);
+            if (valueIndex > -1) map[node].splice(valueIndex, 1);
+        }
+
+        _removeNodes(targetMap, sourceMap, node) {
+            const targetNodes = targetMap[node];
+            for (let target of targetNodes) {
+                this._removeFromNode(sourceMap, target, node);
+            }
+            delete targetMap[node];
+        }
+
+        toString() {
+            if (Object.entries(this._nodesFrom).length === 0 && Object.entries(this._nodesTo).length === 0)
+                return "{ }";
+            let result = "{\n    ";
+            for (let nodeFrom in this._nodesFrom)
+                result += `${nodeFrom} => [${this._nodesFrom[nodeFrom].join(', ')}]; `;
+
+            result += "\n    ";
+            for (let nodeTo in this._nodesTo)
+                result += `${nodeTo} <= [${this._nodesTo[nodeTo].join(', ')}]; `;
+            result += "\n}";
+            return result;
         }
     }
 
@@ -443,9 +536,11 @@
             this.functions = builtinFunctions;
             this._parser = new Parser(new Tokenizer());
             this._evaluator = new Evaluator();
+
             this._expressionsCache = {}; // position => expression tree
+
             this._valuesCache = {}; // position => value;
-            this._referencesTo = {}; // position => [referenced by]
+            this._referencesMap = new TwoWayMap();
         }
 
         getText(position) {
@@ -455,52 +550,39 @@
         setText(position, value) {
             this.cells[position] = value;
             delete this._expressionsCache[position];
-            this._resetReferences(position);
-        }
+            this._referencesMap.traverseIncoming(position,
+                pos => delete this._valuesCache[pos]);
 
-        _resetReferences(position) {
-            delete this._valuesCache[position];
-            const references = this._referencesTo[position];
-            if (references) {
-                for (let reference of references) {
-                    this._resetReferences(reference);
-                }        }
+            if (this._referencesMap.getFrom(position))
+                this._referencesMap.removeNodesFrom(position);
         }
 
         getExpression(position) {
             if (this._expressionsCache.hasOwnProperty(position))
                 return this._expressionsCache[position];
+
             const text = this.cells.hasOwnProperty(position) ? this.cells[position] : null;
-            const parsed = this._parser.parse(text);
+            const { parsed, references } = this._parser.parse(text);
             this._expressionsCache[position] = parsed;
+
+            for (let reference of references)
+                this._referencesMap.addNode(position, reference);
+
             return parsed;
         }
 
         getValue(position) {
             if (this._valuesCache.hasOwnProperty(position))
                 return this._valuesCache[position];
-            const { result, references } = this._evaluator.evaluateCellAt(position, this.getExpression(position), this);
-            this._addReferences(references, position);
+
+            const result = this._evaluator.evaluateCellAt(position, this.getExpression(position), this);
             this._valuesCache[position] = result;
             return result;
         }
 
-        _addReferences(references, position) {
-            // TODO: check for circular references, probably somewhere here?
-            // Maybe on evaluation we can just track already visited cells,
-            // because else detecting cycles in a DAG can be O(E) when there is NO cycle.
-
-            references.forEach(reference => {
-                if (!this._referencesTo[reference])
-                    this._referencesTo[reference] = [];
-                this._referencesTo[reference].push(position);
-            });
-        }
-
         evaluateQuery(expression) {
-            const parsed = this._parser.parse(expression);
-            const evaluated = this._evaluator.evaluateQuery(parsed, this);
-            return evaluated;
+            const { parsed, _ } = this._parser.parse(expression);
+            return this._evaluator.evaluateQuery(parsed, this);
         }
 
         getFunction(name) {

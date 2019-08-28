@@ -10,11 +10,10 @@ export default class Parser {
 
     parse(text) {
         if (text === null || text === undefined || text.constructor !== String)
-            return new Value(text); // if there is nothing to parse, return the value.
-
+            return { parsed: new Value(text), references: [] }; // if there is nothing to parse, return the value.
         this.tokens.begin(text);
-        const result = this.parseCell();
-        return result;
+        const parsed = this.parseCell();
+        return { parsed, references: [...new Set(this._getReferencesIn(parsed))] };
     }
 
     // Cell => '=' Expression | SimpleValue
@@ -176,5 +175,25 @@ export default class Parser {
             current = this.tokens.peek();
         }
         return current;
+    }
+
+    _getReferencesIn(expression) {
+        switch (expression.constructor) {
+            case Value:
+                return [];
+            case Reference:
+                return [Helpers.makePosition(expression.col, expression.row)];
+            case UnaryOp:
+                return this._getReferencesIn(expression.value);
+            case BinaryOp:
+                return [...this._getReferencesIn(expression.left), ...this._getReferencesIn(expression.right)];
+            case FunctionCall:
+                return expression.args.flatMap(arg => this._getReferencesIn(arg));
+            case Range:
+                return Helpers.positionsInRange(expression.from, expression.to)
+                    .map(pos => Helpers.makePosition(pos.col, pos.row));
+            default:
+                throw new ParsingError(`Unknown expression type: ${typeof expression}`);
+        }
     }
 }
