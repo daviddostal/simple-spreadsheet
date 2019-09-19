@@ -10,6 +10,33 @@ class RuntimeError extends SpreadsheetError {
     toString() { return `Evaluation error: ${this.message}`; }
 }
 
+class TokenStream {
+    constructor(tokens) {
+        this._tokens = tokens;
+        this._currentPos = 0;
+    }
+
+    peek() {
+        return this._tokens[this._currentPos] || null;
+    }
+
+    expect(...types) {
+        const token = this.peek();
+        if (token !== null && types.includes(token.type)) {
+            this._currentPos++;
+            return token;
+        }
+        return null;
+    }
+
+    require(...types) {
+        const token = this.expect(...types);
+        if (token === null)
+            throw new ParsingError(`Expected ${types.join(' or ')}, got ${this.peek().type} instead.`);
+        return token;
+    }
+}
+
 const TokenType = Object.freeze({
     EOF: 'EOF',
     WHITESPACE: 'WHITESPACE',
@@ -24,14 +51,16 @@ const TokenType = Object.freeze({
     COMMA: 'COMMA',
     NUMBER: 'NUMBER',
     STRING: 'STRING',
+    REFERENCE: 'REFERENCE',
     IDENTIFIER: 'IDENTIFIER',
 });
 
 class Tokenizer {
     constructor() {
-        this.rules = {
-            // NUMBER and IDENTIFIER are used the most so keep them at the top
+        this._rules = {
+            // NUMBER, REFERENCE and IDENTIFIER are used the most so keep them at the top
             '\\d+(?:\\.\\d+)?': TokenType.NUMBER,
+            '[A-Za-z]+\\d+': TokenType.REFERENCE,
             '[a-zA-Z]\\w+': TokenType.IDENTIFIER,
             '\\s+': TokenType.WHITESPACE,
             '\\+': TokenType.PLUS,
@@ -48,31 +77,25 @@ class Tokenizer {
         };
     }
 
-    begin(str) {
-        this.remaining = str;
-        return this;
-    }
-
-    next() {
-        const next = this.peek();
-        this.remaining = this.remaining.slice(next.value.length);
-        return next;
-    }
-
-    peek() {
-        for (let rule in this.rules) {
-            const match = this.remaining.match(new RegExp('^' + rule));
-            if (match !== null) {
-                return { type: this.rules[rule], value: match[0] };
-            }
+    tokenize(text) {
+        const tokens = [];
+        let remaining = text;
+        while (remaining.length > 0) {
+            const token = this._nextToken(remaining);
+            tokens.push(token);
+            remaining = remaining.slice(token.value.length);
         }
-        throw new ParsingError(`Unknown token '${this.remaining}'`);
+        tokens.push({ type: TokenType.EOF, value: '' });
+        return new TokenStream(tokens.filter(token => token.type !== TokenType.WHITESPACE));
     }
 
-    rest() {
-        const rest = this.remaining;
-        this.remaining = "";
-        return rest;
+    _nextToken(text) {
+        for (let rule in this._rules) {
+            const match = text.match(new RegExp('^' + rule));
+            if (match !== null)
+                return { type: this._rules[rule], value: match[0] };
+        }
+        throw new ParsingError(`Unknown token at '${text}'`);
     }
 }
 
@@ -83,9 +106,14 @@ class Value extends Expression {
     toString() { return this.value.constructor === String ? `"${this.value}"` : `${this.value}`; }
 }
 
+class CellReference extends Expression {
+    constructor(position) { super(); this.position = position; }
+    toString() { return `CellReference(${this.position})`; }
+}
+
 class Reference extends Expression {
-    constructor(col, row) { super(); this.col = col; this.row = row; }
-    toString() { return `Reference(${this.col}${this.row})`; }
+    constructor(name) { super(); this.name = name; }
+    toString() { return `Reference(${this.name})`; }
 }
 
 class BinaryOp extends Expression {
@@ -99,8 +127,8 @@ class UnaryOp extends Expression {
 }
 
 class FunctionCall extends Expression {
-    constructor(functionName, args) { super(); this.functionName = functionName; this.args = args; }
-    toString() { return `FunctionCall(${this.functionName}, ${this.args.join(', ')})`; }
+    constructor(functionValue, args) { super(); this.functionValue = functionValue; this.args = args; }
+    toString() { return `FunctionCall(${this.functionValue}, ${this.args.join(', ')})`; }
 }
 
 class Range extends Expression {
@@ -110,8 +138,10 @@ class Range extends Expression {
 
 function positionsInRange(from, to) {
     const positions = [];
-    for (let col of _range(columnIndex(from.col), columnIndex(to.col)))
-        for (let row of _range(from.row, to.row))
+    const fromPos = parsePosition(from);
+    const toPos = parsePosition(to);
+    for (let col of _range(columnIndex(fromPos.col), columnIndex(toPos.col)))
+        for (let row of _range(fromPos.row, toPos.row))
             positions.push({ col: columnLetter(col), row: row });
     return positions;
 }
@@ -161,100 +191,115 @@ var helpers = /*#__PURE__*/Object.freeze({
 
 class Parser {
     constructor(tokenizer) {
-        this.tokens = tokenizer;
+        this._tokenizer = tokenizer;
+        this._tokens = null;
     }
 
+    // cell => empty | '=' expression EOF | number | string
     parse(text) {
+        // empty cell or other value
         if (text === null || text === undefined || text.constructor !== String)
-            return { parsed: new Value(text), references: [] }; // if there is nothing to parse, return the value.
+            return { parsed: new Value(text), references: [] };
 
-        this.tokens.begin(text);
-        const parsed = this._parseCell();
-        return { parsed, references: [...new Set(this._getReferences(parsed))] };
-    }
-
-    // Cell => '=' Expression | SimpleValue
-    _parseCell() {
-        if (this.tokens.remaining.startsWith('=')) {
-            this._expectAny(TokenType.EQUALS);
-            const result = this._parseExpression();
-            this._require(TokenType.EOF);
-            return result;
-        } else {
-            return this._parseSimpleValue();
+        // formula
+        if (text.trimStart().startsWith('=')) {
+            this._tokens = this._tokenizer.tokenize(text);
+            this._tokens.require(TokenType.EQUALS);
+            const parsed = this._parseExpression();
+            this._tokens.require(TokenType.EOF);
+            const references = [...new Set(this._getReferences(parsed))];
+            return { parsed, references };
         }
+
+        // number
+        if (text.match(/^[+-]?\d+(?:\.\d+)?$/))
+            return { parsed: new Value(parseFloat(text)), references: [] };
+
+        // string
+        return { parsed: new Value(text), references: [] };
     }
 
-    // SimpleValue => number | text
-    _parseSimpleValue() {
-        const value = this.tokens.rest();
-        if (value.match(/^[+-]?\d+(?:\.\d+)?$/)) return new Value(parseFloat(value));
-        else return new Value(value);
-    }
-
-    // Expression => Term
+    // expression => term
     _parseExpression() {
         return this._parseTerm();
     }
 
-    // Term => Factor ([+-] Factor)*
+    // term => factor (('+'|'-') factor)*
     _parseTerm() {
         let left = this._parseFactor();
         let operation;
-        while ((operation = this._expectAny(TokenType.PLUS, TokenType.MINUS)) !== null) {
+        while ((operation = this._tokens.expect(TokenType.PLUS, TokenType.MINUS)) !== null) {
             left = new BinaryOp(left, operation.value, this._parseFactor());
         }
         return left;
     }
 
-    // Factor => Unary ([*/] Unary)*
+    // factor => unary (('*'|'/') unary)*
     _parseFactor() {
-        let left = this._parseUnary();
+        let left = this._parseRange();
         let operation;
-        while ((operation = this._expectAny(TokenType.STAR, TokenType.SLASH)) !== null) {
-            left = new BinaryOp(left, operation.value, this._parseUnary());
+        while ((operation = this._tokens.expect(TokenType.STAR, TokenType.SLASH)) !== null) {
+            left = new BinaryOp(left, operation.value, this._parseRange());
         }
         return left;
     }
 
-    // Unary => [+-] Unary | Value
-    _parseUnary() {
-        let operation = this._expectAny(TokenType.PLUS, TokenType.MINUS);
-        return operation !== null
-            ? new UnaryOp(operation.value, this._parseUnary())
-            : this._parseValue();
+    // range => unary (':' unary)*
+    _parseRange() {
+        // TODO: Make ranges first-class
+        return this._parseUnary();
     }
 
-    // Value => Parenthesized | number | string | RangeReference | FunctionCall | Reference
-    _parseValue() {
-        if (this._expectAny(TokenType.LPAREN))
-            return this._parseParenthesized();
+    // unary => ('+'|'-') unary | call
+    _parseUnary() {
+        const operation = this._tokens.expect(TokenType.PLUS, TokenType.MINUS);
+        return operation !== null
+            ? new UnaryOp(operation.value, this._parseUnary())
+            : this._parseCall();
+    }
 
-        const number = this._expectAny(TokenType.NUMBER);
+    // call => value ('(' arguments ')')*
+    _parseCall() {
+        let value = this._parseValue();
+        while (this._tokens.expect(TokenType.LPAREN)) {
+            const args = this._parseArguments();
+            this._tokens.expect(TokenType.RPAREN);
+            value = new FunctionCall(value, args);
+        }
+        return value;
+    }
+
+    // value => number | string | rangeReference | reference | parenthesized
+    _parseValue() {
+        const number = this._tokens.expect(TokenType.NUMBER);
         if (number !== null)
             return this._parseNumber(number);
 
-        const string = this._expectAny(TokenType.STRING);
+        const string = this._tokens.expect(TokenType.STRING);
         if (string !== null)
             return this._parseString(string);
 
+        const reference = this._tokens.expect(TokenType.REFERENCE);
+        if (reference != null && this._tokens.expect(TokenType.COLON))
+            return this._parseRangeReference(reference);
+        else if (reference != null)
+            return this._parseCellReference(reference);
 
-        const identifier = this._require(TokenType.IDENTIFIER);
+        const identifier = this._tokens.expect(TokenType.IDENTIFIER);
+        if (identifier !== null)
+            return new Reference(identifier.value);
 
-        if (identifier !== null && this._expectAny(TokenType.COLON))
-            return this._parseRangeReference(identifier);
+        if (this._tokens.expect(TokenType.LPAREN))
+            return this._parseParenthesized();
 
-        if (this._expectAny(TokenType.LPAREN))
-            return this._parseFunctionCall(identifier);
-
-        return this._parseReference(identifier.value);
+        throw new ParsingError(`Unexpected ${this._tokens.peek().type}, expected an expression or value`)
     }
 
-    // Parenthesized => ( Expression )
+    // parenthesized => '(' expression ')'
     _parseParenthesized() {
         // ( is already parsed by parseValue
         const contents = this._parseExpression();
-        this._require(TokenType.RPAREN);
+        this._tokens.require(TokenType.RPAREN);
         return contents;
     }
 
@@ -268,40 +313,28 @@ class Parser {
         return new Value(escapedString);
     }
 
-    // RangeReference => identifier ':' identifier
-    _parseRangeReference(identifier) {
+    // rangeReference => IDENTIFIER ':' IDENTIFIER
+    _parseRangeReference(fromReference) {
         // start identifier and : are already parsed
-        const endIdentifier = this._require(TokenType.IDENTIFIER);
-        const from = this._parseReference(identifier.value);
-        const to = this._parseReference(endIdentifier.value);
+        const toReference = this._tokens.require(TokenType.REFERENCE);
+        const from = new CellReference(fromReference.value);
+        const to = new CellReference(toReference.value);
         return new Range(from, to);
     }
 
-    // FunctionCall => identifier ( '(' Arguments ')' )*
-    _parseFunctionCall(identifier) {
-        // function name identifier is already parsed
-        let value = identifier.value;
-        do {
-            const args = this._parseArguments();
-            value = new FunctionCall(value, args);
-        } while (this._expectAny(TokenType.LPAREN))
-        return value;
+    _parseCellReference(reference) {
+        // TODO: make nicer, maybe drop helper functions altogether.
+        const parsedPos = parsePosition(reference.value);
+        const position = makePosition(parsedPos.col, parsedPos.row);
+        return new CellReference(position);
     }
 
-    // Reference => [A-Za-z]+\d+
-    _parseReference(reference) {
-        const position = parsePosition(reference);
-        if (position === null)
-            throw new ParsingError(`Invalid format of cell reference: ${reference}`);
-        return new Reference(position.col, position.row);
-    }
-
-    // Arguments => (Expression (',' Expression)*)?
+    // arguments => (expression (',' expression)*)?
     _parseArguments() {
         const args = [];
-        while (!this._expectAny(TokenType.RPAREN)) {
+        while (this._tokens.peek().type !== TokenType.RPAREN) {
             if (args.length != 0)
-                this._require(TokenType.COMMA);
+                this._tokens.require(TokenType.COMMA);
             args.push(this._parseExpression());
         }
         return args;
@@ -338,8 +371,8 @@ class Parser {
         switch (expression.constructor) {
             case Value:
                 return [];
-            case Reference:
-                return [makePosition(expression.col, expression.row)];
+            case CellReference:
+                return [expression.position];
             case UnaryOp:
                 return this._getReferences(expression.value);
             case BinaryOp:
@@ -347,7 +380,7 @@ class Parser {
             case FunctionCall:
                 return expression.args.flatMap(arg => this._getReferences(arg));
             case Range:
-                return positionsInRange(expression.from, expression.to)
+                return positionsInRange(expression.from.position, expression.to.position)
                     .map(pos => makePosition(pos.col, pos.row));
             default:
                 throw new ParsingError(`Unknown expression type: ${typeof expression}`);
@@ -378,14 +411,16 @@ class Evaluator {
         switch (cell.constructor) {
             case Value:
                 return cell.value;
+            case CellReference:
+                return this._evaluateCellReference(cell.position, environment);
             case Reference:
-                return this._evaluateReference(makePosition(cell.col, cell.row), environment);
+                return this._evaluateReference(cell.name, environment);
             case UnaryOp:
                 return this._evaluateUnary(cell.op, cell.value, environment);
             case BinaryOp:
                 return this._evaluateBinary(cell.left, cell.op, cell.right, environment);
             case FunctionCall:
-                return this._evaluateFunction(cell.functionName, cell.args, environment);
+                return this._evaluateFunction(cell.functionValue, cell.args, environment);
             case Range:
                 throw new RuntimeError(`Range references are allowed only as arguments of functions`);
             default:
@@ -393,12 +428,22 @@ class Evaluator {
         }
     }
 
-    _evaluateReference(position, environment) {
+    _evaluateCellReference(position, environment) {
         try {
             return environment.getValue(position);
         } catch (e) {
             if (e instanceof ParsingError)
                 throw new RuntimeError(`Error in referenced cell: ${position}`);
+            else throw e;
+        }
+    }
+
+    _evaluateReference(identifier, environment) {
+        try {
+            return environment.getFunction(identifier);
+        } catch (e) {
+            if (e instanceof ParsingError)
+                throw new RuntimeError(`Error in referenced value: ${identifier}`);
             else throw e;
         }
     }
@@ -431,20 +476,22 @@ class Evaluator {
         }
     }
 
-    _evaluateFunction(functionName, args, environment) {
+    _evaluateFunction(functionValue, args, environment) {
+        const func = this._evaluateCell(functionValue, environment);
+        if (typeof func !== 'function')
+            throw new RuntimeError(`'${functionValue}' is called like a function, but is not a function.`);
         const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
-        const func = environment.getFunction(functionName);
         try {
             return func(...argumentValues);
         } catch (ex) {
-            throw new RuntimeError(`Error in function ${functionName}: ${ex}`);
+            throw new RuntimeError(`Error in function ${functionValue}: ${ex}`);
         }
     }
 
     _evaluateRange(from, to, environment) {
-        return positionsInRange(from, to)
+        return positionsInRange(from.position, to.position)
             .map(pos => makePosition(pos.col, pos.row))
-            .map(pos => this._evaluateReference(pos, environment));
+            .map(pos => this._evaluateCellReference(pos, environment));
     }
 }
 

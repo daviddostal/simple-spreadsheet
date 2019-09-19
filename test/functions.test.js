@@ -13,7 +13,7 @@ test('SUM function returns 0 for empty array', () => {
     expect(spreadsheet.query('=SUM(A1)')).toBe(0);
 });
 
-test('SUM function ignores null balues', () => {
+test('SUM function ignores null values', () => {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: null, A2: 1 });
     expect(spreadsheet.query('=SUM(2, A1, A2, A3)')).toBe(3);
 });

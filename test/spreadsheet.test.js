@@ -221,7 +221,7 @@ test('Parentheses work properly', () => {
     expectException('=3*(2+4', SimpleSpreadsheet.ParsingError);
     expectException('=3*(2+4))', SimpleSpreadsheet.ParsingError);
     expectException('=3*((2+4)', SimpleSpreadsheet.ParsingError);
-    expectException('=3*(2+4())', SimpleSpreadsheet.ParsingError);
+    expectException('=3*(2+4())', SimpleSpreadsheet.RuntimeError);
     expectException('=((((3))*(((((2)+((4)))))))', SimpleSpreadsheet.ParsingError);
     expectException('=((3))*(((((2)+((4)))))))', SimpleSpreadsheet.ParsingError);
     expectException('=A2()', SimpleSpreadsheet.RuntimeError);
@@ -258,12 +258,12 @@ test('Range references work for any start and end position', () => {
 
 test('Spreadsheet accepts user defined functions in js', () => {
     const cells = {
-        A1: '=ADD1(4)',
-        A2: '=ADD1(4.2 + -0.25)',
-        A3: '=ADD1(A2)',
-        A4: '=ADD1("abc")',
+        A1: '=INCREMENT(4)',
+        A2: '=INCREMENT(4.2 + -0.25)',
+        A3: '=INCREMENT(A2)',
+        A4: '=INCREMENT("abc")',
     };
-    const functions = { ADD1: x => x + 1 };
+    const functions = { INCREMENT: x => x + 1 };
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet(cells, functions);
     expect(spreadsheet.value('A1')).toBe(5);
     expect(spreadsheet.value('A2')).toBe(4.95);
@@ -276,7 +276,7 @@ test('Spreadsheet functions can have multiple arguments and be any JS function',
         GET_1: () => 1,
         SUB_3: (x) => x - 3,
         POW: (base, exponent) => Math.pow(base, exponent),
-        POW2: Math.pow,
+        POW_2: Math.pow,
         SUB_THEN_ADD: function (a, b, c) { return a - b + c },
         MULTIPLY_ALL: (...values) => values.reduce((a, b) => a * b, 1),
     };
@@ -284,7 +284,7 @@ test('Spreadsheet functions can have multiple arguments and be any JS function',
     expect(spreadsheet.query('=GET_1()')).toBe(1);
     expect(spreadsheet.query('=SUB_3(100)')).toBe(97);
     expect(spreadsheet.query('=POW(2,5)')).toBe(32);
-    expect(spreadsheet.query('=POW2(2, 5)')).toBe(32);
+    expect(spreadsheet.query('=POW_2(2, 5)')).toBe(32);
     expect(spreadsheet.query('=SUB_THEN_ADD(1, 2, 3)')).toBe(2);
     expect(spreadsheet.query('=MULTIPLY_ALL(2, 3, 4)')).toBe(24);
     expect(spreadsheet.query('=MULTIPLY_ALL()')).toBe(1);

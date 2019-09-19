@@ -1,3 +1,5 @@
+Features
+========
 ✔ Reference cycle detection
 ✔ Events for cell changes
 - Constants like PI, E etc.
@@ -5,3 +7,8 @@
 - Performance profiling and optimizations
 ? Spreadsheet functions inside custom functions
 ?? Parser, lexer and evaluator extensions (custom operators etc)
+
+Fixes and improvements
+======================
+- Improve error messages, for example missing closing paren
+

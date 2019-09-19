@@ -1,104 +1,119 @@
 import { TokenType } from './tokenizer';
 import { ParsingError } from './errors';
-import { Value, Reference, BinaryOp, UnaryOp, Range, FunctionCall } from './expressions';
+import { Value, CellReference, BinaryOp, UnaryOp, Range, FunctionCall, Reference } from './expressions';
 import * as Helpers from './helpers';
 
 export default class Parser {
     constructor(tokenizer) {
-        this.tokens = tokenizer;
+        this._tokenizer = tokenizer;
+        this._tokens = null;
     }
 
+    // cell => empty | '=' expression EOF | number | string
     parse(text) {
+        // empty cell or other value
         if (text === null || text === undefined || text.constructor !== String)
-            return { parsed: new Value(text), references: [] }; // if there is nothing to parse, return the value.
+            return { parsed: new Value(text), references: [] };
 
-        this.tokens.begin(text);
-        const parsed = this._parseCell();
-        return { parsed, references: [...new Set(this._getReferences(parsed))] };
-    }
-
-    // Cell => '=' Expression | SimpleValue
-    _parseCell() {
-        if (this.tokens.remaining.startsWith('=')) {
-            this._expectAny(TokenType.EQUALS);
-            const result = this._parseExpression();
-            this._require(TokenType.EOF);
-            return result;
-        } else {
-            return this._parseSimpleValue();
+        // formula
+        if (text.trimStart().startsWith('=')) {
+            this._tokens = this._tokenizer.tokenize(text);
+            this._tokens.require(TokenType.EQUALS);
+            const parsed = this._parseExpression();
+            this._tokens.require(TokenType.EOF);
+            const references = [...new Set(this._getReferences(parsed))];
+            return { parsed, references };
         }
+
+        // number
+        if (text.match(/^[+-]?\d+(?:\.\d+)?$/))
+            return { parsed: new Value(parseFloat(text)), references: [] };
+
+        // string
+        return { parsed: new Value(text), references: [] };
     }
 
-    // SimpleValue => number | text
-    _parseSimpleValue() {
-        const value = this.tokens.rest();
-        if (value.match(/^[+-]?\d+(?:\.\d+)?$/)) return new Value(parseFloat(value));
-        else return new Value(value);
-    }
-
-    // Expression => Term
+    // expression => term
     _parseExpression() {
         return this._parseTerm();
     }
 
-    // Term => Factor ([+-] Factor)*
+    // term => factor (('+'|'-') factor)*
     _parseTerm() {
         let left = this._parseFactor();
         let operation;
-        while ((operation = this._expectAny(TokenType.PLUS, TokenType.MINUS)) !== null) {
+        while ((operation = this._tokens.expect(TokenType.PLUS, TokenType.MINUS)) !== null) {
             left = new BinaryOp(left, operation.value, this._parseFactor());
         }
         return left;
     }
 
-    // Factor => Unary ([*/] Unary)*
+    // factor => unary (('*'|'/') unary)*
     _parseFactor() {
-        let left = this._parseUnary();
+        let left = this._parseRange();
         let operation;
-        while ((operation = this._expectAny(TokenType.STAR, TokenType.SLASH)) !== null) {
-            left = new BinaryOp(left, operation.value, this._parseUnary());
+        while ((operation = this._tokens.expect(TokenType.STAR, TokenType.SLASH)) !== null) {
+            left = new BinaryOp(left, operation.value, this._parseRange());
         }
         return left;
     }
 
-    // Unary => [+-] Unary | Value
-    _parseUnary() {
-        let operation = this._expectAny(TokenType.PLUS, TokenType.MINUS);
-        return operation !== null
-            ? new UnaryOp(operation.value, this._parseUnary())
-            : this._parseValue();
+    // range => unary (':' unary)*
+    _parseRange() {
+        // TODO: Make ranges first-class
+        return this._parseUnary();
     }
 
-    // Value => Parenthesized | number | string | RangeReference | FunctionCall | Reference
-    _parseValue() {
-        if (this._expectAny(TokenType.LPAREN))
-            return this._parseParenthesized();
+    // unary => ('+'|'-') unary | call
+    _parseUnary() {
+        const operation = this._tokens.expect(TokenType.PLUS, TokenType.MINUS);
+        return operation !== null
+            ? new UnaryOp(operation.value, this._parseUnary())
+            : this._parseCall();
+    }
 
-        const number = this._expectAny(TokenType.NUMBER)
+    // call => value ('(' arguments ')')*
+    _parseCall() {
+        let value = this._parseValue();
+        while (this._tokens.expect(TokenType.LPAREN)) {
+            const args = this._parseArguments();
+            this._tokens.expect(TokenType.RPAREN);
+            value = new FunctionCall(value, args);
+        }
+        return value;
+    }
+
+    // value => number | string | rangeReference | reference | parenthesized
+    _parseValue() {
+        const number = this._tokens.expect(TokenType.NUMBER)
         if (number !== null)
             return this._parseNumber(number);
 
-        const string = this._expectAny(TokenType.STRING);
+        const string = this._tokens.expect(TokenType.STRING);
         if (string !== null)
             return this._parseString(string);
 
+        const reference = this._tokens.expect(TokenType.REFERENCE);
+        if (reference != null && this._tokens.expect(TokenType.COLON))
+            return this._parseRangeReference(reference);
+        else if (reference != null)
+            return this._parseCellReference(reference);
 
-        const identifier = this._require(TokenType.IDENTIFIER);
+        const identifier = this._tokens.expect(TokenType.IDENTIFIER);
+        if (identifier !== null)
+            return new Reference(identifier.value);
 
-        if (identifier !== null && this._expectAny(TokenType.COLON))
-            return this._parseRangeReference(identifier);
+        if (this._tokens.expect(TokenType.LPAREN))
+            return this._parseParenthesized();
 
-        if (this._expectAny(TokenType.LPAREN))
-            return this._parseFunctionCall(identifier);
-
-        return this._parseReference(identifier.value);
+        throw new ParsingError(`Unexpected ${this._tokens.peek().type}, expected an expression or value`)
     }
 
-    // Parenthesized => ( Expression )
+    // parenthesized => '(' expression ')'
     _parseParenthesized() {
         // ( is already parsed by parseValue
         const contents = this._parseExpression();
-        this._require(TokenType.RPAREN);
+        this._tokens.require(TokenType.RPAREN);
         return contents;
     }
 
@@ -112,40 +127,28 @@ export default class Parser {
         return new Value(escapedString);
     }
 
-    // RangeReference => identifier ':' identifier
-    _parseRangeReference(identifier) {
+    // rangeReference => IDENTIFIER ':' IDENTIFIER
+    _parseRangeReference(fromReference) {
         // start identifier and : are already parsed
-        const endIdentifier = this._require(TokenType.IDENTIFIER);
-        const from = this._parseReference(identifier.value);
-        const to = this._parseReference(endIdentifier.value);
+        const toReference = this._tokens.require(TokenType.REFERENCE);
+        const from = new CellReference(fromReference.value);
+        const to = new CellReference(toReference.value);
         return new Range(from, to);
     }
 
-    // FunctionCall => identifier ( '(' Arguments ')' )*
-    _parseFunctionCall(identifier) {
-        // function name identifier is already parsed
-        let value = identifier.value;
-        do {
-            const args = this._parseArguments();
-            value = new FunctionCall(value, args);
-        } while (this._expectAny(TokenType.LPAREN))
-        return value;
+    _parseCellReference(reference) {
+        // TODO: make nicer, maybe drop helper functions altogether.
+        const parsedPos = Helpers.parsePosition(reference.value);
+        const position = Helpers.makePosition(parsedPos.col, parsedPos.row);
+        return new CellReference(position);
     }
 
-    // Reference => [A-Za-z]+\d+
-    _parseReference(reference) {
-        const position = Helpers.parsePosition(reference);
-        if (position === null)
-            throw new ParsingError(`Invalid format of cell reference: ${reference}`);
-        return new Reference(position.col, position.row);
-    }
-
-    // Arguments => (Expression (',' Expression)*)?
+    // arguments => (expression (',' expression)*)?
     _parseArguments() {
         const args = [];
-        while (!this._expectAny(TokenType.RPAREN)) {
+        while (this._tokens.peek().type !== TokenType.RPAREN) {
             if (args.length != 0)
-                this._require(TokenType.COMMA);
+                this._tokens.require(TokenType.COMMA);
             args.push(this._parseExpression());
         }
         return args;
@@ -182,8 +185,8 @@ export default class Parser {
         switch (expression.constructor) {
             case Value:
                 return [];
-            case Reference:
-                return [Helpers.makePosition(expression.col, expression.row)];
+            case CellReference:
+                return [expression.position];
             case UnaryOp:
                 return this._getReferences(expression.value);
             case BinaryOp:
@@ -191,7 +194,7 @@ export default class Parser {
             case FunctionCall:
                 return expression.args.flatMap(arg => this._getReferences(arg));
             case Range:
-                return Helpers.positionsInRange(expression.from, expression.to)
+                return Helpers.positionsInRange(expression.from.position, expression.to.position)
                     .map(pos => Helpers.makePosition(pos.col, pos.row));
             default:
                 throw new ParsingError(`Unknown expression type: ${typeof expression}`);

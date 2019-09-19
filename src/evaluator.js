@@ -1,4 +1,4 @@
-import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp } from './expressions';
+import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp, CellReference } from './expressions';
 import { RuntimeError, ParsingError } from './errors';
 import * as Helpers from './helpers';
 
@@ -25,14 +25,16 @@ export default class Evaluator {
         switch (cell.constructor) {
             case Value:
                 return cell.value;
+            case CellReference:
+                return this._evaluateCellReference(cell.position, environment);
             case Reference:
-                return this._evaluateReference(Helpers.makePosition(cell.col, cell.row), environment);
+                return this._evaluateReference(cell.name, environment);
             case UnaryOp:
                 return this._evaluateUnary(cell.op, cell.value, environment);
             case BinaryOp:
                 return this._evaluateBinary(cell.left, cell.op, cell.right, environment);
             case FunctionCall:
-                return this._evaluateFunction(cell.functionName, cell.args, environment);
+                return this._evaluateFunction(cell.functionValue, cell.args, environment);
             case Range:
                 throw new RuntimeError(`Range references are allowed only as arguments of functions`);
             default:
@@ -40,12 +42,22 @@ export default class Evaluator {
         }
     }
 
-    _evaluateReference(position, environment) {
+    _evaluateCellReference(position, environment) {
         try {
             return environment.getValue(position);
         } catch (e) {
             if (e instanceof ParsingError)
                 throw new RuntimeError(`Error in referenced cell: ${position}`);
+            else throw e;
+        }
+    }
+
+    _evaluateReference(identifier, environment) {
+        try {
+            return environment.getFunction(identifier);
+        } catch (e) {
+            if (e instanceof ParsingError)
+                throw new RuntimeError(`Error in referenced value: ${identifier}`);
             else throw e;
         }
     }
@@ -78,19 +90,21 @@ export default class Evaluator {
         }
     }
 
-    _evaluateFunction(functionName, args, environment) {
+    _evaluateFunction(functionValue, args, environment) {
+        const func = this._evaluateCell(functionValue, environment);
+        if (typeof func !== 'function')
+            throw new RuntimeError(`'${functionValue}' is called like a function, but is not a function.`);
         const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
-        const func = environment.getFunction(functionName);
         try {
             return func(...argumentValues);
         } catch (ex) {
-            throw new RuntimeError(`Error in function ${functionName}: ${ex}`);
+            throw new RuntimeError(`Error in function ${functionValue}: ${ex}`);
         }
     }
 
     _evaluateRange(from, to, environment) {
-        return Helpers.positionsInRange(from, to)
+        return Helpers.positionsInRange(from.position, to.position)
             .map(pos => Helpers.makePosition(pos.col, pos.row))
-            .map(pos => this._evaluateReference(pos, environment));
+            .map(pos => this._evaluateCellReference(pos, environment));
     }
 }

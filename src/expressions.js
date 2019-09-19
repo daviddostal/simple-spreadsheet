@@ -5,9 +5,14 @@ export class Value extends Expression {
     toString() { return this.value.constructor === String ? `"${this.value}"` : `${this.value}`; }
 }
 
+export class CellReference extends Expression {
+    constructor(position) { super(); this.position = position }
+    toString() { return `CellReference(${this.position})`; }
+}
+
 export class Reference extends Expression {
-    constructor(col, row) { super(); this.col = col; this.row = row; }
-    toString() { return `Reference(${this.col}${this.row})`; }
+    constructor(name) { super(); this.name = name }
+    toString() { return `Reference(${this.name})`; }
 }
 
 export class BinaryOp extends Expression {
@@ -21,8 +26,8 @@ export class UnaryOp extends Expression {
 }
 
 export class FunctionCall extends Expression {
-    constructor(functionName, args) { super(); this.functionName = functionName; this.args = args; }
-    toString() { return `FunctionCall(${this.functionName}, ${this.args.join(', ')})`; }
+    constructor(functionValue, args) { super(); this.functionValue = functionValue; this.args = args; }
+    toString() { return `FunctionCall(${this.functionValue}, ${this.args.join(', ')})`; }
 }
 
 export class Range extends Expression {

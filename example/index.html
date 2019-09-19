@@ -10,6 +10,8 @@
 <body>
     <script>
         const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+            Z4323: 8,
+            Z9999: '=2 * Z4323',
             J1: '=SUM(A2:B3)', A3: '3', B3: '6',
             A1: 'column 1', B1: 'column 2', C1: 'sum',
             A2: '2', B2: '5', C2: '=SUM(A2:B2)', C3: '=SUM(3, 4)',
@@ -23,12 +25,13 @@
             D9: '=D8',
             D10: '=A2:B2',
             D11: '=-3*2',
+            D12: '=4()',
         });
 
         for (let cell in spreadsheet.cells) {
             console.log(`${cell}: '${spreadsheet.text(cell)}'`);
             try {
-                console.log('    ' + spreadsheet.environment.getExpression(cell).toString());
+                console.log('    ' + spreadsheet._environment.getExpression(cell).toString());
                 console.log(' -> ' + spreadsheet.value(cell));
             } catch (ex) {
                 if (ex instanceof SimpleSpreadsheet.RuntimeError || ex instanceof SimpleSpreadsheet.ParsingError)
