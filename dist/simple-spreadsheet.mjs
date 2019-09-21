@@ -154,7 +154,7 @@ function _range(from, to) {
 
 function parsePosition(position) {
     const positionParts = position.match(/^([A-Za-z]+)(\d+)$/);
-    return positionParts === null ? null :
+    return positionParts &&
         { col: positionParts[1], row: parseInt(positionParts[2]) };
 }
 
@@ -376,7 +376,7 @@ class Evaluator {
             case CellReference:
                 return this._evaluateCellReference(cell.position, environment);
             case Reference:
-                return this._evaluateReference(cell.name, environment);
+                return environment.getGlobal(cell.name, environment);
             case UnaryOp:
                 return this._evaluateUnary(cell.op, cell.value, environment);
             case BinaryOp:
@@ -396,16 +396,6 @@ class Evaluator {
         } catch (e) {
             if (e instanceof ParsingError)
                 throw new RuntimeError(`Error in referenced cell: ${position}`);
-            else throw e;
-        }
-    }
-
-    _evaluateReference(identifier, environment) {
-        try {
-            return environment.getGlobal(identifier);
-        } catch (e) {
-            if (e instanceof ParsingError)
-                throw new RuntimeError(`Error in referenced value: ${identifier}`);
             else throw e;
         }
     }

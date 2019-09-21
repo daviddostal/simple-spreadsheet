@@ -16,7 +16,7 @@ function _range(from, to) {
 
 export function parsePosition(position) {
     const positionParts = position.match(/^([A-Za-z]+)(\d+)$/);
-    return positionParts === null ? null :
+    return positionParts &&
         { col: positionParts[1], row: parseInt(positionParts[2]) };
 }
 

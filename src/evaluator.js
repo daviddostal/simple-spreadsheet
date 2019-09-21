@@ -28,7 +28,7 @@ export default class Evaluator {
             case CellReference:
                 return this._evaluateCellReference(cell.position, environment);
             case Reference:
-                return this._evaluateReference(cell.name, environment);
+                return environment.getGlobal(cell.name, environment);
             case UnaryOp:
                 return this._evaluateUnary(cell.op, cell.value, environment);
             case BinaryOp:
@@ -48,16 +48,6 @@ export default class Evaluator {
         } catch (e) {
             if (e instanceof ParsingError)
                 throw new RuntimeError(`Error in referenced cell: ${position}`);
-            else throw e;
-        }
-    }
-
-    _evaluateReference(identifier, environment) {
-        try {
-            return environment.getGlobal(identifier);
-        } catch (e) {
-            if (e instanceof ParsingError)
-                throw new RuntimeError(`Error in referenced value: ${identifier}`);
             else throw e;
         }
     }
