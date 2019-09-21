@@ -47,7 +47,7 @@ export default class Evaluator {
             return environment.getValue(position);
         } catch (e) {
             if (e instanceof ParsingError)
-                throw new RuntimeError(`Error in referenced cell: ${position}`);
+                throw new RuntimeError(`Error in referenced cell ${position}`);
             else throw e;
         }
     }
@@ -83,7 +83,7 @@ export default class Evaluator {
     _evaluateFunction(functionValue, args, environment) {
         const func = this._evaluateCell(functionValue, environment);
         if (typeof func !== 'function')
-            throw new RuntimeError(`'${functionValue}' is called like a function, but is not a function.`);
+            throw new RuntimeError(`'${functionValue}' is called like a function, but is of type '${typeof (func)}' with value '${func}'.`);
         const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
         try {
             return func(...argumentValues);

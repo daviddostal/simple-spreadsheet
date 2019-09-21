@@ -2,21 +2,22 @@ import { ParsingError } from './errors';
 import TokenStream from './tokenStream';
 
 export const TokenType = Object.freeze({
-    EOF: 'EOF',
-    WHITESPACE: 'WHITESPACE',
-    PLUS: 'PLUS',
-    MINUS: 'MINUS',
-    STAR: 'STAR',
-    SLASH: 'SLASH',
-    LPAREN: 'LPAREN',
-    RPAREN: 'RPAREN',
-    COLON: 'COLON',
-    EQUALS: 'EQUALS',
-    COMMA: 'COMMA',
-    NUMBER: 'NUMBER',
-    STRING: 'STRING',
-    REFERENCE: 'REFERENCE',
-    IDENTIFIER: 'IDENTIFIER',
+    // Note: strings must be unique, because they are used for comparison
+    EOF: 'end of formula',
+    WHITESPACE: 'whitespace',
+    PLUS: '+',
+    MINUS: '-',
+    STAR: '*',
+    SLASH: '/',
+    LPAREN: 'opening parenthesis',
+    RPAREN: 'closing parenthesis',
+    COLON: ':',
+    EQUALS: '=',
+    COMMA: 'comma',
+    NUMBER: 'number',
+    STRING: 'string',
+    REFERENCE: 'reference',
+    IDENTIFIER: 'identifier',
 });
 
 export class Tokenizer {

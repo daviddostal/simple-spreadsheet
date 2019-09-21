@@ -35,27 +35,28 @@ var SimpleSpreadsheet = (function (exports) {
         require(...types) {
             const token = this.expect(...types);
             if (token === null)
-                throw new ParsingError(`Expected ${types.join(' or ')}, got ${this.peek().type} instead.`);
+                throw new ParsingError(`Unexpected ${this.peek().type}, expected ${types.join(' or ')}.`);
             return token;
         }
     }
 
     const TokenType = Object.freeze({
-        EOF: 'EOF',
-        WHITESPACE: 'WHITESPACE',
-        PLUS: 'PLUS',
-        MINUS: 'MINUS',
-        STAR: 'STAR',
-        SLASH: 'SLASH',
-        LPAREN: 'LPAREN',
-        RPAREN: 'RPAREN',
-        COLON: 'COLON',
-        EQUALS: 'EQUALS',
-        COMMA: 'COMMA',
-        NUMBER: 'NUMBER',
-        STRING: 'STRING',
-        REFERENCE: 'REFERENCE',
-        IDENTIFIER: 'IDENTIFIER',
+        // Note: strings must be unique, because they are used for comparison
+        EOF: 'end of formula',
+        WHITESPACE: 'whitespace',
+        PLUS: '+',
+        MINUS: '-',
+        STAR: '*',
+        SLASH: '/',
+        LPAREN: 'opening parenthesis',
+        RPAREN: 'closing parenthesis',
+        COLON: ':',
+        EQUALS: '=',
+        COMMA: 'comma',
+        NUMBER: 'number',
+        STRING: 'string',
+        REFERENCE: 'reference',
+        IDENTIFIER: 'identifier',
     });
 
     class Tokenizer {
@@ -111,32 +112,32 @@ var SimpleSpreadsheet = (function (exports) {
 
     class CellReference extends Expression {
         constructor(position) { super(); this.position = position; }
-        toString() { return `CellReference(${this.position})`; }
+        toString() { return `${this.position}`; }
     }
 
     class Reference extends Expression {
         constructor(name) { super(); this.name = name; }
-        toString() { return `Reference(${this.name})`; }
+        toString() { return `${this.name}`; }
     }
 
     class BinaryOp extends Expression {
         constructor(left, op, right) { super(); this.left = left; this.op = op; this.right = right; }
-        toString() { return `BinaryOp(${this.left} ${this.op} ${this.right})`; }
+        toString() { return `(${this.left} ${this.op} ${this.right})`; }
     }
 
     class UnaryOp extends Expression {
         constructor(op, value) { super(); this.op = op; this.value = value; }
-        toString() { return `UnaryOp(${this.op} ${this.value})`; }
+        toString() { return `${this.op}${this.value}`; }
     }
 
     class FunctionCall extends Expression {
         constructor(functionValue, args) { super(); this.functionValue = functionValue; this.args = args; }
-        toString() { return `FunctionCall(${this.functionValue}, [${this.args.join(', ')}])`; }
+        toString() { return `${this.functionValue}(${this.args.join(', ')})`; }
     }
 
     class Range extends Expression {
         constructor(from, to) { super(); this.from = from; this.to = to; }
-        toString() { return `Range(${this.from}, ${this.to})`; }
+        toString() { return `${this.from}:${this.to}`; }
     }
 
     function positionsInRange(from, to) {
@@ -398,7 +399,7 @@ var SimpleSpreadsheet = (function (exports) {
                 return environment.getValue(position);
             } catch (e) {
                 if (e instanceof ParsingError)
-                    throw new RuntimeError(`Error in referenced cell: ${position}`);
+                    throw new RuntimeError(`Error in referenced cell ${position}`);
                 else throw e;
             }
         }
@@ -434,7 +435,7 @@ var SimpleSpreadsheet = (function (exports) {
         _evaluateFunction(functionValue, args, environment) {
             const func = this._evaluateCell(functionValue, environment);
             if (typeof func !== 'function')
-                throw new RuntimeError(`'${functionValue}' is called like a function, but is not a function.`);
+                throw new RuntimeError(`'${functionValue}' is called like a function, but is of type '${typeof (func)}' with value '${func}'.`);
             const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
             try {
                 return func(...argumentValues);

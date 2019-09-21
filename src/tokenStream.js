@@ -22,7 +22,7 @@ export default class TokenStream {
     require(...types) {
         const token = this.expect(...types);
         if (token === null)
-            throw new ParsingError(`Expected ${types.join(' or ')}, got ${this.peek().type} instead.`);
+            throw new ParsingError(`Unexpected ${this.peek().type}, expected ${types.join(' or ')}.`);
         return token;
     }
 }
