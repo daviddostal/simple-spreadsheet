@@ -63,24 +63,24 @@
 
     class Tokenizer {
         constructor() {
-            this._rules = {
+            this._rules = [
                 // NUMBER, REFERENCE and IDENTIFIER are used the most so keep them at the top
-                '\\d+(?:\\.\\d+)?': TokenType.NUMBER,
-                '[A-Za-z]+\\d+': TokenType.REFERENCE,
-                '[a-zA-Z]\\w+': TokenType.IDENTIFIER,
-                '\\s+': TokenType.WHITESPACE,
-                '\\+': TokenType.PLUS,
-                '-': TokenType.MINUS,
-                '\\*': TokenType.STAR,
-                '\\/': TokenType.SLASH,
-                '\\(': TokenType.LPAREN,
-                '\\)': TokenType.RPAREN,
-                '=': TokenType.EQUALS,
-                ':': TokenType.COLON,
-                ',': TokenType.COMMA,
-                '\\"(?:[^"\\\\]|\\\\.)*\\"': TokenType.STRING,
-                '$': TokenType.EOF,
-            };
+                { pattern: /^\d+(?:\.\d+)?/, type: TokenType.NUMBER },
+                { pattern: /^[A-Za-z]+\d+/, type: TokenType.REFERENCE },
+                { pattern: /^[a-zA-Z]\w+/, type: TokenType.IDENTIFIER },
+                { pattern: /^\s+/, type: TokenType.WHITESPACE },
+                { pattern: /^\+/, type: TokenType.PLUS },
+                { pattern: /^\-/, type: TokenType.MINUS },
+                { pattern: /^\*/, type: TokenType.STAR },
+                { pattern: /^\//, type: TokenType.SLASH },
+                { pattern: /^\(/, type: TokenType.LPAREN },
+                { pattern: /^\)/, type: TokenType.RPAREN },
+                { pattern: /^=/, type: TokenType.EQUALS },
+                { pattern: /^:/, type: TokenType.COLON },
+                { pattern: /^,/, type: TokenType.COMMA },
+                { pattern: /^\"(?:[^"\\]|\\.)*\"/, type: TokenType.STRING },
+                { pattern: /^$/, type: TokenType.EOF },
+            ];
         }
 
         tokenize(text) {
@@ -96,10 +96,10 @@
         }
 
         _nextToken(text) {
-            for (let rule in this._rules) {
-                const match = text.match(new RegExp('^' + rule));
+            for (let rule of this._rules) {
+                const match = text.match(rule.pattern);
                 if (match !== null)
-                    return { type: this._rules[rule], value: match[0] };
+                    return { type: rule.type, value: match[0] };
             }
             throw new ParsingError(`Unknown token at '${text}'`);
         }
