@@ -21,7 +21,7 @@ export default class Parser {
             this._tokens.require(TokenType.EQUALS);
             const parsed = this._parseExpression();
             this._tokens.require(TokenType.EOF);
-            const references = [...new Set(this._getReferences(parsed))];
+            const references = [...new Set(this._getCellReferences(parsed))];
             return { parsed, references };
         }
 
@@ -181,18 +181,20 @@ export default class Parser {
         return current;
     }
 
-    _getReferences(expression) {
+    _getCellReferences(expression) {
         switch (expression.constructor) {
             case Value:
                 return [];
             case CellReference:
                 return [expression.position];
+            case Reference:
+                return [];
             case UnaryOp:
-                return this._getReferences(expression.value);
+                return this._getCellReferences(expression.value);
             case BinaryOp:
-                return [...this._getReferences(expression.left), ...this._getReferences(expression.right)];
+                return [...this._getCellReferences(expression.left), ...this._getCellReferences(expression.right)];
             case FunctionCall:
-                return expression.args.flatMap(arg => this._getReferences(arg));
+                return expression.args.flatMap(arg => this._getCellReferences(arg));
             case Range:
                 return Helpers.positionsInRange(expression.from.position, expression.to.position)
                     .map(pos => Helpers.makePosition(pos.col, pos.row));

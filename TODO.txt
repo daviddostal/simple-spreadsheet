@@ -5,10 +5,21 @@ Features
 - Constants like PI, E etc.
 - Macro functions like IF(...; ...; ...)
 - Performance profiling and optimizations
+- Better structure for tests
+- Add features section to readme
 ? Spreadsheet functions inside custom functions
 ?? Parser, lexer and evaluator extensions (custom operators etc)
 
 Fixes and improvements
 ======================
 - Improve error messages, for example missing closing paren
+- Update readme
+- Think about removing builtin functions and just provide them separately
+- Fix error message for circular references
 
+Working on currently
+====================
+
+Done
+====
+✔ Rename builtinFunctions

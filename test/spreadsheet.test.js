@@ -479,3 +479,10 @@ test('Cell changes are reported only for already evaluated cells', () => {
     spreadsheet.set('A1', '=3+2');
     expect(changedPositions).toStrictEqual([['A1', 'A2', 'A3']]);
 });
+
+test('Constants are supported in custom functions', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        {}, { PI: 3.14, ...SimpleSpreadsheet.builtinValues }
+    );
+    expect(spreadsheet.query('=SUM(PI, PI)')).toBe(6.28);
+});

@@ -5,9 +5,9 @@ import { RuntimeError } from './errors';
 import ReferencesMap from './referencesMap';
 
 export class Environment {
-    constructor(cells = {}, builtinFunctions = {}, cellsChangedListener = (() => { })) {
+    constructor(cells = {}, globals = {}, cellsChangedListener = (() => { })) {
         this.cells = cells;
-        this.functions = builtinFunctions;
+        this.globals = globals;
         this.cellsChangedListener = cellsChangedListener;
         this._parser = new Parser(new Tokenizer());
         this._evaluator = new Evaluator();
@@ -63,9 +63,9 @@ export class Environment {
         return this._evaluator.evaluateQuery(parsed, this);
     }
 
-    getFunction(name) {
-        if (this.functions[name] === undefined)
-            throw new RuntimeError(`Unknown function: ${name} is not a function`);
-        return this.functions[name];
+    getGlobal(name) {
+        if (this.globals[name] === undefined)
+            throw new RuntimeError(`Unknown global value: ${name}`);
+        return this.globals[name];
     }
 };

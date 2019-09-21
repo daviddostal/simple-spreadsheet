@@ -1,4 +1,4 @@
-export const builtinFunctions = {
+export const builtinValues = {
     SUM: (...args) => {
         let sum = 0;
         for (let arg of args.flat()) {

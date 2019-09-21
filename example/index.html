@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +8,11 @@
     <title>Spreadsheet evaluator test</title>
     <script src="../dist/simple-spreadsheet.js"></script>
 </head>
+
 <body>
     <script>
         const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+            D13: '=PI * 2',
             Z4323: 8,
             Z9999: '=2 * Z4323',
             J1: '=SUM(A2:B3)', A3: '3', B3: '6',
@@ -26,7 +29,9 @@
             D10: '=A2:B2',
             D11: '=-3*2',
             D12: '=4()',
-        });
+        },
+            { ...SimpleSpreadsheet.builtinFunctions, PI: 3.14 }
+        );
 
         for (let cell in spreadsheet.cells) {
             console.log(`${cell}: '${spreadsheet.text(cell)}'`);
@@ -42,4 +47,5 @@
         }
     </script>
 </body>
+
 </html>

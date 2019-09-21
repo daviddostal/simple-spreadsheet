@@ -213,7 +213,7 @@
                 this._tokens.require(TokenType.EQUALS);
                 const parsed = this._parseExpression();
                 this._tokens.require(TokenType.EOF);
-                const references = [...new Set(this._getReferences(parsed))];
+                const references = [...new Set(this._getCellReferences(parsed))];
                 return { parsed, references };
             }
 
@@ -373,18 +373,20 @@
             return current;
         }
 
-        _getReferences(expression) {
+        _getCellReferences(expression) {
             switch (expression.constructor) {
                 case Value:
                     return [];
                 case CellReference:
                     return [expression.position];
+                case Reference:
+                    return [];
                 case UnaryOp:
-                    return this._getReferences(expression.value);
+                    return this._getCellReferences(expression.value);
                 case BinaryOp:
-                    return [...this._getReferences(expression.left), ...this._getReferences(expression.right)];
+                    return [...this._getCellReferences(expression.left), ...this._getCellReferences(expression.right)];
                 case FunctionCall:
-                    return expression.args.flatMap(arg => this._getReferences(arg));
+                    return expression.args.flatMap(arg => this._getCellReferences(arg));
                 case Range:
                     return positionsInRange(expression.from.position, expression.to.position)
                         .map(pos => makePosition(pos.col, pos.row));
@@ -446,7 +448,7 @@
 
         _evaluateReference(identifier, environment) {
             try {
-                return environment.getFunction(identifier);
+                return environment.getGlobal(identifier);
             } catch (e) {
                 if (e instanceof ParsingError)
                     throw new RuntimeError(`Error in referenced value: ${identifier}`);
@@ -540,9 +542,9 @@
     }
 
     class Environment {
-        constructor(cells = {}, builtinFunctions = {}, cellsChangedListener = (() => { })) {
+        constructor(cells = {}, globals = {}, cellsChangedListener = (() => { })) {
             this.cells = cells;
-            this.functions = builtinFunctions;
+            this.globals = globals;
             this.cellsChangedListener = cellsChangedListener;
             this._parser = new Parser(new Tokenizer());
             this._evaluator = new Evaluator();
@@ -598,14 +600,14 @@
             return this._evaluator.evaluateQuery(parsed, this);
         }
 
-        getFunction(name) {
-            if (this.functions[name] === undefined)
-                throw new RuntimeError(`Unknown function: ${name} is not a function`);
-            return this.functions[name];
+        getGlobal(name) {
+            if (this.globals[name] === undefined)
+                throw new RuntimeError(`Unknown global value: ${name}`);
+            return this.globals[name];
         }
     }
 
-    const builtinFunctions = {
+    const builtinValues = {
         SUM: (...args) => {
             let sum = 0;
             for (let arg of args.flat()) {
@@ -633,9 +635,9 @@
     };
 
     class Spreadsheet {
-        constructor(cells = {}, functions = builtinFunctions, cellsChangedListener) {
+        constructor(cells = {}, globals = builtinValues, cellsChangedListener) {
             this.cells = cells;
-            this._environment = new Environment(this.cells, functions, cellsChangedListener);
+            this._environment = new Environment(this.cells, globals, cellsChangedListener);
         }
 
         text(position) {
@@ -660,7 +662,7 @@
     exports.RuntimeError = RuntimeError;
     exports.Spreadsheet = Spreadsheet;
     exports.SpreadsheetError = SpreadsheetError;
-    exports.builtinFunctions = builtinFunctions;
+    exports.builtinValues = builtinValues;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 

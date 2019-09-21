@@ -54,7 +54,7 @@ export default class Evaluator {
 
     _evaluateReference(identifier, environment) {
         try {
-            return environment.getFunction(identifier);
+            return environment.getGlobal(identifier);
         } catch (e) {
             if (e instanceof ParsingError)
                 throw new RuntimeError(`Error in referenced value: ${identifier}`);
