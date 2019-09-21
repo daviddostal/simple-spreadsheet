@@ -27,7 +27,7 @@ export class UnaryOp extends Expression {
 
 export class FunctionCall extends Expression {
     constructor(functionValue, args) { super(); this.functionValue = functionValue; this.args = args; }
-    toString() { return `FunctionCall(${this.functionValue}, ${this.args.join(', ')})`; }
+    toString() { return `FunctionCall(${this.functionValue}, [${this.args.join(', ')}])`; }
 }
 
 export class Range extends Expression {

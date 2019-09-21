@@ -95,7 +95,7 @@ export default class Parser {
 
         const reference = this._tokens.expect(TokenType.REFERENCE);
         if (reference != null && this._tokens.expect(TokenType.COLON))
-            return this._parseRangeReference(reference);
+            return this._finishRangeReference(reference);
         else if (reference != null)
             return this._parseCellReference(reference);
 
@@ -104,14 +104,13 @@ export default class Parser {
             return new Reference(identifier.value);
 
         if (this._tokens.expect(TokenType.LPAREN))
-            return this._parseParenthesized();
+            return this._finishParenthesized();
 
         throw new ParsingError(`Unexpected ${this._tokens.peek().type}, expected an expression or value`)
     }
 
     // parenthesized => '(' expression ')'
-    _parseParenthesized() {
-        // ( is already parsed by parseValue
+    _finishParenthesized() {
         const contents = this._parseExpression();
         this._tokens.require(TokenType.RPAREN);
         return contents;
@@ -128,8 +127,7 @@ export default class Parser {
     }
 
     // rangeReference => IDENTIFIER ':' IDENTIFIER
-    _parseRangeReference(fromReference) {
-        // start identifier and : are already parsed
+    _finishRangeReference(fromReference) {
         const toReference = this._tokens.require(TokenType.REFERENCE);
         const from = new CellReference(fromReference.value);
         const to = new CellReference(toReference.value);
@@ -152,33 +150,6 @@ export default class Parser {
             args.push(this._parseExpression());
         }
         return args;
-    }
-
-    _expectAny(...types) {
-        const current = this._next();
-        if (types.includes(current.type)) {
-            this.tokens.next();
-            return current;
-        } else {
-            return null;
-        }
-    }
-
-    _require(type) {
-        const next = this._expectAny(type);
-        if (next === null)
-            throw new ParsingError(`Expected ${type}, got ${this.tokens.peek().type} instead`);
-        else
-            return next;
-    }
-
-    _next() {
-        let current = this.tokens.peek();
-        while (current.type === TokenType.WHITESPACE) {
-            this.tokens.next();
-            current = this.tokens.peek();
-        }
-        return current;
     }
 
     _getCellReferences(expression) {

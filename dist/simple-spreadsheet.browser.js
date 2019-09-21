@@ -131,7 +131,7 @@ var SimpleSpreadsheet = (function (exports) {
 
     class FunctionCall extends Expression {
         constructor(functionValue, args) { super(); this.functionValue = functionValue; this.args = args; }
-        toString() { return `FunctionCall(${this.functionValue}, ${this.args.join(', ')})`; }
+        toString() { return `FunctionCall(${this.functionValue}, [${this.args.join(', ')}])`; }
     }
 
     class Range extends Expression {
@@ -155,15 +155,6 @@ var SimpleSpreadsheet = (function (exports) {
             : Array.from({ length: from - to + 1 }, (_, i) => from - i);
     }
 
-    function parseRange(range) {
-        const [from, to] = range.split(':');
-        return { from: parsePosition(from), to: parsePosition(to) };
-    }
-
-    function makeRange(from, to) {
-        return `${from}:${to}`;
-    }
-
     function parsePosition(position) {
         const positionParts = position.match(/^([A-Za-z]+)(\d+)$/);
         return positionParts === null ? null :
@@ -184,8 +175,6 @@ var SimpleSpreadsheet = (function (exports) {
 
     var helpers = /*#__PURE__*/Object.freeze({
         positionsInRange: positionsInRange,
-        parseRange: parseRange,
-        makeRange: makeRange,
         parsePosition: parsePosition,
         makePosition: makePosition,
         columnIndex: columnIndex,
@@ -284,7 +273,7 @@ var SimpleSpreadsheet = (function (exports) {
 
             const reference = this._tokens.expect(TokenType.REFERENCE);
             if (reference != null && this._tokens.expect(TokenType.COLON))
-                return this._parseRangeReference(reference);
+                return this._finishRangeReference(reference);
             else if (reference != null)
                 return this._parseCellReference(reference);
 
@@ -293,14 +282,13 @@ var SimpleSpreadsheet = (function (exports) {
                 return new Reference(identifier.value);
 
             if (this._tokens.expect(TokenType.LPAREN))
-                return this._parseParenthesized();
+                return this._finishParenthesized();
 
             throw new ParsingError(`Unexpected ${this._tokens.peek().type}, expected an expression or value`)
         }
 
         // parenthesized => '(' expression ')'
-        _parseParenthesized() {
-            // ( is already parsed by parseValue
+        _finishParenthesized() {
             const contents = this._parseExpression();
             this._tokens.require(TokenType.RPAREN);
             return contents;
@@ -317,8 +305,7 @@ var SimpleSpreadsheet = (function (exports) {
         }
 
         // rangeReference => IDENTIFIER ':' IDENTIFIER
-        _parseRangeReference(fromReference) {
-            // start identifier and : are already parsed
+        _finishRangeReference(fromReference) {
             const toReference = this._tokens.require(TokenType.REFERENCE);
             const from = new CellReference(fromReference.value);
             const to = new CellReference(toReference.value);
@@ -341,33 +328,6 @@ var SimpleSpreadsheet = (function (exports) {
                 args.push(this._parseExpression());
             }
             return args;
-        }
-
-        _expectAny(...types) {
-            const current = this._next();
-            if (types.includes(current.type)) {
-                this.tokens.next();
-                return current;
-            } else {
-                return null;
-            }
-        }
-
-        _require(type) {
-            const next = this._expectAny(type);
-            if (next === null)
-                throw new ParsingError(`Expected ${type}, got ${this.tokens.peek().type} instead`);
-            else
-                return next;
-        }
-
-        _next() {
-            let current = this.tokens.peek();
-            while (current.type === TokenType.WHITESPACE) {
-                this.tokens.next();
-                current = this.tokens.peek();
-            }
-            return current;
         }
 
         _getCellReferences(expression) {
