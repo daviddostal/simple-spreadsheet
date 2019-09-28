@@ -23,7 +23,9 @@ export const TokenType = Object.freeze({
 export class Tokenizer {
     constructor() {
         this._rules = [
-            // NUMBER, REFERENCE and IDENTIFIER are used the most so keep them at the top
+            // NUMBER, REFERENCE and IDENTIFIER are used the most so keep them at the top (for performance reasons - it makes a difference, I measured it)
+            // Patterns usually start with ^ so they match the start of the remaining
+            // string, not anywhere in the middle.
             { pattern: /^\d+(?:\.\d+)?/, type: TokenType.NUMBER },
             { pattern: /^[A-Za-z]+\d+/, type: TokenType.REFERENCE },
             { pattern: /^[a-zA-Z]\w+/, type: TokenType.IDENTIFIER },

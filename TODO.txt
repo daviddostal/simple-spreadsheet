@@ -15,10 +15,10 @@ Fixes and improvements
 - Improve error messages, for example missing closing paren
 - Update readme
 - Think about removing builtin functions and just provide them separately
-- Fix error message for circular references
 
 Working on currently
 ====================
+- Fix error message for circular references
 
 Done
 ====

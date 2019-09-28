@@ -46,7 +46,7 @@ export default class Evaluator {
         try {
             return environment.getValue(position);
         } catch (e) {
-            if (e instanceof ParsingError)
+            if (e instanceof ParsingError || e instanceof RuntimeError)
                 throw new RuntimeError(`Error in referenced cell ${position}`);
             else throw e;
         }
