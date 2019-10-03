@@ -7,6 +7,7 @@ export { builtinFunctions };
 
 export class Spreadsheet {
     constructor(cells = {}, functions = builtinFunctions, cellsChangedListener) {
+        // TODO: confirm this.cells are updated
         this.cells = cells;
         this._environment = new Environment(this.cells, functions, cellsChangedListener);
     }

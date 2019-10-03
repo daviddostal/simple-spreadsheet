@@ -17,8 +17,8 @@
             D3: '= A2 + B2',
             D4: '=Z87',
             D5: '= 1 / 0',
-            D6: '=1 + D7',
             D7: '=SUM(A2:A342)(',
+            D6: '=1 + D7',
             D8: '=D6:F8',
             D9: '=D8',
             D10: '=A2:B2',
@@ -28,7 +28,7 @@
         for (let cell in spreadsheet.cells) {
             console.log(`${cell}: '${spreadsheet.text(cell)}'`);
             try {
-                console.log('    ' + spreadsheet.environment.getExpression(cell).toString());
+                console.log('    ' + spreadsheet._environment.getExpression(cell).toString());
                 console.log(' -> ' + spreadsheet.value(cell));
             } catch (ex) {
                 if (ex instanceof SimpleSpreadsheet.RuntimeError || ex instanceof SimpleSpreadsheet.ParsingError)

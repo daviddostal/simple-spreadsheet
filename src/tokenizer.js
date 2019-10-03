@@ -1,67 +1,66 @@
 import { ParsingError } from './errors';
+import TokenStream from './tokenStream';
 
 export const TokenType = Object.freeze({
-    EOF: 'EOF',
-    WHITESPACE: 'WHITESPACE',
-    PLUS: 'PLUS',
-    MINUS: 'MINUS',
-    STAR: 'STAR',
-    SLASH: 'SLASH',
-    LPAREN: 'LPAREN',
-    RPAREN: 'RPAREN',
-    COLON: 'COLON',
-    EQUALS: 'EQUALS',
-    COMMA: 'COMMA',
-    NUMBER: 'NUMBER',
-    STRING: 'STRING',
-    IDENTIFIER: 'IDENTIFIER',
+    // Note: strings must be unique, because they are used for comparison
+    EOF: 'end of formula',
+    WHITESPACE: 'whitespace',
+    PLUS: '+',
+    MINUS: '-',
+    STAR: '*',
+    SLASH: '/',
+    LPAREN: 'opening parenthesis',
+    RPAREN: 'closing parenthesis',
+    COLON: ':',
+    EQUALS: '=',
+    COMMA: 'comma',
+    NUMBER: 'number',
+    STRING: 'string',
+    IDENTIFIER: 'identifier',
 });
 
 export class Tokenizer {
     constructor() {
-        this.rules = {
-            // NUMBER and IDENTIFIER are used the most so keep them at the top
-            '\\d+(?:\\.\\d+)?': TokenType.NUMBER,
-            '[a-zA-Z]\\w+': TokenType.IDENTIFIER,
-            '\\s+': TokenType.WHITESPACE,
-            '\\+': TokenType.PLUS,
-            '-': TokenType.MINUS,
-            '\\*': TokenType.STAR,
-            '\\/': TokenType.SLASH,
-            '\\(': TokenType.LPAREN,
-            '\\)': TokenType.RPAREN,
-            '=': TokenType.EQUALS,
-            ':': TokenType.COLON,
-            ',': TokenType.COMMA,
-            '\\"(?:[^"\\\\]|\\\\.)*\\"': TokenType.STRING,
-            '$': TokenType.EOF,
-        };
+        this._rules = [
+            // NUMBER and IDENTIFIER are used the most so keep them at the top (for performance reasons - it makes a difference, I measured it)
+            // Patterns usually start with ^ so they match the start of the remaining
+            // string, not anywhere in the middle.
+            { pattern: /^\d+(?:\.\d+)?/, type: TokenType.NUMBER },
+            // { pattern: /^[A-Za-z]+\d+/, type: TokenType.REFERENCE },
+            { pattern: /^[a-zA-Z]\w+/, type: TokenType.IDENTIFIER },
+            { pattern: /^\s+/, type: TokenType.WHITESPACE },
+            { pattern: /^\+/, type: TokenType.PLUS },
+            { pattern: /^\-/, type: TokenType.MINUS },
+            { pattern: /^\*/, type: TokenType.STAR },
+            { pattern: /^\//, type: TokenType.SLASH },
+            { pattern: /^\(/, type: TokenType.LPAREN },
+            { pattern: /^\)/, type: TokenType.RPAREN },
+            { pattern: /^=/, type: TokenType.EQUALS },
+            { pattern: /^:/, type: TokenType.COLON },
+            { pattern: /^,/, type: TokenType.COMMA },
+            { pattern: /^\"(?:[^"\\]|\\.)*\"/, type: TokenType.STRING },
+            { pattern: /^$/, type: TokenType.EOF },
+        ];
     }
 
-    begin(str) {
-        this.remaining = str;
-        return this;
-    }
-
-    next() {
-        const next = this.peek();
-        this.remaining = this.remaining.slice(next.value.length);
-        return next;
-    }
-
-    peek() {
-        for (let rule in this.rules) {
-            const match = this.remaining.match(new RegExp('^' + rule));
-            if (match !== null) {
-                return { type: this.rules[rule], value: match[0] };
-            }
+    tokenize(text) {
+        const tokens = [];
+        let remaining = text;
+        while (remaining.length > 0) {
+            const token = this._nextToken(remaining);
+            tokens.push(token);
+            remaining = remaining.slice(token.value.length);
         }
-        throw new ParsingError(`Unknown token '${this.remaining}'`);
+        tokens.push({ type: TokenType.EOF, value: '' });
+        return new TokenStream(tokens.filter(token => token.type !== TokenType.WHITESPACE));
     }
 
-    rest() {
-        const rest = this.remaining;
-        this.remaining = "";
-        return rest;
+    _nextToken(text) {
+        for (let rule of this._rules) {
+            const match = text.match(rule.pattern);
+            if (match !== null)
+                return { type: rule.type, value: match[0] };
+        }
+        throw new ParsingError(`Unknown token at '${text}'`);
     }
 }

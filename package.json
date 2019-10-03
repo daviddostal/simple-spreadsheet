@@ -14,7 +14,10 @@
     "rollup": "^1.2.3",
     "rollup-plugin-terser": "^4.0.4"
   },
-  "jest": {
-    "testEnvironment": "node"
+"jest": {
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "coverageDirectory": "./.coverage",
+    "coverageReporters": ["json", "lcov", "clover"]
   }
 }

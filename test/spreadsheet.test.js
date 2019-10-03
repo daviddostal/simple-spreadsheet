@@ -344,6 +344,14 @@ test('Exceptions in functions cause RuntimeErrors when evaluated', () => {
     expect(() => spreadsheet.query('=THROW()')).toThrow(SimpleSpreadsheet.RuntimeError);
 });
 
+test('When a function references a function with errors, it throws a RuntimeError', () => {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+        { A1: '=(', A2: '=A2:A4', A3: '=A1', A4: '=A2' }
+    );
+    expect(() => spreadsheet.value('A3')).toThrow(SimpleSpreadsheet.RuntimeError);
+    expect(() => spreadsheet.value('A4')).toThrow(SimpleSpreadsheet.RuntimeError);
+});
+
 test('Function arguments can be expressions, which are evaluated', () => {
     expectValue('=SUM(1, 2 + 8, SUM(3, 4, 5))', 23);
 });

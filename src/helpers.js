@@ -1,5 +1,6 @@
 export function positionsInRange(from, to) {
     const positions = [];
+    // TODO: Use flatMap?
     for (let col of _range(columnIndex(from.col), columnIndex(to.col)))
         for (let row of _range(from.row, to.row))
             positions.push({ col: columnLetter(col), row: row });
@@ -12,18 +13,9 @@ function _range(from, to) {
         : Array.from({ length: from - to + 1 }, (_, i) => from - i);
 }
 
-export function parseRange(range) {
-    const [from, to] = range.split(':');
-    return { from: parsePosition(from), to: parsePosition(to) };
-}
-
-export function makeRange(from, to) {
-    return `${from}:${to}`;
-}
-
 export function parsePosition(position) {
     const positionParts = position.match(/^([A-Za-z]+)(\d+)$/);
-    return positionParts === null ? null :
+    return positionParts &&
         { col: positionParts[1], row: parseInt(positionParts[2]) };
 }
 

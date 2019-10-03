@@ -13,69 +13,94 @@ var SimpleSpreadsheet = (function (exports) {
         toString() { return `Evaluation error: ${this.message}`; }
     }
 
+    class TokenStream {
+        constructor(tokens) {
+            this._tokens = tokens;
+            this._currentPos = 0;
+        }
+
+        peek() {
+            return this._tokens[this._currentPos] || null;
+        }
+
+        expect(...types) {
+            const token = this.peek();
+            if (token !== null && types.includes(token.type)) {
+                this._currentPos++;
+                return token;
+            }
+            return null;
+        }
+
+        require(...types) {
+            const token = this.expect(...types);
+            if (token === null)
+                throw new ParsingError(`Unexpected ${this.peek().type}, expected ${types.join(' or ')}.`);
+            return token;
+        }
+    }
+
     const TokenType = Object.freeze({
-        EOF: 'EOF',
-        WHITESPACE: 'WHITESPACE',
-        PLUS: 'PLUS',
-        MINUS: 'MINUS',
-        STAR: 'STAR',
-        SLASH: 'SLASH',
-        LPAREN: 'LPAREN',
-        RPAREN: 'RPAREN',
-        COLON: 'COLON',
-        EQUALS: 'EQUALS',
-        COMMA: 'COMMA',
-        NUMBER: 'NUMBER',
-        STRING: 'STRING',
-        IDENTIFIER: 'IDENTIFIER',
+        // Note: strings must be unique, because they are used for comparison
+        EOF: 'end of formula',
+        WHITESPACE: 'whitespace',
+        PLUS: '+',
+        MINUS: '-',
+        STAR: '*',
+        SLASH: '/',
+        LPAREN: 'opening parenthesis',
+        RPAREN: 'closing parenthesis',
+        COLON: ':',
+        EQUALS: '=',
+        COMMA: 'comma',
+        NUMBER: 'number',
+        STRING: 'string',
+        IDENTIFIER: 'identifier',
     });
 
     class Tokenizer {
         constructor() {
-            this.rules = {
-                // NUMBER and IDENTIFIER are used the most so keep them at the top
-                '\\d+(?:\\.\\d+)?': TokenType.NUMBER,
-                '[a-zA-Z]\\w+': TokenType.IDENTIFIER,
-                '\\s+': TokenType.WHITESPACE,
-                '\\+': TokenType.PLUS,
-                '-': TokenType.MINUS,
-                '\\*': TokenType.STAR,
-                '\\/': TokenType.SLASH,
-                '\\(': TokenType.LPAREN,
-                '\\)': TokenType.RPAREN,
-                '=': TokenType.EQUALS,
-                ':': TokenType.COLON,
-                ',': TokenType.COMMA,
-                '\\"(?:[^"\\\\]|\\\\.)*\\"': TokenType.STRING,
-                '$': TokenType.EOF,
-            };
+            this._rules = [
+                // NUMBER and IDENTIFIER are used the most so keep them at the top (for performance reasons - it makes a difference, I measured it)
+                // Patterns usually start with ^ so they match the start of the remaining
+                // string, not anywhere in the middle.
+                { pattern: /^\d+(?:\.\d+)?/, type: TokenType.NUMBER },
+                // { pattern: /^[A-Za-z]+\d+/, type: TokenType.REFERENCE },
+                { pattern: /^[a-zA-Z]\w+/, type: TokenType.IDENTIFIER },
+                { pattern: /^\s+/, type: TokenType.WHITESPACE },
+                { pattern: /^\+/, type: TokenType.PLUS },
+                { pattern: /^\-/, type: TokenType.MINUS },
+                { pattern: /^\*/, type: TokenType.STAR },
+                { pattern: /^\//, type: TokenType.SLASH },
+                { pattern: /^\(/, type: TokenType.LPAREN },
+                { pattern: /^\)/, type: TokenType.RPAREN },
+                { pattern: /^=/, type: TokenType.EQUALS },
+                { pattern: /^:/, type: TokenType.COLON },
+                { pattern: /^,/, type: TokenType.COMMA },
+                { pattern: /^\"(?:[^"\\]|\\.)*\"/, type: TokenType.STRING },
+                { pattern: /^$/, type: TokenType.EOF },
+            ];
         }
 
-        begin(str) {
-            this.remaining = str;
-            return this;
-        }
-
-        next() {
-            const next = this.peek();
-            this.remaining = this.remaining.slice(next.value.length);
-            return next;
-        }
-
-        peek() {
-            for (let rule in this.rules) {
-                const match = this.remaining.match(new RegExp('^' + rule));
-                if (match !== null) {
-                    return { type: this.rules[rule], value: match[0] };
-                }
+        tokenize(text) {
+            const tokens = [];
+            let remaining = text;
+            while (remaining.length > 0) {
+                const token = this._nextToken(remaining);
+                tokens.push(token);
+                remaining = remaining.slice(token.value.length);
             }
-            throw new ParsingError(`Unknown token '${this.remaining}'`);
+            tokens.push({ type: TokenType.EOF, value: '' });
+            return new TokenStream(tokens.filter(token => token.type !== TokenType.WHITESPACE));
         }
 
-        rest() {
-            const rest = this.remaining;
-            this.remaining = "";
-            return rest;
+        _nextToken(text) {
+            for (let rule of this._rules) {
+                const match = text.match(rule.pattern);
+                if (match !== null)
+                    return { type: rule.type, value: match[0] };
+            }
+            throw new ParsingError(`Unknown token at '${text}'`);
         }
     }
 
@@ -87,32 +112,35 @@ var SimpleSpreadsheet = (function (exports) {
     }
 
     class Reference extends Expression {
+        // TODO: Maybe refactor to only hold single property?
+        // Normalize position?
         constructor(col, row) { super(); this.col = col; this.row = row; }
-        toString() { return `Reference(${this.col}${this.row})`; }
+        toString() { return `${this.col}${this.row}`; }
     }
 
     class BinaryOp extends Expression {
         constructor(left, op, right) { super(); this.left = left; this.op = op; this.right = right; }
-        toString() { return `BinaryOp(${this.left} ${this.op} ${this.right})`; }
+        toString() { return `(${this.left} ${this.op} ${this.right})`; }
     }
 
     class UnaryOp extends Expression {
         constructor(op, value) { super(); this.op = op; this.value = value; }
-        toString() { return `UnaryOp(${this.op} ${this.value})`; }
+        toString() { return `${this.op}${this.value}`; }
     }
 
     class FunctionCall extends Expression {
         constructor(functionName, args) { super(); this.functionName = functionName; this.args = args; }
-        toString() { return `FunctionCall(${this.functionName}, ${this.args.join(', ')})`; }
+        toString() { return `${this.functionName}(${this.args.join(', ')})`; }
     }
 
     class Range extends Expression {
         constructor(from, to) { super(); this.from = from; this.to = to; }
-        toString() { return `Range(${this.from}, ${this.to})`; }
+        toString() { return `${this.from}:${this.to}`; }
     }
 
     function positionsInRange(from, to) {
         const positions = [];
+        // TODO: Use flatMap?
         for (let col of _range(columnIndex(from.col), columnIndex(to.col)))
             for (let row of _range(from.row, to.row))
                 positions.push({ col: columnLetter(col), row: row });
@@ -125,18 +153,9 @@ var SimpleSpreadsheet = (function (exports) {
             : Array.from({ length: from - to + 1 }, (_, i) => from - i);
     }
 
-    function parseRange(range) {
-        const [from, to] = range.split(':');
-        return { from: parsePosition(from), to: parsePosition(to) };
-    }
-
-    function makeRange(from, to) {
-        return `${from}:${to}`;
-    }
-
     function parsePosition(position) {
         const positionParts = position.match(/^([A-Za-z]+)(\d+)$/);
-        return positionParts === null ? null :
+        return positionParts &&
             { col: positionParts[1], row: parseInt(positionParts[2]) };
     }
 
@@ -154,8 +173,6 @@ var SimpleSpreadsheet = (function (exports) {
 
     var helpers = /*#__PURE__*/Object.freeze({
         positionsInRange: positionsInRange,
-        parseRange: parseRange,
-        makeRange: makeRange,
         parsePosition: parsePosition,
         makePosition: makePosition,
         columnIndex: columnIndex,
@@ -164,105 +181,105 @@ var SimpleSpreadsheet = (function (exports) {
 
     class Parser {
         constructor(tokenizer) {
-            this.tokens = tokenizer;
+            this._tokenizer = tokenizer;
+            this._tokens = null;
         }
 
+        // cell => empty | '=' expression EOF | number | string
         parse(text) {
+            // empty cell or other value
             if (text === null || text === undefined || text.constructor !== String)
-                return { parsed: new Value(text), references: [] }; // if there is nothing to parse, return the value.
+                return { parsed: new Value(text), references: [] };
 
-            this.tokens.begin(text);
-            const parsed = this._parseCell();
-            return { parsed, references: [...new Set(this._getReferences(parsed))] };
-        }
-
-        // Cell => '=' Expression | SimpleValue
-        _parseCell() {
-            if (this.tokens.remaining.startsWith('=')) {
-                this._expectAny(TokenType.EQUALS);
-                const result = this._parseExpression();
-                this._require(TokenType.EOF);
-                return result;
-            } else {
-                return this._parseSimpleValue();
+            // formula
+            if (text.trimStart().startsWith('=')) {
+                this._tokens = this._tokenizer.tokenize(text);
+                this._tokens.require(TokenType.EQUALS);
+                const parsed = this._parseExpression();
+                this._tokens.require(TokenType.EOF);
+                const references = [...new Set(this._getReferences(parsed))];
+                return { parsed, references };
             }
+
+            // number
+            if (text.match(/^[+-]?\d+(?:\.\d+)?$/))
+                return { parsed: new Value(parseFloat(text)), references: [] };
+
+            // string
+            return { parsed: new Value(text), references: [] };
         }
 
-        // SimpleValue => number | text
-        _parseSimpleValue() {
-            const value = this.tokens.rest();
-            if (value.match(/^[+-]?\d+(?:\.\d+)?$/)) return new Value(parseFloat(value));
-            else return new Value(value);
-        }
-
-        // Expression => Term
+        // expression => term
         _parseExpression() {
             return this._parseTerm();
         }
 
-        // Term => Factor ([+-] Factor)*
+        // term => factor (('+'|'-') factor)*
         _parseTerm() {
             let left = this._parseFactor();
             let operation;
-            while ((operation = this._expectAny(TokenType.PLUS, TokenType.MINUS)) !== null) {
+            while ((operation = this._tokens.expect(TokenType.PLUS, TokenType.MINUS)) !== null) {
                 left = new BinaryOp(left, operation.value, this._parseFactor());
             }
             return left;
         }
 
-        // Factor => Unary ([*/] Unary)*
+        // factor => unary (('*'|'/') unary)*
         _parseFactor() {
-            let left = this._parseUnary();
+            let left = this._parseRange();
             let operation;
-            while ((operation = this._expectAny(TokenType.STAR, TokenType.SLASH)) !== null) {
-                left = new BinaryOp(left, operation.value, this._parseUnary());
+            while ((operation = this._tokens.expect(TokenType.STAR, TokenType.SLASH)) !== null) {
+                left = new BinaryOp(left, operation.value, this._parseRange());
             }
             return left;
         }
 
-        // Unary => [+-] Unary | Value
+        // range => unary (':' unary)*
+        _parseRange() {
+            // TODO: Make ranges first-class
+            return this._parseUnary();
+        }
+
+        // unary => ('+'|'-') unary | call
         _parseUnary() {
-            let operation = this._expectAny(TokenType.PLUS, TokenType.MINUS);
+            const operation = this._tokens.expect(TokenType.PLUS, TokenType.MINUS);
             return operation !== null
                 ? new UnaryOp(operation.value, this._parseUnary())
                 : this._parseValue();
         }
 
-        // Value => Parenthesized | number | string | RangeReference | FunctionCall | Reference
+        // value => number | string | rangeReference | reference | parenthesized | functionCall
         _parseValue() {
-            if (this._expectAny(TokenType.LPAREN))
-                return this._parseParenthesized();
+            if (this._tokens.expect(TokenType.LPAREN))
+                return this._finishParenthesized();
 
-            const number = this._expectAny(TokenType.NUMBER);
+            const number = this._tokens.expect(TokenType.NUMBER);
             if (number !== null)
-                return this._parseNumber(number);
+                return new Value(parseFloat(number.value));
 
-            const string = this._expectAny(TokenType.STRING);
+            const string = this._tokens.expect(TokenType.STRING);
             if (string !== null)
                 return this._parseString(string);
 
 
-            const identifier = this._require(TokenType.IDENTIFIER);
+            const identifier = this._tokens.expect(TokenType.IDENTIFIER);
+            if (identifier !== null) {
+                if (this._tokens.expect(TokenType.COLON))
+                    return this._finishRangeReference(identifier);
 
-            if (identifier !== null && this._expectAny(TokenType.COLON))
-                return this._parseRangeReference(identifier);
+                if (this._tokens.expect(TokenType.LPAREN))
+                    return this._finishFunctionCall(identifier);
 
-            if (this._expectAny(TokenType.LPAREN))
-                return this._parseFunctionCall(identifier);
-
-            return this._parseReference(identifier.value);
+                return this._parseReference(identifier.value);
+            }
+            throw new ParsingError(`Unexpected ${this._tokens.peek().type}, expected an expression or value`)
         }
 
-        // Parenthesized => ( Expression )
-        _parseParenthesized() {
-            // ( is already parsed by parseValue
+        // parenthesized => '(' expression ')'
+        _finishParenthesized() {
             const contents = this._parseExpression();
-            this._require(TokenType.RPAREN);
+            this._tokens.require(TokenType.RPAREN);
             return contents;
-        }
-
-        _parseNumber(number) {
-            return new Value(parseFloat(number.value));
         }
 
         _parseString(string) {
@@ -271,27 +288,29 @@ var SimpleSpreadsheet = (function (exports) {
             return new Value(escapedString);
         }
 
-        // RangeReference => identifier ':' identifier
-        _parseRangeReference(identifier) {
+        // rangeReference => IDENTIFIER ':' IDENTIFIER
+        _finishRangeReference(start) {
             // start identifier and : are already parsed
-            const endIdentifier = this._require(TokenType.IDENTIFIER);
-            const from = this._parseReference(identifier.value);
-            const to = this._parseReference(endIdentifier.value);
+            const end = this._tokens.require(TokenType.IDENTIFIER);
+            const from = this._parseReference(start.value);
+            const to = this._parseReference(end.value);
             return new Range(from, to);
         }
 
-        // FunctionCall => identifier ( '(' Arguments ')' )*
-        _parseFunctionCall(identifier) {
-            // function name identifier is already parsed
+        // functionCall => IDENTIFIER ('(' arguments ')')*
+        _finishFunctionCall(identifier) {
+            // TODO: Test or remove nested function calls such as FOO()()
+            // Or check for function return types at runtime?
             let value = identifier.value;
             do {
                 const args = this._parseArguments();
+                this._tokens.expect(TokenType.RPAREN);
                 value = new FunctionCall(value, args);
-            } while (this._expectAny(TokenType.LPAREN))
+            } while (this._tokens.expect(TokenType.LPAREN))
             return value;
         }
 
-        // Reference => [A-Za-z]+\d+
+        // reference => [A-Za-z]+\d+
         _parseReference(reference) {
             const position = parsePosition(reference);
             if (position === null)
@@ -299,42 +318,15 @@ var SimpleSpreadsheet = (function (exports) {
             return new Reference(position.col, position.row);
         }
 
-        // Arguments => (Expression (',' Expression)*)?
+        // arguments => (expression (',' expression)*)?
         _parseArguments() {
             const args = [];
-            while (!this._expectAny(TokenType.RPAREN)) {
+            while (this._tokens.peek().type !== TokenType.RPAREN) {
                 if (args.length != 0)
-                    this._require(TokenType.COMMA);
+                    this._tokens.require(TokenType.COMMA);
                 args.push(this._parseExpression());
             }
             return args;
-        }
-
-        _expectAny(...types) {
-            const current = this._next();
-            if (types.includes(current.type)) {
-                this.tokens.next();
-                return current;
-            } else {
-                return null;
-            }
-        }
-
-        _require(type) {
-            const next = this._expectAny(type);
-            if (next === null)
-                throw new ParsingError(`Expected ${type}, got ${this.tokens.peek().type} instead`);
-            else
-                return next;
-        }
-
-        _next() {
-            let current = this.tokens.peek();
-            while (current.type === TokenType.WHITESPACE) {
-                this.tokens.next();
-                current = this.tokens.peek();
-            }
-            return current;
         }
 
         _getReferences(expression) {
@@ -400,8 +392,8 @@ var SimpleSpreadsheet = (function (exports) {
             try {
                 return environment.getValue(position);
             } catch (e) {
-                if (e instanceof ParsingError)
-                    throw new RuntimeError(`Error in referenced cell: ${position}`);
+                if (e instanceof ParsingError || e instanceof RuntimeError)
+                    throw new RuntimeError(`Error in referenced cell ${position}`);
                 else throw e;
             }
         }
@@ -435,9 +427,11 @@ var SimpleSpreadsheet = (function (exports) {
         }
 
         _evaluateFunction(functionName, args, environment) {
-            const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
             const func = environment.getFunction(functionName);
             try {
+                // TODO: Report different error for arguments and function application
+                // And also test both cases :-)
+                const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
                 return func(...argumentValues);
             } catch (ex) {
                 throw new RuntimeError(`Error in function ${functionName}: ${ex}`);
@@ -584,6 +578,7 @@ var SimpleSpreadsheet = (function (exports) {
 
     class Spreadsheet {
         constructor(cells = {}, functions = builtinFunctions, cellsChangedListener) {
+            // TODO: confirm this.cells are updated
             this.cells = cells;
             this._environment = new Environment(this.cells, functions, cellsChangedListener);
         }

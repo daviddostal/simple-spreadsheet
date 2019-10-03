@@ -44,8 +44,8 @@ export default class Evaluator {
         try {
             return environment.getValue(position);
         } catch (e) {
-            if (e instanceof ParsingError)
-                throw new RuntimeError(`Error in referenced cell: ${position}`);
+            if (e instanceof ParsingError || e instanceof RuntimeError)
+                throw new RuntimeError(`Error in referenced cell ${position}`);
             else throw e;
         }
     }
@@ -79,9 +79,11 @@ export default class Evaluator {
     }
 
     _evaluateFunction(functionName, args, environment) {
-        const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
         const func = environment.getFunction(functionName);
         try {
+            // TODO: Report different error for arguments and function application
+            // And also test both cases :-)
+            const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
             return func(...argumentValues);
         } catch (ex) {
             throw new RuntimeError(`Error in function ${functionName}: ${ex}`);
