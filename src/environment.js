@@ -65,7 +65,7 @@ export class Environment {
 
     getFunction(name) {
         if (this.functions[name] === undefined)
-            throw new RuntimeError(`Unknown function: ${name} is not a function`);
+            throw new RuntimeError(`Unknown function: ${name}`);
         return this.functions[name];
     }
 };

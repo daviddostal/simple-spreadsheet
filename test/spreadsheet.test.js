@@ -324,19 +324,9 @@ test('Functions can accept any JS values as arguments', () => {
     expect(spreadsheet.query('=A2')).toBe(fn);
 });
 
-// TODO??
-// Should the spreadsheet support higher order functions? This would make it harder to
-// distinguish between functions and cell references and would delay the checking of
-// the range reference syntax from parse time (now) to runtime. Also the behavior would
-// shift away from how Excel works, so it would be less familiar to users.
-//
-// test('Functions can be passed as arguments', () => {
-//     const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
-//         {},
-//         { INCREMENT: x => x + 1, TWICE: (fn, value) => fn(fn(value)) }
-//     );
-//     expect(spreadsheet.query('=TWICE(INCREMENT, 3')).toBe(5);
-// });
+test('Cannot call result of a function', () => {
+    expectException('=SUM(2, 3)()', SimpleSpreadsheet.ParsingError);
+});
 
 test('Exceptions in functions cause RuntimeErrors when evaluated', () => {
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet({},
