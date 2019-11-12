@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Spreadsheet evaluator test</title>
-    <script src="../dist/simple-spreadsheet.js"></script>
+    <script src="../dist/browser/simple-spreadsheet.js"></script>
+    <script src="../dist/browser/simple-spreadsheet-functions.js"></script>
 </head>
 <body>
     <script>
@@ -33,7 +34,7 @@
             D13: '=SUM(1,2) + ()',
             D14: '=SUM(1,2()',
 
-        });
+        }, SimpleSpreadsheet.builtinFunctions);
 
         for (let cell in spreadsheet.cells) {
             console.log(`${cell}: '${spreadsheet.text(cell)}'`);

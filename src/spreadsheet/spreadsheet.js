@@ -1,12 +1,12 @@
 import { Environment } from './environment';
-import { builtinFunctions } from './functions';
+// import { builtinFunctions } from './functions';
 import * as Helpers from './helpers';
 export { Helpers };
 export { SpreadsheetError, RuntimeError, ParsingError } from './errors';
-export { builtinFunctions };
+// export { builtinFunctions };
 
 export class Spreadsheet {
-    constructor(cells = {}, functions = builtinFunctions, cellsChangedListener) {
+    constructor(cells = {}, functions ={}, cellsChangedListener) {
         // TODO: confirm this.cells are updated
         this.cells = cells;
         this._environment = new Environment(this.cells, functions, cellsChangedListener);

@@ -1,72 +1,61 @@
 import { terser } from "rollup-plugin-terser";
 
+function createConfig(input, output, format, extend) {
+    return [{
+        input: input,
+        output: {
+            file: output + '.js',
+            format: format,
+            name: 'SimpleSpreadsheet',
+            sourcemap: true,
+            extend: extend,
+        },
+    },
+    {
+        input: input,
+        output: {
+            file: output + '.min.js',
+            format: format,
+            name: extend ? 'SimpleSpreadsheet': undefined,
+            sourcemap: true,
+            extend: extend,
+        },
+        plugins: [
+            terser({ keep_classnames: true }),
+        ],
+    }]
+}
+
 export default [
-    // Umd
-    {
-        input: 'src/spreadsheet.js',
-        output: {
-            file: 'dist/simple-spreadsheet.js',
-            format: 'umd',
-            name: 'SimpleSpreadsheet',
-            sourcemap: true,
-        },
-    },
-    {
-        input: 'src/spreadsheet.js',
-        output: {
-            file: 'dist/simple-spreadsheet.min.js',
-            format: 'umd',
-            name: 'SimpleSpreadsheet',
-            sourcemap: true,
-        },
-        plugins: [
-            terser({ keep_classnames: true }),
-        ],
-    },
+    // Spreadsheet
+    ...createConfig(
+        'src/spreadsheet/spreadsheet.js',
+        'dist/cjs/simple-spreadsheet',
+        'cjs', false),
 
-    // Esm
-    {
-        input: 'src/spreadsheet.js',
-        output: {
-            file: 'dist/simple-spreadsheet.mjs',
-            format: 'esm',
-            name: 'SimpleSpreadsheet',
-            sourcemap: true,
-        },
-    },
-    {
-        input: 'src/spreadsheet.js',
-        output: {
-            file: 'dist/simple-spreadsheet.min.mjs',
-            format: 'esm',
-            name: 'SimpleSpreadsheet',
-            sourcemap: true
-        },
-        plugins: [
-            terser({ keep_classnames: true }),
-        ],
-    },
+    ...createConfig(
+        'src/spreadsheet/spreadsheet.js',
+        'dist/esm/simple-spreadsheet',
+        'esm', false),
 
-    // IIFE
-    {
-        input: 'src/spreadsheet.js',
-        output: {
-            file: 'dist/simple-spreadsheet.browser.js',
-            format: 'iife',
-            name: 'SimpleSpreadsheet',
-            sourcemap: true,
-        },
-    },
-    {
-        input: 'src/spreadsheet.js',
-        output: {
-            file: 'dist/simple-spreadsheet.browser.min.js',
-            format: 'iife',
-            name: 'SimpleSpreadsheet',
-            sourcemap: true
-        },
-        plugins: [
-            terser({ keep_classnames: true }),
-        ],
-    },
+    ...createConfig(
+        'src/spreadsheet/spreadsheet.js',
+        'dist/browser/simple-spreadsheet',
+        'iife', true),
+
+    // Functions
+    ...createConfig(
+        'src/functions/functions.js',
+        'dist/cjs/simple-spreadsheet-functions',
+        'cjs', false),
+
+    ...createConfig(
+        'src/functions/functions.js',
+        'dist/esm/simple-spreadsheet-functions',
+        'esm', false),
+
+    ...createConfig(
+        'src/functions/functions.js',
+        'dist/browser/simple-spreadsheet-functions',
+        'iife', true),
 ]

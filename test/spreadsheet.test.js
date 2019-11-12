@@ -1,14 +1,15 @@
-const SimpleSpreadsheet = require('../dist/simple-spreadsheet');
+const { Spreadsheet, ParsingError, RuntimeError } = require('../dist/cjs/simple-spreadsheet');
+const { builtinFunctions } = require('../dist/cjs/simple-spreadsheet-functions');
 
 function expectValue(formula, expected) {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: formula });
+    const spreadsheet = new Spreadsheet({ A1: formula }, builtinFunctions);
     value = spreadsheet.value('A1');
     expect(value).toBe(expected);
     expect(spreadsheet.query(formula)).toBe(expected);
 }
 
 function expectException(formula, exceptionType) {
-    expect(() => new SimpleSpreadsheet.Spreadsheet({ A1: formula }).value('A1'))
+    expect(() => new Spreadsheet({ A1: formula }, builtinFunctions).value('A1'))
         .toThrow(exceptionType);
 }
 
@@ -22,7 +23,7 @@ test('Non-formula cells are text by default', () => {
 });
 
 test('Empty cells contain null values', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet();
+    const spreadsheet = new Spreadsheet();
     expect(spreadsheet.value('A1')).toBe(null);
 });
 
@@ -55,14 +56,14 @@ test('Backslash escapes next character in string literal', () => {
     expectValue('="\\\\"', '\\');     //  \\  =>  \
     expectValue('="\\jkl"', 'jkl');   //  \jkl  =>  jkl
     expectValue('="\\\\jkl\\\\"', '\\jkl\\');   //  \\jkl  =>  \jkl
-    expectException('="\\\\\\"', SimpleSpreadsheet.ParsingError);   //  ="\\\"  =>  last quote is escaped
+    expectException('="\\\\\\"', ParsingError);   //  ="\\\"  =>  last quote is escaped
 });
 
 test('Range references are allowed only as function arguments', () => {
-    expectException('=A2:A4', SimpleSpreadsheet.RuntimeError);
-    expectException('=3 + A2:A4', SimpleSpreadsheet.RuntimeError);
-    expectException('=-A2:A4', SimpleSpreadsheet.RuntimeError);
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: '1', A2: '2', A3: '=SUM(A1:A2)' });
+    expectException('=A2:A4', RuntimeError);
+    expectException('=3 + A2:A4', RuntimeError);
+    expectException('=-A2:A4', RuntimeError);
+    const spreadsheet = new Spreadsheet({ A1: '1', A2: '2', A3: '=SUM(A1:A2)' }, builtinFunctions);
     expect(spreadsheet.value('A3')).toBe(3);
 });
 
@@ -218,18 +219,18 @@ test('Mathematical properties of division are true', () => {
 test('Parentheses work properly', () => {
     expectValue('=3*(2+4)', 18);
     expectValue('=(((3))*(((((2)+((4)))))))', 18);
-    expectException('=3*(2+4', SimpleSpreadsheet.ParsingError);
-    expectException('=3*(2+4))', SimpleSpreadsheet.ParsingError);
-    expectException('=3*((2+4)', SimpleSpreadsheet.ParsingError);
-    expectException('=3*(2+4())', SimpleSpreadsheet.ParsingError);
-    expectException('=((((3))*(((((2)+((4)))))))', SimpleSpreadsheet.ParsingError);
-    expectException('=((3))*(((((2)+((4)))))))', SimpleSpreadsheet.ParsingError);
-    expectException('=A2()', SimpleSpreadsheet.RuntimeError);
-    expectException('=3*()2', SimpleSpreadsheet.ParsingError);
+    expectException('=3*(2+4', ParsingError);
+    expectException('=3*(2+4))', ParsingError);
+    expectException('=3*((2+4)', ParsingError);
+    expectException('=3*(2+4())', ParsingError);
+    expectException('=((((3))*(((((2)+((4)))))))', ParsingError);
+    expectException('=((3))*(((((2)+((4)))))))', ParsingError);
+    expectException('=A2()', RuntimeError);
+    expectException('=3*()2', ParsingError);
 });
 
 test('Cell references give value at referenced cell', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+    const spreadsheet = new Spreadsheet({
         A1: 34, A2: '42', A3: '=23', Z3423: '=A1 + A3', B43: '=23 + 5.2 + Z3423 + Z3423 + A1'
     });
     expect(spreadsheet.value('A1')).toBe(34);
@@ -240,13 +241,13 @@ test('Cell references give value at referenced cell', () => {
 })
 
 test('Range references work for any start and end position', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+    const spreadsheet = new Spreadsheet({
         A1: 1, B1: 2, C1: 3, D1: 4,
         A2: 5, B2: 6, C2: 7, D2: 8,
         A3: 9, B3: 10, C3: 11, D3: 12,
         A4: 13, B4: 14, C4: 15, D4: 16,
         A5: 17, B5: 18, C5: 19, D5: 20,
-    });
+    }, builtinFunctions);
     expect(spreadsheet.query('=SUM(A1:C3)')).toBe(54)
     expect(spreadsheet.query('=SUM(C3:A1)')).toBe(54);
     expect(spreadsheet.query('=SUM(A1:A1)')).toBe(1);
@@ -264,7 +265,7 @@ test('Spreadsheet accepts user defined functions in js', () => {
         A4: '=ADD1("abc")',
     };
     const functions = { ADD1: x => x + 1 };
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(cells, functions);
+    const spreadsheet = new Spreadsheet(cells, functions);
     expect(spreadsheet.value('A1')).toBe(5);
     expect(spreadsheet.value('A2')).toBe(4.95);
     expect(spreadsheet.value('A3')).toBe(5.95);
@@ -280,7 +281,7 @@ test('Spreadsheet functions can have multiple arguments and be any JS function',
         SUB_THEN_ADD: function (a, b, c) { return a - b + c },
         MULTIPLY_ALL: (...values) => values.reduce((a, b) => a * b, 1),
     };
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({}, functions);
+    const spreadsheet = new Spreadsheet({}, functions);
     expect(spreadsheet.query('=GET_1()')).toBe(1);
     expect(spreadsheet.query('=SUB_3(100)')).toBe(97);
     expect(spreadsheet.query('=POW(2,5)')).toBe(32);
@@ -291,7 +292,7 @@ test('Spreadsheet functions can have multiple arguments and be any JS function',
 });
 
 test('Ranges are passed to functions as arrays', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+    const spreadsheet = new Spreadsheet(
         { A1: 1, A2: 2, B1: 3, B2: 4 },
         {
             TEST_RANGE: (numbers) => {
@@ -303,7 +304,7 @@ test('Ranges are passed to functions as arrays', () => {
 });
 
 test('Functions can be nested', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+    const spreadsheet = new Spreadsheet(
         { A1: 1, A2: 2, B1: 3, B2: 4 },
         { ADD: (a, b) => a + b });
     expect(spreadsheet.query('=ADD(A1, ADD(ADD(2, A2), ADD(B1, B2)))')).toBe(12);
@@ -312,34 +313,34 @@ test('Functions can be nested', () => {
 test('Functions can return arbitrary JS values, even functions', () => {
     const testFunction1 = function (name) { return `Hello, ${name}` };
     const testFunction2 = function () { return testFunction1 };
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({},
+    const spreadsheet = new Spreadsheet({},
         { TEST: testFunction2 });
     expect(spreadsheet.query('=TEST()')).toBe(testFunction1);
 });
 
 test('Functions can accept any JS values as arguments', () => {
     const fn = () => 2;
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+    const spreadsheet = new Spreadsheet(
         { A1: 1, A2: fn, B1: 3, B2: 4 }, {});
     expect(spreadsheet.query('=A2')).toBe(fn);
 });
 
 test('Cannot call result of a function', () => {
-    expectException('=SUM(2, 3)()', SimpleSpreadsheet.ParsingError);
+    expectException('=SUM(2, 3)()', ParsingError);
 });
 
 test('Exceptions in functions cause RuntimeErrors when evaluated', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({},
+    const spreadsheet = new Spreadsheet({},
         { THROW: () => { throw new Error('Testing...'); } });
-    expect(() => spreadsheet.query('=THROW()')).toThrow(SimpleSpreadsheet.RuntimeError);
+    expect(() => spreadsheet.query('=THROW()')).toThrow(RuntimeError);
 });
 
 test('When a function references a function with errors, it throws a RuntimeError', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+    const spreadsheet = new Spreadsheet(
         { A1: '=(', A2: '=A2:A4', A3: '=A1', A4: '=A2' }
     );
-    expect(() => spreadsheet.value('A3')).toThrow(SimpleSpreadsheet.RuntimeError);
-    expect(() => spreadsheet.value('A4')).toThrow(SimpleSpreadsheet.RuntimeError);
+    expect(() => spreadsheet.value('A3')).toThrow(RuntimeError);
+    expect(() => spreadsheet.value('A4')).toThrow(RuntimeError);
 });
 
 test('Function arguments can be expressions, which are evaluated', () => {
@@ -347,7 +348,7 @@ test('Function arguments can be expressions, which are evaluated', () => {
 });
 
 test('Cell references are case sensitive', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ a1: 1, A2: 2 });
+    const spreadsheet = new Spreadsheet({ a1: 1, A2: 2 });
     expect(spreadsheet.query('=a1')).toBe(1);
     expect(spreadsheet.query('=A1')).toBe(null);
     expect(spreadsheet.query('=A2')).toBe(2);
@@ -355,20 +356,20 @@ test('Cell references are case sensitive', () => {
 });
 
 test('Cell reference rows are parsed as numbers', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: 1 });
+    const spreadsheet = new Spreadsheet({ A1: 1 });
     expect(spreadsheet.query('=A1')).toBe(1);
     expect(spreadsheet.query('=A01')).toBe(1);
 });
 
 test('Cell values can be edited', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ A1: 1 });
+    const spreadsheet = new Spreadsheet({ A1: 1 });
     expect(spreadsheet.value('A1')).toBe(1);
     spreadsheet.set('A1', '5');
     expect(spreadsheet.value('A1')).toBe(5);
 });
 
 test('Cell edit propagates to referencing cells', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+    const spreadsheet = new Spreadsheet(
         { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' }
     );
 
@@ -385,7 +386,7 @@ test('Cell edit propagates to referencing cells', () => {
 });
 
 test('Cell edits work properly even without evaluating other cells first', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+    const spreadsheet = new Spreadsheet(
         { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' }
     );
 
@@ -401,8 +402,9 @@ test('Cell edits work properly even without evaluating other cells first', () =>
 });
 
 test('Cell edits propagate with ranges', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+    const spreadsheet = new Spreadsheet(
         { A1: 1, A2: 2, A3: 4, A4: '=SUM(A1:A3)' }
+        , builtinFunctions
     );
 
     expect(spreadsheet.value('A1')).toBe(1);
@@ -418,8 +420,9 @@ test('Cell edits propagate with ranges', () => {
 });
 
 test('Cell edits propagate with ranges even if not all evaluated', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
-        { A1: 1, A2: '=SUM(A1:A1)', A3: '=SUM(A2:A2)', A4: '=SUM(A3:A3)' }
+    const spreadsheet = new Spreadsheet(
+        { A1: 1, A2: '=SUM(A1:A1)', A3: '=SUM(A2:A2)', A4: '=SUM(A3:A3)' },
+        builtinFunctions
     );
 
     spreadsheet.value('A3');
@@ -432,22 +435,22 @@ test('Cell edits propagate with ranges even if not all evaluated', () => {
 });
 
 test('Cyclic references cause runtime exception', () => {
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+    const spreadsheet = new Spreadsheet({
         A1: '=A2', A2: '=A1'
-    });
+    }, builtinFunctions);
 
-    expect(() => spreadsheet.value('A1')).toThrow(SimpleSpreadsheet.CircularReferenceError);
+    expect(() => spreadsheet.value('A1')).toThrow(RuntimeError);
 
-    const spreadsheet2 = new SimpleSpreadsheet.Spreadsheet({
+    const spreadsheet2 = new Spreadsheet({
         A1: '=2 * A1'
-    });
+    }, builtinFunctions);
 
-    expect(() => spreadsheet2.value('A1')).toThrow(SimpleSpreadsheet.CircularReferenceError);
+    expect(() => spreadsheet2.value('A1')).toThrow(RuntimeError);
 });
 
 test('Cell changes are reported', () => {
     const changedPositions = [];
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+    const spreadsheet = new Spreadsheet(
         { A1: 1, A2: '=A1' }, {}, changed => changedPositions.push(changed)
     );
 
@@ -464,7 +467,7 @@ test('Cell changes are reported', () => {
 
 test('Cell changes are reported only for already evaluated cells', () => {
     const changedPositions = [];
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+    const spreadsheet = new Spreadsheet(
         { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' },
         {},
         changed => changedPositions.push(changed)

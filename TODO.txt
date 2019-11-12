@@ -12,17 +12,17 @@ Features
 
 Fixes and improvements
 ======================
-- Think about direction of library (Do we want to be like excel? Or more like a programming language?)
 - Improve error messages, for example missing closing paren
 - Update readme
-- Think about removing builtin functions and just provide them separately
-- Think about adding constants vs just using functions like PI() (like Excel does)
 
 Working on currently
 ====================
 
 Done
 ====
+✔ Think about removing builtin functions and just provide them separately
+✔ Think about adding constants vs just using functions like PI() (like Excel does) - constants should be just functions (makes stuff simpler)
+✔ Think about direction of library (Do we want to be like excel? Or more like a programming language?)
 ✔ Reference cycle detection
 ✔ Fix error message for circular references
 ✔ Rename builtinFunctions
@@ -40,4 +40,4 @@ Library goals
 - Supports first class ranges and "lists"
 
 Example
-=SUM(A1:A4, 1:10, "aa":"zz", IF(A5 > 8, -5 + 4))
+=SUM(A1:A4, 1:10, "aa":"zz", IF(A5 > 8, -5 + 4, PI()))

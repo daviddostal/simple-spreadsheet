@@ -1,8 +1,5 @@
-(function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-    typeof define === 'function' && define.amd ? define(['exports'], factory) :
-    (global = global || self, factory(global.SimpleSpreadsheet = {}));
-}(this, function (exports) { 'use strict';
+(function (exports) {
+    'use strict';
 
     class SpreadsheetError extends Error { }
 
@@ -38,7 +35,7 @@
         require(...types) {
             const token = this.expect(...types);
             if (token === null)
-                throw new ParsingError(`Unexpected ${this.peek().type}, expected ${types.join(' or ')}.`);
+                throw new ParsingError(`Unexpected ${this.peek().type}, expected ${types.join(' or ')}`);
             return token;
         }
     }
@@ -575,35 +572,10 @@
         }
     }
 
-    const builtinFunctions = {
-        SUM: (...args) => {
-            let sum = 0;
-            for (let arg of args.flat()) {
-                if (typeof (arg) === 'number')
-                    sum += arg;
-                else if (!(arg === null || arg === undefined))
-                    throw new Error(`${typeof (arg)} is not a valid argument to SUM(). Expected number, number[], null or undefined.`);
-            }
-            return sum;
-        },
-
-        AVERAGE: (...args) => {
-            let sum = 0;
-            let count = 0;
-            for (let arg of args.flat()) {
-                if (typeof (arg) === 'number') {
-                    sum += arg;
-                    count++;
-                } else if (!(arg === null || arg === undefined)) {
-                    throw new Error(`${typeof (arg)} is not a valid argument to AVERAGE().`);
-                }
-            }
-            return sum / count;
-        },
-    };
+    // export { builtinFunctions };
 
     class Spreadsheet {
-        constructor(cells = {}, functions = builtinFunctions, cellsChangedListener) {
+        constructor(cells = {}, functions ={}, cellsChangedListener) {
             // TODO: confirm this.cells are updated
             this.cells = cells;
             this._environment = new Environment(this.cells, functions, cellsChangedListener);
@@ -631,9 +603,6 @@
     exports.RuntimeError = RuntimeError;
     exports.Spreadsheet = Spreadsheet;
     exports.SpreadsheetError = SpreadsheetError;
-    exports.builtinFunctions = builtinFunctions;
 
-    Object.defineProperty(exports, '__esModule', { value: true });
-
-}));
+}(this.SimpleSpreadsheet = this.SimpleSpreadsheet || {}));
 //# sourceMappingURL=simple-spreadsheet.js.map

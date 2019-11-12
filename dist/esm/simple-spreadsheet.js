@@ -32,7 +32,7 @@ class TokenStream {
     require(...types) {
         const token = this.expect(...types);
         if (token === null)
-            throw new ParsingError(`Unexpected ${this.peek().type}, expected ${types.join(' or ')}.`);
+            throw new ParsingError(`Unexpected ${this.peek().type}, expected ${types.join(' or ')}`);
         return token;
     }
 }
@@ -569,35 +569,10 @@ class Environment {
     }
 }
 
-const builtinFunctions = {
-    SUM: (...args) => {
-        let sum = 0;
-        for (let arg of args.flat()) {
-            if (typeof (arg) === 'number')
-                sum += arg;
-            else if (!(arg === null || arg === undefined))
-                throw new Error(`${typeof (arg)} is not a valid argument to SUM(). Expected number, number[], null or undefined.`);
-        }
-        return sum;
-    },
-
-    AVERAGE: (...args) => {
-        let sum = 0;
-        let count = 0;
-        for (let arg of args.flat()) {
-            if (typeof (arg) === 'number') {
-                sum += arg;
-                count++;
-            } else if (!(arg === null || arg === undefined)) {
-                throw new Error(`${typeof (arg)} is not a valid argument to AVERAGE().`);
-            }
-        }
-        return sum / count;
-    },
-};
+// export { builtinFunctions };
 
 class Spreadsheet {
-    constructor(cells = {}, functions = builtinFunctions, cellsChangedListener) {
+    constructor(cells = {}, functions ={}, cellsChangedListener) {
         // TODO: confirm this.cells are updated
         this.cells = cells;
         this._environment = new Environment(this.cells, functions, cellsChangedListener);
@@ -620,5 +595,5 @@ class Spreadsheet {
     }
 }
 
-export { helpers as Helpers, ParsingError, RuntimeError, Spreadsheet, SpreadsheetError, builtinFunctions };
-//# sourceMappingURL=simple-spreadsheet.mjs.map
+export { helpers as Helpers, ParsingError, RuntimeError, Spreadsheet, SpreadsheetError };
+//# sourceMappingURL=simple-spreadsheet.js.map
