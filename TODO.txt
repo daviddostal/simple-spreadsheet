@@ -1,6 +1,5 @@
 Features
 ========
-✔ Reference cycle detection
 ✔ Events for cell changes
 - Constants like PI, E etc.
 - Macro functions like IF(...; ...; ...)
@@ -9,6 +8,7 @@ Features
 - Add features section to readme
 ? Spreadsheet functions inside custom functions
 ?? Parser, lexer and evaluator extensions (custom operators etc)
+- More granular error types
 
 Fixes and improvements
 ======================
@@ -17,16 +17,17 @@ Fixes and improvements
 - Update readme
 - Think about removing builtin functions and just provide them separately
 - Think about adding constants vs just using functions like PI() (like Excel does)
-- Fix error message for circular references
 
 Working on currently
 ====================
-- Add relevant new changes to branch
 
 Done
 ====
+✔ Reference cycle detection
+✔ Fix error message for circular references
 ✔ Rename builtinFunctions
 ✔ Rewrite tokenizer to use regexes instead of strings
+✔ Add relevant new changes to branch
 
 
 

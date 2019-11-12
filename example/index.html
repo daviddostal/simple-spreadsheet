@@ -10,6 +10,12 @@
 <body>
     <script>
         const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+            D19: '=D18',
+            D15: '=A1 + A2',
+            D16: '=D15 + D17',
+            D17: '=D15 - D18',
+            D18: '=D16',
+
             J1: '=SUM(A2:B3)', A3: '3', B3: '6',
             A1: 'column 1', B1: 'column 2', C1: 'sum',
             A2: '2', B2: '5', C2: '=SUM(A2:B2)', C3: '=SUM(3, 4)',
@@ -26,6 +32,7 @@
             D12: '=SUM(1,2)()',
             D13: '=SUM(1,2) + ()',
             D14: '=SUM(1,2()',
+
         });
 
         for (let cell in spreadsheet.cells) {
@@ -34,7 +41,7 @@
                 console.log('    ' + spreadsheet._environment.getExpression(cell).toString());
                 console.log(' -> ' + spreadsheet.value(cell));
             } catch (ex) {
-                if (ex instanceof SimpleSpreadsheet.RuntimeError || ex instanceof SimpleSpreadsheet.ParsingError)
+                if (ex instanceof SimpleSpreadsheet.SpreadsheetError)
                     console.error(ex.toString());
                 else throw ex;
             }

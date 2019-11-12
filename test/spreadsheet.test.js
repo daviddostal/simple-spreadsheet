@@ -436,13 +436,13 @@ test('Cyclic references cause runtime exception', () => {
         A1: '=A2', A2: '=A1'
     });
 
-    expect(() => spreadsheet.value('A1')).toThrow(SimpleSpreadsheet.RuntimeError);
+    expect(() => spreadsheet.value('A1')).toThrow(SimpleSpreadsheet.CircularReferenceError);
 
     const spreadsheet2 = new SimpleSpreadsheet.Spreadsheet({
         A1: '=2 * A1'
     });
 
-    expect(() => spreadsheet2.value('A1')).toThrow(SimpleSpreadsheet.RuntimeError);
+    expect(() => spreadsheet2.value('A1')).toThrow(SimpleSpreadsheet.CircularReferenceError);
 });
 
 test('Cell changes are reported', () => {

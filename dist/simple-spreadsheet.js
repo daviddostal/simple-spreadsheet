@@ -358,6 +358,10 @@
         }
     }
 
+    class CircularReferenceError extends Error {
+        constructor(message, cell) { super(message); this.cell = cell; }
+    }
+
     class Evaluator {
         constructor() {
             this.visitedCellStack = [];
@@ -365,12 +369,26 @@
 
         evaluateCellAt(position, cell, environment) {
             if (this.visitedCellStack.includes(position))
-                throw new RuntimeError(`Circular reference detected (${this.visitedCellStack.join(' -> ')} -> ${position})`);
+                throw new CircularReferenceError(`Circular reference detected (${this.visitedCellStack.join(' -> ')} -> ${position})`, cell);
 
             this.visitedCellStack.push(position);
-            const result = this._evaluateCell(cell, environment);
-            this.visitedCellStack.pop();
-            return result;
+            try {
+                const result = this._evaluateCell(cell, environment);
+                this.visitedCellStack.pop();
+                return result;
+            } catch (ex) {
+                this.visitedCellStack.pop();
+                // Normal errors propagate as usual, but CircularReferenceError is used
+                // only to propagate the exception to the originating cell internally
+                // (so it doesn't get reported just as an error in a referenced cell).
+                // Once the CircularReferenceError reaches back to the originating cell,
+                // we turn it into a normal RuntimeError.
+                if (ex instanceof CircularReferenceError && ex.cell === cell) {
+                    throw new RuntimeError(ex.message);
+                } else {
+                    throw ex;
+                }
+            }
         }
 
         evaluateQuery(cell, environment) {
