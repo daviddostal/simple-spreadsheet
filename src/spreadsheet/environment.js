@@ -5,15 +5,15 @@ import { RuntimeError } from './errors';
 import ReferencesMap from './referencesMap';
 
 export class Environment {
-    constructor(cells = new Map(), builtinFunctions = {}, cellsChangedListener = (() => { })) {
+    constructor(cells, functions, cellsChangedListener) {
         this.cells = cells;
-        this.functions = builtinFunctions;
+        this.functions = functions;
         this.onCellsChanged = cellsChangedListener;
         this._parser = new Parser(new Tokenizer());
         this._evaluator = new Evaluator();
 
-        this._expressionsCache = new Map(); // position => expression tree
-        this._valuesCache = new Map(); // position => value;
+        this._expressionsCache = new Map(); // { position => expression tree (AST) }
+        this._valuesCache = new Map(); // { position => value; }
         this._referencesMap = new ReferencesMap();
     }
 
@@ -64,8 +64,8 @@ export class Environment {
     }
 
     getFunction(name) {
-        if (this.functions[name] === undefined)
+        if (!this.functions.has(name))
             throw new RuntimeError(`Unknown function: ${name}`);
-        return this.functions[name];
+        return this.functions.get(name);
     }
 }

@@ -504,15 +504,15 @@ class ReferencesMap {
 }
 
 class Environment {
-    constructor(cells = new Map(), builtinFunctions = {}, cellsChangedListener = (() => { })) {
+    constructor(cells, functions, cellsChangedListener) {
         this.cells = cells;
-        this.functions = builtinFunctions;
+        this.functions = functions;
         this.onCellsChanged = cellsChangedListener;
         this._parser = new Parser(new Tokenizer());
         this._evaluator = new Evaluator();
 
-        this._expressionsCache = new Map(); // position => expression tree
-        this._valuesCache = new Map(); // position => value;
+        this._expressionsCache = new Map(); // { position => expression tree (AST) }
+        this._valuesCache = new Map(); // { position => value; }
         this._referencesMap = new ReferencesMap();
     }
 
@@ -563,19 +563,20 @@ class Environment {
     }
 
     getFunction(name) {
-        if (this.functions[name] === undefined)
+        if (!this.functions.has(name))
             throw new RuntimeError(`Unknown function: ${name}`);
-        return this.functions[name];
+        return this.functions.get(name);
     }
 }
 
 // export { builtinFunctions };
 
 class Spreadsheet {
-    constructor(cells = new Map(), functions = {}, onCellsChanged) {
+    constructor(cells = new Map(), functions = new Map(), onCellsChanged = (() => { })) {
         // TODO: confirm this.cells are updated
         this.cells = cells instanceof Map ? cells : new Map(Object.entries(cells));
-        this._environment = new Environment(this.cells, functions, onCellsChanged);
+        this.functions = functions instanceof Map ? functions : new Map(Object.entries(functions));
+        this._environment = new Environment(this.cells, this.functions, onCellsChanged);
     }
 
     text(position) {
