@@ -4,7 +4,6 @@ Features
 - Constants like PI, E etc.
 - Macro functions like IF(...; ...; ...)
 - Performance profiling and optimizations
-- Better structure for tests
 - Add features section to readme
 ? Spreadsheet functions inside custom functions
 ?? Parser, lexer and evaluator extensions (custom operators etc)
@@ -14,12 +13,15 @@ Fixes and improvements
 ======================
 - Improve error messages, for example missing closing paren
 - Update readme
+- Go over and improve tests
 
 Working on currently
 ====================
 
 Done
 ====
+✔ Add eslint
+✔ Better structure for tests
 ✔ Think about removing builtin functions and just provide them separately
 ✔ Think about adding constants vs just using functions like PI() (like Excel does) - constants should be just functions (makes stuff simpler)
 ✔ Think about direction of library (Do we want to be like excel? Or more like a programming language?)

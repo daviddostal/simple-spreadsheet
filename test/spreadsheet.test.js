@@ -3,7 +3,7 @@ const { builtinFunctions } = require('../dist/cjs/simple-spreadsheet-functions')
 
 function expectValue(formula, expected) {
     const spreadsheet = new Spreadsheet({ A1: formula }, builtinFunctions);
-    value = spreadsheet.value('A1');
+    const value = spreadsheet.value('A1');
     expect(value).toBe(expected);
     expect(spreadsheet.query(formula)).toBe(expected);
 }
@@ -338,7 +338,7 @@ describe('Spreadsheet functions', () => {
             { A1: 1, A2: 2, B1: 3, B2: 4 },
             {
                 TEST_RANGE: (numbers) => {
-                    if (!numbers instanceof Array) throw new Error('Not an array');
+                    if (!(numbers instanceof Array)) throw new Error('Not an array');
                     return numbers.reduce((a, b) => a + b, 0);
                 }
             });

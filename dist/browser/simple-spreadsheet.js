@@ -507,43 +507,43 @@
     }
 
     class Environment {
-        constructor(cells = {}, builtinFunctions = {}, cellsChangedListener = (() => { })) {
+        constructor(cells = new Map(), builtinFunctions = {}, cellsChangedListener = (() => { })) {
             this.cells = cells;
             this.functions = builtinFunctions;
-            this.cellsChangedListener = cellsChangedListener;
+            this.onCellsChanged = cellsChangedListener;
             this._parser = new Parser(new Tokenizer());
             this._evaluator = new Evaluator();
 
-            this._expressionsCache = {}; // position => expression tree
-            this._valuesCache = {}; // position => value;
+            this._expressionsCache = new Map(); // position => expression tree
+            this._valuesCache = new Map(); // position => value;
             this._referencesMap = new ReferencesMap();
         }
 
         getText(position) {
-            return this.cells.hasOwnProperty(position) ? this.cells[position].toString() : "";
+            return this.cells.has(position) ? this.cells.get(position).toString() : "";
         }
 
         setText(position, value) {
-            this.cells[position] = value;
+            this.cells.set(position, value);
 
             const affectedCells = [position, ...this._referencesMap.getAffectedCells(position)];
             for (let pos of affectedCells)
-                delete this._valuesCache[pos];
+                this._valuesCache.delete(pos);
 
-            delete this._expressionsCache[position];
+            this._expressionsCache.delete(position);
             if (this._referencesMap.getReferencesFrom(position))
                 this._referencesMap.removeReferencesFrom(position);
 
-            this.cellsChangedListener(affectedCells);
+            this.onCellsChanged(affectedCells);
         }
 
         getExpression(position) {
-            if (this._expressionsCache.hasOwnProperty(position))
-                return this._expressionsCache[position];
+            if (this._expressionsCache.has(position))
+                return this._expressionsCache.get(position);
 
-            const text = this.cells.hasOwnProperty(position) ? this.cells[position] : null;
+            const text = this.cells.has(position) ? this.cells.get(position) : null;
             const { parsed, references } = this._parser.parse(text);
-            this._expressionsCache[position] = parsed;
+            this._expressionsCache.set(position, parsed);
 
             for (let reference of references)
                 this._referencesMap.addReference(position, reference);
@@ -552,11 +552,11 @@
         }
 
         getValue(position) {
-            if (this._valuesCache.hasOwnProperty(position))
-                return this._valuesCache[position];
+            if (this._valuesCache.has(position))
+                return this._valuesCache.get(position);
 
             const result = this._evaluator.evaluateCellAt(position, this.getExpression(position), this);
-            this._valuesCache[position] = result;
+            this._valuesCache.set(position, result);
             return result;
         }
 
@@ -575,10 +575,10 @@
     // export { builtinFunctions };
 
     class Spreadsheet {
-        constructor(cells = {}, functions ={}, cellsChangedListener) {
+        constructor(cells = new Map(), functions = {}, onCellsChanged) {
             // TODO: confirm this.cells are updated
-            this.cells = cells;
-            this._environment = new Environment(this.cells, functions, cellsChangedListener);
+            this.cells = cells instanceof Map ? cells : new Map(Object.entries(cells));
+            this._environment = new Environment(this.cells, functions, onCellsChanged);
         }
 
         text(position) {
