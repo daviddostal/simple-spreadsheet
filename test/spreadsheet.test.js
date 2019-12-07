@@ -491,7 +491,7 @@ describe('Cell edit', () => {
         // evaluates A3, A2 and A1
         spreadsheet.value('A3');
 
-        // changes A1, A2, A1 but not A4 since A4 was never evaluated
+        // changes A1, A2, A3 but not A4 since A4 was never evaluated
         spreadsheet.set('A1', '=3+2');
         expect(changedPositions).toStrictEqual([['A1', 'A2', 'A3']]);
     });

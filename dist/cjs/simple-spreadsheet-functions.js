@@ -27,6 +27,9 @@ const builtinFunctions = {
         }
         return sum / count;
     },
+
+    PI: () => 3.141592653589793,
+    E: () => 2.718281828459045,
 };
 
 exports.builtinFunctions = builtinFunctions;

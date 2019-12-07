@@ -572,8 +572,6 @@
         }
     }
 
-    // export { builtinFunctions };
-
     class Spreadsheet {
         constructor(cells = new Map(), functions = new Map(), onCellsChanged = (() => { })) {
             // TODO: confirm this.cells are updated

@@ -1,6 +1,5 @@
 Features
 ========
-✔ Events for cell changes
 - Constants like PI, E etc.
 - Macro functions like IF(...; ...; ...)
 - Performance profiling and optimizations
@@ -20,6 +19,7 @@ Working on currently
 
 Done
 ====
+✔ Events for cell changes
 ✔ Add eslint
 ✔ Better structure for tests
 ✔ Think about removing builtin functions and just provide them separately
