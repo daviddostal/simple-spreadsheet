@@ -29,6 +29,7 @@ export const builtinFunctions = {
             throw new Error(`PI() expects 0 arguments, got ${arguments.length} arguments.`);
         return 3.141592653589793;
     },
+    
     E: function () {
         if (arguments.length > 0)
             throw new Error(`E() expects 0 arguments, got ${arguments.length} arguments.`);

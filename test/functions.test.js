@@ -68,3 +68,17 @@ describe('AVERAGE function', () => {
         expect(() => spreadsheet.query('=AVERAGE(2, A1)')).toThrow(RuntimeError);
     });
 });
+
+describe('PI function', () => {
+    const spreadsheet = new Spreadsheet({}, builtinFunctions);
+
+    test('returns PI', () => {
+        expect(spreadsheet.query('=PI()')).toBe(Math.PI);
+        expect(spreadsheet.query('=PI()')).toBe(3.141592653589793);
+    });
+
+    test('throws when there are too many arguments', () => {
+        expect(() => spreadsheet.query('=PI(1)')).toThrow(RuntimeError);
+        expect(() => spreadsheet.query('=PI(1, 2)')).toThrow(RuntimeError);
+    });
+})
