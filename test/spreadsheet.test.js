@@ -377,6 +377,11 @@ describe('Spreadsheet functions', () => {
         expect(() => spreadsheet.query('=THROW()')).toThrow(RuntimeError);
     });
 
+    test('Function throws RuntimeError when argument throws', () => {
+        const spreadsheet = new Spreadsheet({}, builtinFunctions);
+        expect(() => spreadsheet.query('=SUM(1, PI(1))')).toThrow(RuntimeError);
+    });
+
     test('When a function references a function with errors, it throws a RuntimeError', () => {
         const spreadsheet = new Spreadsheet(
             { A1: '=(', A2: '=A2:A4', A3: '=A1', A4: '=A2' }

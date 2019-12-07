@@ -448,14 +448,24 @@ class Evaluator {
 
     _evaluateFunction(functionName, args, environment) {
         const func = environment.getFunction(functionName);
+        const argumentValues = this._evaluateArguments(functionName, args, environment);
         try {
-            // TODO: Report different error for arguments and function application
-            // And also test both cases :-)
-            const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
             return func(...argumentValues);
         } catch (ex) {
             throw new RuntimeError(`Error in function ${functionName}: ${ex}`);
         }
+    }
+
+    _evaluateArguments(functionName, args, environment) {
+        let evaluatedArgs = [];
+        for (let i = 0; i < args.length; i++) {
+            try {
+                evaluatedArgs.push(this._evaluateExpression(args[i], environment));
+            } catch (ex) {
+                throw new RuntimeError(`Error in function argument ${i} in function ${functionName}: ${ex}`);
+            }
+        }
+        return evaluatedArgs;
     }
 
     _evaluateRange(from, to, environment) {

@@ -1,6 +1,5 @@
 Features
 ========
-- Constants like PI, E etc.
 - Macro functions like IF(...; ...; ...)
 - Performance profiling and optimizations
 - Add features section to readme
@@ -19,6 +18,7 @@ Working on currently
 
 Done
 ====
+✔ Constants like PI, E etc.
 ✔ Events for cell changes
 ✔ Add eslint
 ✔ Better structure for tests
