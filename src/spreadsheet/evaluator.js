@@ -97,10 +97,17 @@ export default class Evaluator {
     }
 
     _evaluateFunction(functionName, args, environment) {
-        const func = environment.getFunction(functionName);
+        let func = environment.getFunction(functionName);
+        func = func instanceof Function ? { isMacro: false, function: func } : func;
+        return (func.isMacro === true) ?
+            this._evaluateMacro(functionName, func, args, environment) :
+            this._evaluateSpreadsheetFunction(functionName, func, args, environment);
+    }
+
+    _evaluateSpreadsheetFunction(functionName, func, args, environment) {
         const argumentValues = this._evaluateArguments(functionName, args, environment);
         try {
-            return func(...argumentValues);
+            return func.function(...argumentValues);
         } catch (ex) {
             throw new RuntimeError(`Error in function ${functionName}: ${ex}`);
         }
@@ -112,10 +119,19 @@ export default class Evaluator {
             try {
                 evaluatedArgs.push(this._evaluateExpression(args[i], environment));
             } catch (ex) {
-                throw new RuntimeError(`Error in function argument ${i} in function ${functionName}: ${ex}`);
+                throw new RuntimeError(`Error in function argument ${i + 1} in function ${functionName}: ${ex}`);
             }
         }
         return evaluatedArgs;
+    }
+
+    _evaluateMacro(macroName, macro, args, environment) {
+        const argsLazyValues = args.map(arg => () => this._evaluateExpression(arg, environment));
+        try {
+            return macro.function(...argsLazyValues);
+        } catch (ex) {
+            throw new RuntimeError(`Error in macro ${macroName}: ${ex}`);
+        }
     }
 
     _evaluateRange(from, to, environment) {

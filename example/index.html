@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,9 +9,13 @@
     <script src="../dist/browser/simple-spreadsheet.js"></script>
     <script src="../dist/browser/simple-spreadsheet-functions.js"></script>
 </head>
+
 <body>
     <script>
         const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+            E3: '="\\\\\\""',
+            E1: '="hello"',
+            E2: '="he\\\\\\"\\tllo"',
             D19: '=D18',
             D15: '=A1 + A2',
             D16: '=D15 + D17',
@@ -36,18 +41,19 @@
 
         }, SimpleSpreadsheet.builtinFunctions);
 
-        for (let cell in spreadsheet.cells) {
-            console.log(`${cell}: '${spreadsheet.text(cell)}'`);
+        spreadsheet.cells.forEach((text, position) => {
+            console.log(`${position}: '${spreadsheet.text(position)}'`);
             try {
-                console.log('    ' + spreadsheet._environment.getExpression(cell).toString());
-                console.log(' -> ' + spreadsheet.value(cell));
+                console.log('    ' + spreadsheet._environment.getExpression(position).toString());
+                console.log(' -> ' + spreadsheet.value(position));
             } catch (ex) {
                 if (ex instanceof SimpleSpreadsheet.SpreadsheetError)
                     console.error(ex.toString());
                 else throw ex;
             }
             console.log('');
-        }
+        });
     </script>
 </body>
+
 </html>

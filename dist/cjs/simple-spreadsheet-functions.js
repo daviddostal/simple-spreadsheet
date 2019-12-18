@@ -28,12 +28,19 @@ const builtinFunctions = {
         return sum / count;
     },
 
+    IF: {
+        isMacro: true,
+        function(condition, trueBranch, falseBranch) {
+            return condition() ? trueBranch() : falseBranch()
+        }
+    },
+
     PI: function () {
         if (arguments.length > 0)
             throw new Error(`PI() expects 0 arguments, got ${arguments.length} arguments.`);
         return 3.141592653589793;
     },
-    
+
     E: function () {
         if (arguments.length > 0)
             throw new Error(`E() expects 0 arguments, got ${arguments.length} arguments.`);

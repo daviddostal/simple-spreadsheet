@@ -6,7 +6,9 @@ export { SpreadsheetError, RuntimeError, ParsingError } from './errors';
 export class Spreadsheet {
     constructor(cells = new Map(), functions = new Map(), onCellsChanged = (() => { })) {
         // TODO: confirm this.cells are updated
+        // TODO: test cells
         this.cells = cells instanceof Map ? cells : new Map(Object.entries(cells))
+        // TODO: test functions
         this.functions = functions instanceof Map ? functions : new Map(Object.entries(functions))
         this._environment = new Environment(this.cells, this.functions, onCellsChanged);
     }

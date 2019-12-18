@@ -303,14 +303,6 @@ class Parser {
         // TODO: Test or remove nested function calls such as FOO()()
         // Or check for function return types at runtime?
 
-        // let value = identifier.value;
-        // do {
-        //     const args = this._parseArguments();
-        //     this._tokens.expect(TokenType.RPAREN);
-        //     value = new FunctionCall(value, args);
-        // } while (this._tokens.expect(TokenType.LPAREN))
-        // return value;
-
         const args = this._parseArguments();
         this._tokens.expect(TokenType.RPAREN);
         return new FunctionCall(identifier.value, args);
@@ -451,10 +443,17 @@ class Evaluator {
     }
 
     _evaluateFunction(functionName, args, environment) {
-        const func = environment.getFunction(functionName);
+        let func = environment.getFunction(functionName);
+        func = func instanceof Function ? { isMacro: false, function: func } : func;
+        return (func.isMacro === true) ?
+            this._evaluateMacro(functionName, func, args, environment) :
+            this._evaluateSpreadsheetFunction(functionName, func, args, environment);
+    }
+
+    _evaluateSpreadsheetFunction(functionName, func, args, environment) {
         const argumentValues = this._evaluateArguments(functionName, args, environment);
         try {
-            return func(...argumentValues);
+            return func.function(...argumentValues);
         } catch (ex) {
             throw new RuntimeError(`Error in function ${functionName}: ${ex}`);
         }
@@ -466,10 +465,19 @@ class Evaluator {
             try {
                 evaluatedArgs.push(this._evaluateExpression(args[i], environment));
             } catch (ex) {
-                throw new RuntimeError(`Error in function argument ${i} in function ${functionName}: ${ex}`);
+                throw new RuntimeError(`Error in function argument ${i + 1} in function ${functionName}: ${ex}`);
             }
         }
         return evaluatedArgs;
+    }
+
+    _evaluateMacro(macroName, macro, args, environment) {
+        const argsLazyValues = args.map(arg => () => this._evaluateExpression(arg, environment));
+        try {
+            return macro.function(...argsLazyValues);
+        } catch (ex) {
+            throw new RuntimeError(`Error in macro ${macroName}: ${ex}`);
+        }
     }
 
     _evaluateRange(from, to, environment) {
@@ -586,7 +594,9 @@ class Environment {
 class Spreadsheet {
     constructor(cells = new Map(), functions = new Map(), onCellsChanged = (() => { })) {
         // TODO: confirm this.cells are updated
+        // TODO: test cells
         this.cells = cells instanceof Map ? cells : new Map(Object.entries(cells));
+        // TODO: test functions
         this.functions = functions instanceof Map ? functions : new Map(Object.entries(functions));
         this._environment = new Environment(this.cells, this.functions, onCellsChanged);
     }

@@ -81,4 +81,38 @@ describe('PI function', () => {
         expect(() => spreadsheet.query('=PI(1)')).toThrow(RuntimeError);
         expect(() => spreadsheet.query('=PI(1, 2)')).toThrow(RuntimeError);
     });
+});
+
+describe('IF macro', () => {
+    let evaluatedBranches;
+    const spreadsheet = new Spreadsheet({}, {
+        ...builtinFunctions,
+        TEST: (v) => { evaluatedBranches.push(v); return v },
+        THROW: () => { throw new Error(); }
+    });
+
+    test('Returns value of first branch if the condition is true', () => {
+        expect(spreadsheet.query('=IF(1, 2, 3)')).toBe(2);
+    });
+
+    test('Returns value of second branch if the condition is false', () => {
+        expect(spreadsheet.query('=IF(0, 2, 3)')).toBe(3);
+    });
+
+    test('Evaluates only one branch of the macro', () => {
+        evaluatedBranches = [];
+        spreadsheet.query('=IF(1, TEST(2), TEST(3))');
+        expect(evaluatedBranches).toEqual([2]);
+
+        evaluatedBranches = [];
+        spreadsheet.query('=IF(0, TEST(2), TEST(3))');
+        expect(evaluatedBranches).toEqual([3]);
+    });
+
+    test('Exception in macro causes RuntimeError', () => {
+        expect(() => spreadsheet.query('=IF(1, THROW(), 3)')).toThrow(RuntimeError);
+        expect(() => spreadsheet.query('=IF(0, THROW(), 3)')).not.toThrow();
+        expect(() => spreadsheet.query('=IF(THROW(), 2, 3)')).toThrow(RuntimeError);
+        expect(() => spreadsheet.query('=IF(0, 2, THROW())')).toThrow(RuntimeError);
+    });
 })

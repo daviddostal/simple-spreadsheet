@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Spreadsheet evaluator test</title>
+    <script src="../dist/browser/simple-spreadsheet.js"></script>
+    <script src="../dist/browser/simple-spreadsheet-functions.js"></script>
+</head>
+
+<body>
+    <script>
+        function generateCells(count) {
+            const cells = {};
+            cells['A0'] = 1;
+            cells['A1'] = 2;
+            for (let i = 2; i < count; i++) {
+                const position = `A${i}`;
+                const text = `=${i} + A${i - 1} + A${i - 2}`;
+                cells[position] = text;
+            }
+            return cells;
+        }
+
+        const spreadsheet = new SimpleSpreadsheet.Spreadsheet(generateCells(100000), SimpleSpreadsheet.builtinFunctions);
+
+        console.time('eval');
+        let s = '';
+        spreadsheet.cells.forEach((_, position) => {
+            const text = spreadsheet.text(position);
+            const value = spreadsheet.value(position);
+            s += value.toString()[0];
+        });
+        console.timeEnd('eval');
+        console.log(s.length);
+    </script>
+</body>
+
+</html>

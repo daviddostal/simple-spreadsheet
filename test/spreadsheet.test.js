@@ -50,13 +50,20 @@ test('String literals are evaluated in formulas', () => {
 
 });
 
-test('Backslash escapes next character in string literal', () => {
+// test('Backslash escapes next character in string literal', () => {
+//     expectValue('="\\jkl"', 'jkl');   //  \jkl  =>  jkl
+//     expectValue('="\\\\jkl\\\\"', '\\jkl\\');   //  \\jkl  =>  \jkl
+// });
+
+test('Backslash escapes supported escape sequences', () => {
     expectValue('="\\""', '"');       //  \"  =>  "
     expectValue('="\\\\\\""', '\\"'); //  \\\"  =>  \"
     expectValue('="\\\\"', '\\');     //  \\  =>  \
-    expectValue('="\\jkl"', 'jkl');   //  \jkl  =>  jkl
-    expectValue('="\\\\jkl\\\\"', '\\jkl\\');   //  \\jkl  =>  \jkl
+    expectValue('="\\\\"', '\\'); // \\ => \
+    expectValue('="\\""', '"'); // \"" => "
+    expectException('="\\j"', ParsingError); // \j => unknown escape sequence
     expectException('="\\\\\\"', ParsingError);   //  ="\\\"  =>  last quote is escaped
+
 });
 
 test('Range references are allowed only as function arguments', () => {

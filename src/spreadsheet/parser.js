@@ -126,14 +126,6 @@ export default class Parser {
         // TODO: Test or remove nested function calls such as FOO()()
         // Or check for function return types at runtime?
 
-        // let value = identifier.value;
-        // do {
-        //     const args = this._parseArguments();
-        //     this._tokens.expect(TokenType.RPAREN);
-        //     value = new FunctionCall(value, args);
-        // } while (this._tokens.expect(TokenType.LPAREN))
-        // return value;
-
         const args = this._parseArguments();
         this._tokens.expect(TokenType.RPAREN);
         return new FunctionCall(identifier.value, args);
