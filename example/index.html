@@ -13,6 +13,7 @@
 <body>
     <script>
         const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+            J1: '=SUM(A2:B3)', A3: '3', B3: '6',
             E3: '="\\\\\\""',
             E1: '="hello"',
             E2: '="he\\\\\\"\\tllo"',
@@ -22,7 +23,6 @@
             D17: '=D15 - D18',
             D18: '=D16',
 
-            J1: '=SUM(A2:B3)', A3: '3', B3: '6',
             A1: 'column 1', B1: 'column 2', C1: 'sum',
             A2: '2', B2: '5', C2: '=SUM(A2:B2)', C3: '=SUM(3, 4)',
             C4: '=AVERAGE(2, 5)', C5: '=AVERAGE(A2:B2)',

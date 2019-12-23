@@ -62,21 +62,26 @@ class Tokenizer {
             // Patterns usually start with ^ so they match the start of the remaining
             // string, not anywhere in the middle.
             { pattern: /^\d+(?:\.\d+)?/, type: TokenType.NUMBER },
-            // { pattern: /^[A-Za-z]+\d+/, type: TokenType.REFERENCE },
             { pattern: /^[a-zA-Z]\w+/, type: TokenType.IDENTIFIER },
-            { pattern: /^\s+/, type: TokenType.WHITESPACE },
-            { pattern: /^\+/, type: TokenType.PLUS },
-            { pattern: /^\-/, type: TokenType.MINUS },
-            { pattern: /^\*/, type: TokenType.STAR },
-            { pattern: /^\//, type: TokenType.SLASH },
-            { pattern: /^\(/, type: TokenType.LPAREN },
-            { pattern: /^\)/, type: TokenType.RPAREN },
-            { pattern: /^=/, type: TokenType.EQUALS },
-            { pattern: /^:/, type: TokenType.COLON },
-            { pattern: /^,/, type: TokenType.COMMA },
-            { pattern: /^\"(?:[^"\\]|\\.)*\"/, type: TokenType.STRING },
+            { pattern: /^"(?:[^"\\]|\\.)*"/, type: TokenType.STRING },
             { pattern: /^$/, type: TokenType.EOF },
         ];
+
+        this._operators = {
+            ' ': TokenType.WHITESPACE,
+            '\t': TokenType.WHITESPACE,
+            '\r': TokenType.WHITESPACE,
+            '\n': TokenType.WHITESPACE,
+            '+': TokenType.PLUS,
+            '-': TokenType.MINUS,
+            '*': TokenType.STAR,
+            '/': TokenType.SLASH,
+            '(': TokenType.LPAREN,
+            ')': TokenType.RPAREN,
+            '=': TokenType.EQUALS,
+            ':': TokenType.COLON,
+            ',': TokenType.COMMA,
+        };
     }
 
     tokenize(text) {
@@ -92,6 +97,10 @@ class Tokenizer {
     }
 
     _nextToken(text) {
+        const firstChar = text[0];
+        const operator = this._operators[firstChar];
+        if (operator !== undefined) return { type: operator, value: firstChar };
+
         for (let rule of this._rules) {
             const match = text.match(rule.pattern);
             if (match !== null)
@@ -485,6 +494,7 @@ class Evaluator {
 
 class ReferencesMap {
     constructor() {
+        // TODO: maybe use a Map? (but profile performance - addReference is run a lot)
         this._referencesFrom = {};
         this._referencesTo = {};
     }

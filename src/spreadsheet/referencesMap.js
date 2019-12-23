@@ -1,5 +1,6 @@
 export default class ReferencesMap {
     constructor() {
+        // TODO: maybe use a Map? (but profile performance - addReference is run a lot)
         this._referencesFrom = {};
         this._referencesTo = {};
     }
