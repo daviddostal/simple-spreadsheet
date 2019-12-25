@@ -21,6 +21,7 @@ export default class Parser {
             this._tokens.require(TokenType.EQUALS);
             const parsed = this._parseExpression();
             this._tokens.require(TokenType.EOF);
+            // TODO: improve perf, maybe add to a set directly in _getReferences
             const references = [...new Set(this._getReferences(parsed))];
             return { parsed, references };
         }
