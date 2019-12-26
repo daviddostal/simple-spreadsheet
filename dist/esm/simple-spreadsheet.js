@@ -193,18 +193,17 @@ class Parser {
 
     // cell => empty | '=' expression EOF | number | string
     parse(text) {
-        // empty cell or other value
-        if (text === null || text === undefined || text.constructor !== String)
+        const needsParsing = text !== null && text !== undefined && text.constructor === String;
+        if (!needsParsing)
             return { parsed: new Value(text), references: [] };
 
-        // formula
-        if (text.trimStart().startsWith('=')) {
+        const isFormula = text[0] === '='; // TODO: add test with and without whitespace
+        if (isFormula) {
             this._tokens = this._tokenizer.tokenize(text);
             this._tokens.require(TokenType.EQUALS);
             const parsed = this._parseExpression();
             this._tokens.require(TokenType.EOF);
-            // TODO: improve perf, maybe add to a set directly in _getReferences
-            const references = [...new Set(this._getReferences(parsed))];
+            const references = this._referencesIn(parsed);
             return { parsed, references };
         }
 
@@ -333,18 +332,18 @@ class Parser {
         return args;
     }
 
-    _getReferences(expression) {
+    _referencesIn(expression) {
         switch (expression.constructor) {
             case Value:
                 return [];
             case Reference:
                 return [makePosition(expression.col, expression.row)];
             case UnaryOp:
-                return this._getReferences(expression.value);
+                return this._referencesIn(expression.value);
             case BinaryOp:
-                return [...this._getReferences(expression.left), ...this._getReferences(expression.right)];
+                return [...this._referencesIn(expression.left), ...this._referencesIn(expression.right)];
             case FunctionCall:
-                return expression.args.flatMap(arg => this._getReferences(arg));
+                return expression.args.flatMap(arg => this._referencesIn(arg));
             case Range:
                 return positionsInRange(expression.from, expression.to)
                     .map(pos => makePosition(pos.col, pos.row));
@@ -499,35 +498,35 @@ class ReferencesMap {
         this._referencesTo = new Map();
     }
 
-    getReferencesFrom(position) { return this._referencesFrom.get(position); }
-    getReferencesTo(position) { return this._referencesTo.get(position); }
-
-    addReference(positionFrom, referenceTo) {
+    addReferences(positionFrom, referencesTo) {
         if (!this._referencesFrom.has(positionFrom))
-            this._referencesFrom.set(positionFrom, []);
-        this._referencesFrom.get(positionFrom).push(referenceTo);
+            this._referencesFrom.set(positionFrom, new Set(referencesTo));
 
-        if (!this._referencesTo.has(referenceTo))
-            this._referencesTo.set(referenceTo, []);
-        this._referencesTo.get(referenceTo).push(positionFrom);
+        for (let referenceTo of referencesTo) {
+            this._referencesFrom.get(positionFrom).add(referenceTo);
+
+            if (!this._referencesTo.has(referenceTo))
+                this._referencesTo.set(referenceTo, new Set());
+            this._referencesTo.get(referenceTo).add(positionFrom);
+        }
     }
 
     removeReferencesFrom(position) {
         const targetNodes = this._referencesFrom.get(position);
-        for (let target of targetNodes) {
-            const valueIndex = this._referencesTo.get(target).indexOf(position);
-            if (valueIndex > -1) this._referencesTo.get(target).splice(valueIndex, 1);
+        if (targetNodes) {
+            for (let target of targetNodes)
+                target.delete(position);
+            this._referencesFrom.delete(position);
         }
-        this._referencesFrom.delete(position);
     }
 
-    getAffectedCells(position) {
+    cellsDependingOn(position) {
         // TODO: maybe optimize using stack and for loop?
-        const referencesTo = this.getReferencesTo(position);
-        if (!referencesTo) return [];
+        const referencesTo = this._referencesTo.get(position); // TODO: write test for same reference not appearing multiple times
+        if (!referencesTo) return [position];
 
-        const recursiveReferences = referencesTo.flatMap(this.getAffectedCells.bind(this));
-        return [...referencesTo, ...recursiveReferences];
+        const recursiveReferences = [...referencesTo].flatMap(this.cellsDependingOn.bind(this));
+        return [position, ...recursiveReferences];
     }
 }
 
@@ -551,13 +550,12 @@ class Environment {
     setText(position, value) {
         this.cells.set(position, value);
 
-        const affectedCells = [position, ...this._referencesMap.getAffectedCells(position)];
+        const affectedCells = this._referencesMap.cellsDependingOn(position);
         for (let pos of affectedCells)
             this._valuesCache.delete(pos);
 
         this._expressionsCache.delete(position);
-        if (this._referencesMap.getReferencesFrom(position))
-            this._referencesMap.removeReferencesFrom(position);
+        this._referencesMap.removeReferencesFrom(position);
 
         this.onCellsChanged(affectedCells);
     }
@@ -569,10 +567,7 @@ class Environment {
         const text = this.cells.has(position) ? this.cells.get(position) : null;
         const { parsed, references } = this._parser.parse(text);
         this._expressionsCache.set(position, parsed);
-
-        for (let reference of references)
-            this._referencesMap.addReference(position, reference);
-
+        this._referencesMap.addReferences(position, references);
         return parsed;
     }
 

@@ -24,13 +24,12 @@ export class Environment {
     setText(position, value) {
         this.cells.set(position, value);
 
-        const affectedCells = [position, ...this._referencesMap.getAffectedCells(position)];
+        const affectedCells = this._referencesMap.cellsDependingOn(position);
         for (let pos of affectedCells)
             this._valuesCache.delete(pos);
 
         this._expressionsCache.delete(position);
-        if (this._referencesMap.getReferencesFrom(position))
-            this._referencesMap.removeReferencesFrom(position);
+        this._referencesMap.removeReferencesFrom(position);
 
         this.onCellsChanged(affectedCells);
     }
@@ -42,10 +41,7 @@ export class Environment {
         const text = this.cells.has(position) ? this.cells.get(position) : null;
         const { parsed, references } = this._parser.parse(text);
         this._expressionsCache.set(position, parsed);
-
-        for (let reference of references)
-            this._referencesMap.addReference(position, reference);
-
+        this._referencesMap.addReferences(position, references);
         return parsed;
     }
 

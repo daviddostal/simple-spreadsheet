@@ -11,18 +11,17 @@ export default class Parser {
 
     // cell => empty | '=' expression EOF | number | string
     parse(text) {
-        // empty cell or other value
-        if (text === null || text === undefined || text.constructor !== String)
+        const needsParsing = text !== null && text !== undefined && text.constructor === String;
+        if (!needsParsing)
             return { parsed: new Value(text), references: [] };
 
-        // formula
-        if (text.trimStart().startsWith('=')) {
+        const isFormula = text[0] === '='; // TODO: add test with and without whitespace
+        if (isFormula) {
             this._tokens = this._tokenizer.tokenize(text);
             this._tokens.require(TokenType.EQUALS);
             const parsed = this._parseExpression();
             this._tokens.require(TokenType.EOF);
-            // TODO: improve perf, maybe add to a set directly in _getReferences
-            const references = [...new Set(this._getReferences(parsed))];
+            const references = this._referencesIn(parsed);
             return { parsed, references };
         }
 
@@ -151,18 +150,18 @@ export default class Parser {
         return args;
     }
 
-    _getReferences(expression) {
+    _referencesIn(expression) {
         switch (expression.constructor) {
             case Value:
                 return [];
             case Reference:
                 return [Helpers.makePosition(expression.col, expression.row)];
             case UnaryOp:
-                return this._getReferences(expression.value);
+                return this._referencesIn(expression.value);
             case BinaryOp:
-                return [...this._getReferences(expression.left), ...this._getReferences(expression.right)];
+                return [...this._referencesIn(expression.left), ...this._referencesIn(expression.right)];
             case FunctionCall:
-                return expression.args.flatMap(arg => this._getReferences(arg));
+                return expression.args.flatMap(arg => this._referencesIn(arg));
             case Range:
                 return Helpers.positionsInRange(expression.from, expression.to)
                     .map(pos => Helpers.makePosition(pos.col, pos.row));
