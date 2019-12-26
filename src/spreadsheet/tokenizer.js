@@ -3,20 +3,20 @@ import TokenStream from './tokenStream';
 
 export const TokenType = Object.freeze({
     // Note: strings must be unique, because they are used for comparison
-    EOF: 'end of formula',
-    WHITESPACE: 'whitespace',
-    PLUS: '+',
-    MINUS: '-',
-    STAR: '*',
-    SLASH: '/',
-    LPAREN: 'opening parenthesis',
-    RPAREN: 'closing parenthesis',
-    COLON: ':',
-    EQUALS: '=',
-    COMMA: 'comma',
-    NUMBER: 'number',
-    STRING: 'string',
-    IDENTIFIER: 'identifier',
+    EOF: Symbol('end of formula'),
+    WHITESPACE: Symbol('whitespace'),
+    PLUS: Symbol('+'),
+    MINUS: Symbol('-'),
+    STAR: Symbol('*'),
+    SLASH: Symbol('/'),
+    LPAREN: Symbol('opening parenthesis'),
+    RPAREN: Symbol('closing parenthesis'),
+    COLON: Symbol(':'),
+    EQUALS: Symbol('='),
+    COMMA: Symbol('comma'),
+    NUMBER: Symbol('number'),
+    STRING: Symbol('string'),
+    IDENTIFIER: Symbol('identifier'),
 });
 
 export class Tokenizer {

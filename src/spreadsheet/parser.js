@@ -97,7 +97,7 @@ export default class Parser {
 
             return this._parseReference(identifier.value);
         }
-        throw new ParsingError(`Unexpected ${this._tokens.peek().type}, expected an expression or value`)
+        throw new ParsingError(`Unexpected ${this._tokens.peek().type.description}, expected an expression or value`)
     }
 
     // parenthesized => '(' expression ')'
