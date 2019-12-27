@@ -12,6 +12,7 @@ Fixes and improvements
 - Improve error messages, for example missing closing paren
 - Update readme
 - Go over and improve tests
+- Use stack for evaluator instead of recursive descent to prevent overflow on deep references
 
 Working on currently
 ====================

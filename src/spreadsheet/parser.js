@@ -108,7 +108,7 @@ export default class Parser {
 
     _parseString(string) {
         const withoutQuotes = string.value.substring(1, string.value.length - 1);
-        const escapedString = withoutQuotes.replace(/\\(.)/g, '$1');
+        const escapedString = withoutQuotes.replace(/\\(.)/g, '$1'); // TODO: check escaped characters are escapable
         return new Value(escapedString);
     }
 

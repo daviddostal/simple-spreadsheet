@@ -18,20 +18,26 @@ export default class ReferencesMap {
     }
 
     removeReferencesFrom(position) {
+        // TODO: test this code works properly
         const targetNodes = this._referencesFrom.get(position);
         if (targetNodes) {
             for (let target of targetNodes)
-                target.delete(position);
+                this._referencesTo.get(target).delete(position);
             this._referencesFrom.delete(position);
         }
     }
 
     cellsDependingOn(position) {
-        // TODO: maybe optimize using stack and for loop?
-        const referencesTo = this._referencesTo.get(position); // TODO: write test for same reference not appearing multiple times
-        if (!referencesTo) return [position];
-
-        const recursiveReferences = [...referencesTo].flatMap(this.cellsDependingOn.bind(this));
-        return [position, ...recursiveReferences];
+        const visited = new Set();
+        const toVisitStack = [position];
+        while (toVisitStack.length > 0) {
+            const current = toVisitStack.pop();
+            visited.add(current);
+            const neighbors = this._referencesTo.has(current) ?
+                [...this._referencesTo.get(current)].filter(n => !visited.has(n)) : [];
+            const newNeighbors = neighbors.filter(n => !visited.has(n));
+            toVisitStack.push(...newNeighbors);
+        }
+        return visited;
     }
 }

@@ -13,6 +13,7 @@
 <body>
     <script>
         let s = '';
+        const sampleCount = 100_000;
         // for (let i = 0; i < 10; i++) {
         function generateCells(count) {
             const cells = new Map();
@@ -26,7 +27,7 @@
             return cells;
         }
 
-        const spreadsheet = new SimpleSpreadsheet.Spreadsheet(generateCells(100000), SimpleSpreadsheet.builtinFunctions);
+        const spreadsheet = new SimpleSpreadsheet.Spreadsheet(generateCells(sampleCount), SimpleSpreadsheet.builtinFunctions);
 
         console.time('eval');
         spreadsheet.cells.forEach((_, position) => {
@@ -35,6 +36,14 @@
         });
         console.timeEnd('eval');
         // }
+
+        const lastCell = `A${sampleCount - 98_400}`;
+        console.time('update');
+        spreadsheet.set('A0', 2);
+        const newValue = spreadsheet.value(lastCell);
+        console.timeEnd('update');
+
+        console.log(newValue);
         console.log(s.length);
     </script>
 </body>
