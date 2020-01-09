@@ -1,5 +1,5 @@
-const { Spreadsheet, RuntimeError } = require('../dist/cjs/simple-spreadsheet');
-const { builtinFunctions } = require('../dist/cjs/simple-spreadsheet-functions');
+import { Spreadsheet, RuntimeError } from '../src/spreadsheet/spreadsheet';
+import { builtinFunctions } from '../src/functions/functions';
 
 describe('SUM function', () => {
     test('returns 0 for empty array', () => {

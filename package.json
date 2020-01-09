@@ -1,6 +1,7 @@
 {
   "name": "simple-spreadsheet",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "scripts": {
     "test": "jest --watchAll",
@@ -9,6 +10,7 @@
   },
   "author": "David Dostal",
   "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs": "^7.7.5",
     "eslint": "^6.7.1",
     "jest": "^24.9.0",
     "jest-cli": "^24.9.0",
@@ -18,11 +20,21 @@
   "jest": {
     "testEnvironment": "node",
     "collectCoverage": true,
+    "collectCoverageFrom": [ "src/spreadsheet/*.js", "src/functions/*.js"],
     "coverageDirectory": "./.coverage",
     "coverageReporters": [
       "json",
       "lcov",
       "clover"
     ]
+  },
+  "babel": {
+    "env": {
+      "test": {
+        "plugins": [
+          "@babel/plugin-transform-modules-commonjs"
+        ]
+      }
+    }
   }
 }

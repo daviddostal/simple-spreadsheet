@@ -1,5 +1,5 @@
-const { Spreadsheet, ParsingError, RuntimeError } = require('../dist/cjs/simple-spreadsheet');
-const { builtinFunctions } = require('../dist/cjs/simple-spreadsheet-functions');
+import { Spreadsheet, ParsingError, RuntimeError } from '../src/spreadsheet/spreadsheet';
+import { builtinFunctions } from '../src/functions/functions';
 
 function expectValue(formula, expected) {
     const spreadsheet = new Spreadsheet({ A1: formula }, builtinFunctions);
