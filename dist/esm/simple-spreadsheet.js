@@ -1,3 +1,8 @@
+class NotImplementedError extends Error {
+    constructor(message) { super(message); }
+    toString() { return `Not implemented: ${this.message}` }
+}
+
 class SpreadsheetError extends Error { }
 
 class ParsingError extends SpreadsheetError {
@@ -8,6 +13,32 @@ class ParsingError extends SpreadsheetError {
 class RuntimeError extends SpreadsheetError {
     constructor(message) { super(message); }
     toString() { return `Evaluation error: ${this.message}`; }
+}
+
+class ReferencedCellError extends RuntimeError {
+    constructor(cell) {
+        super(`Error in referenced cell: ${cell}`);
+        this.cell = cell;
+    }
+}
+
+class CircularReferenceError extends RuntimeError {
+    constructor(cells) {
+        super(`Circular reference detected: ${cells.join(' -> ')}`);
+        this.cells = cells;
+    }
+}
+
+class FunctionEvaluationError extends RuntimeError {
+    constructor(functionName, error) {
+        super(`Error in function ${functionName}: ${error}`);
+        this.functionName = functionName;
+        this.error = error;
+    }
+}
+
+class RangeReferenceNotAllowedError extends RuntimeError {
+    constructor() { super(`Range references are allowed only as references to functions`); }
 }
 
 class TokenStream {
@@ -348,13 +379,13 @@ class Parser {
                 return positionsInRange(expression.from, expression.to)
                     .map(pos => makePosition(pos.col, pos.row));
             default:
-                throw new ParsingError(`Unknown expression type: ${typeof expression}`);
+                throw new NotImplementedError(`Unknown expression type: ${typeof expression}`);
         }
     }
 }
 
-class CircularReferenceError extends Error {
-    constructor(message, cell) { super(message); this.cell = cell; }
+class CircularRefInternal extends Error {
+    constructor(message, position) { super(message); this.position = position; }
 }
 
 class Evaluator {
@@ -362,60 +393,60 @@ class Evaluator {
         this.visitedCellStack = [];
     }
 
-    evaluateCellAt(position, cell, environment) {
+    evaluateCellAt(position, expression, environment) {
         if (this.visitedCellStack.includes(position))
-            throw new CircularReferenceError(`Circular reference detected (${this.visitedCellStack.join(' -> ')} -> ${position})`, cell);
+            throw new CircularRefInternal(`Circular reference detected (${this.visitedCellStack.join(' -> ')} -> ${position})`, position);
 
         this.visitedCellStack.push(position);
         try {
-            const result = this._evaluateCell(cell, environment);
+            const result = this._evaluateCell(expression, environment);
             this.visitedCellStack.pop();
             return result;
         } catch (ex) {
             this.visitedCellStack.pop();
-            // Normal errors propagate as usual, but CircularReferenceError is used
+            // Normal errors propagate as usual, but CircularRefInternal is used
             // only to propagate the exception to the originating cell internally
             // (so it doesn't get reported just as an error in a referenced cell).
-            // Once the CircularReferenceError reaches back to the originating cell,
-            // we turn it into a normal RuntimeError.
-            if (ex instanceof CircularReferenceError && ex.cell === cell) {
-                throw new RuntimeError(ex.message);
+            // Once the CircularRefInternal reaches back to the originating cell,
+            // we turn it into a normal CircularReferenceError.
+            if (ex instanceof CircularRefInternal && ex.position === position) {
+                throw new CircularReferenceError([...this.visitedCellStack, position]);
             } else {
                 throw ex;
             }
         }
     }
 
-    evaluateQuery(cell, environment) {
-        return this._evaluateCell(cell, environment);
+    evaluateQuery(expression, environment) {
+        return this._evaluateCell(expression, environment);
     }
 
-    _evaluateCell(cell, environment) {
-        switch (cell.constructor) {
+    _evaluateCell(expression, environment) {
+        switch (expression.constructor) {
             case Value:
-                return cell.value;
+                return expression.value;
             case Reference:
-                return this._evaluateReference(makePosition(cell.col, cell.row), environment);
+                return this._evaluateReference(makePosition(expression.col, expression.row), environment);
             case UnaryOp:
-                return this._evaluateUnary(cell.op, cell.value, environment);
+                return this._evaluateUnary(expression.op, expression.value, environment);
             case BinaryOp:
-                return this._evaluateBinary(cell.left, cell.op, cell.right, environment);
+                return this._evaluateBinary(expression.left, expression.op, expression.right, environment);
             case FunctionCall:
-                return this._evaluateFunction(cell.functionName, cell.args, environment);
+                return this._evaluateFunction(expression.functionName, expression.args, environment);
             case Range:
-                throw new RuntimeError(`Range references are allowed only as arguments of functions`);
+                throw new RangeReferenceNotAllowedError();
             default:
-                throw new RuntimeError(`Unknown expression type: ${typeof cell}`);
+                throw new NotImplementedError(`Unknown expression type: ${typeof expression}`);
         }
     }
 
     _evaluateReference(position, environment) {
         try {
             return environment.getValue(position);
-        } catch (e) {
-            if (e instanceof ParsingError || e instanceof RuntimeError)
-                throw new RuntimeError(`Error in referenced cell ${position}`);
-            else throw e;
+        } catch (ex) {
+            if (ex instanceof ParsingError || ex instanceof RuntimeError)
+                throw new ReferencedCellError(position);
+            else throw ex;
         }
     }
 
@@ -431,7 +462,7 @@ class Evaluator {
         switch (op) {
             case '+': return value;
             case '-': return -value;
-            default: throw new RuntimeError(`Unknown unary operator: '${op}'`);
+            default: throw new NotImplementedError(`Unknown unary operator: '${op}'`);
         }
     }
 
@@ -443,7 +474,7 @@ class Evaluator {
             case '-': return leftValue - rightValue;
             case '*': return leftValue * rightValue;
             case '/': return leftValue / rightValue;
-            default: throw new RuntimeError(`Unknown binary operator: '${op}'`);
+            default: throw new NotImplementedError(`Unknown binary operator: '${op}'`);
         }
     }
 
@@ -456,24 +487,12 @@ class Evaluator {
     }
 
     _evaluateSpreadsheetFunction(functionName, func, args, environment) {
-        const argumentValues = this._evaluateArguments(functionName, args, environment);
+        const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
         try {
             return func.function(...argumentValues);
         } catch (ex) {
-            throw new RuntimeError(`Error in function ${functionName}: ${ex}`);
+            throw new FunctionEvaluationError(functionName, ex);
         }
-    }
-
-    _evaluateArguments(functionName, args, environment) {
-        let evaluatedArgs = [];
-        for (let i = 0; i < args.length; i++) {
-            try {
-                evaluatedArgs.push(this._evaluateExpression(args[i], environment));
-            } catch (ex) {
-                throw new RuntimeError(`Error in function argument ${i + 1} in function ${functionName}: ${ex}`);
-            }
-        }
-        return evaluatedArgs;
     }
 
     _evaluateMacro(macroName, macro, args, environment) {
@@ -481,7 +500,7 @@ class Evaluator {
         try {
             return macro.function(...argsLazyValues);
         } catch (ex) {
-            throw new RuntimeError(`Error in macro ${macroName}: ${ex}`);
+            throw new FunctionEvaluationError(macroName, ex);
         }
     }
 
@@ -600,10 +619,7 @@ class Environment {
 
 class Spreadsheet {
     constructor(cells = new Map(), functions = new Map(), onCellsChanged = (() => { })) {
-        // TODO: confirm this.cells are updated
-        // TODO: test cells
         this.cells = cells instanceof Map ? cells : new Map(Object.entries(cells));
-        // TODO: test functions
         this.functions = functions instanceof Map ? functions : new Map(Object.entries(functions));
         this._environment = new Environment(this.cells, this.functions, onCellsChanged);
     }

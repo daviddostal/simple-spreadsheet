@@ -29,7 +29,7 @@
 
         IF: {
             isMacro: true,
-            function(condition, trueBranch, falseBranch) {
+            function: function(condition, trueBranch, falseBranch) {
                 return condition() ? trueBranch() : falseBranch()
             }
         },

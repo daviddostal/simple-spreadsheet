@@ -1,5 +1,5 @@
 import { TokenType } from './tokenizer';
-import { ParsingError } from './errors';
+import { ParsingError, NotImplementedError } from './errors';
 import { Value, Reference, BinaryOp, UnaryOp, Range, FunctionCall } from './expressions';
 import * as Helpers from './helpers';
 
@@ -166,7 +166,7 @@ export default class Parser {
                 return Helpers.positionsInRange(expression.from, expression.to)
                     .map(pos => Helpers.makePosition(pos.col, pos.row));
             default:
-                throw new ParsingError(`Unknown expression type: ${typeof expression}`);
+                throw new NotImplementedError(`Unknown expression type: ${typeof expression}`);
         }
     }
 }
