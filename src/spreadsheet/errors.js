@@ -40,3 +40,10 @@ export class FunctionEvaluationError extends RuntimeError {
 export class RangeReferenceNotAllowedError extends RuntimeError {
     constructor() { super(`Range references are allowed only as references to functions`); }
 }
+
+export class UnknownFunctionError extends RuntimeError {
+    constructor(functionName) {
+        super(`Unknown function: ${functionName}`);
+        this.functionName = functionName;
+    }
+}

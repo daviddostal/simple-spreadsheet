@@ -1,4 +1,4 @@
-import { Spreadsheet, RuntimeError } from '../src/spreadsheet/spreadsheet';
+import { Spreadsheet, FunctionEvaluationError } from '../src/spreadsheet/spreadsheet';
 import { builtinFunctions } from '../src/functions/functions';
 
 describe('SUM function', () => {
@@ -30,8 +30,8 @@ describe('SUM function', () => {
 
     test('throws when arguments are not numbers', () => {
         const spreadsheet = new Spreadsheet({ A1: 'abc' }, builtinFunctions);
-        expect(() => spreadsheet.query('=SUM(2, "hello")')).toThrow(RuntimeError);
-        expect(() => spreadsheet.query('=SUM(2, A1)')).toThrow(RuntimeError);
+        expect(() => spreadsheet.query('=SUM(2, "hello")')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.query('=SUM(2, A1)')).toThrow(FunctionEvaluationError);
     });
 });
 
@@ -64,8 +64,8 @@ describe('AVERAGE function', () => {
 
     test('throws when arguments are not numbers', () => {
         const spreadsheet = new Spreadsheet({ A1: 'abc' }, builtinFunctions);
-        expect(() => spreadsheet.query('=AVERAGE(2, "hello")')).toThrow(RuntimeError);
-        expect(() => spreadsheet.query('=AVERAGE(2, A1)')).toThrow(RuntimeError);
+        expect(() => spreadsheet.query('=AVERAGE(2, "hello")')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.query('=AVERAGE(2, A1)')).toThrow(FunctionEvaluationError);
     });
 });
 
@@ -78,8 +78,8 @@ describe('PI function', () => {
     });
 
     test('throws when there are too many arguments', () => {
-        expect(() => spreadsheet.query('=PI(1)')).toThrow(RuntimeError);
-        expect(() => spreadsheet.query('=PI(1, 2)')).toThrow(RuntimeError);
+        expect(() => spreadsheet.query('=PI(1)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.query('=PI(1, 2)')).toThrow(FunctionEvaluationError);
     });
 });
 
@@ -109,10 +109,10 @@ describe('IF macro', () => {
         expect(evaluatedBranches).toEqual([3]);
     });
 
-    test('Exception in macro causes RuntimeError', () => {
-        expect(() => spreadsheet.query('=IF(1, THROW(), 3)')).toThrow(RuntimeError);
+    test('Exception in macro causes FunctionEvaluationError', () => {
+        expect(() => spreadsheet.query('=IF(1, THROW(), 3)')).toThrow(FunctionEvaluationError);
         expect(() => spreadsheet.query('=IF(0, THROW(), 3)')).not.toThrow();
-        expect(() => spreadsheet.query('=IF(THROW(), 2, 3)')).toThrow(RuntimeError);
-        expect(() => spreadsheet.query('=IF(0, 2, THROW())')).toThrow(RuntimeError);
+        expect(() => spreadsheet.query('=IF(THROW(), 2, 3)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.query('=IF(0, 2, THROW())')).toThrow(FunctionEvaluationError);
     });
 })

@@ -3,7 +3,7 @@ import { RuntimeError, ParsingError, CircularReferenceError, ReferencedCellError
 import * as Helpers from './helpers';
 
 class CircularRefInternal extends Error {
-    constructor(message, position) { super(message); this.position = position; }
+    constructor(position, circlePositions) { super(); this.position = position; this.circlePositions = circlePositions; }
 }
 
 export default class Evaluator {
@@ -13,7 +13,7 @@ export default class Evaluator {
 
     evaluateCellAt(position, expression, environment) {
         if (this.visitedCellStack.includes(position))
-            throw new CircularRefInternal(`Circular reference detected (${this.visitedCellStack.join(' -> ')} -> ${position})`, position);
+            throw new CircularRefInternal(position, [...this.visitedCellStack, position]);
 
         this.visitedCellStack.push(position);
         try {
@@ -28,7 +28,7 @@ export default class Evaluator {
             // Once the CircularRefInternal reaches back to the originating cell,
             // we turn it into a normal CircularReferenceError.
             if (ex instanceof CircularRefInternal && ex.position === position) {
-                throw new CircularReferenceError([...this.visitedCellStack, position]);
+                throw new CircularReferenceError(ex.circlePositions);
             } else {
                 throw ex;
             }

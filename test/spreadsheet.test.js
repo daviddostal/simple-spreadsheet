@@ -1,4 +1,4 @@
-import { Spreadsheet, ParsingError, RuntimeError } from '../src/spreadsheet/spreadsheet';
+import { Spreadsheet, ParsingError, CircularReferenceError, FunctionEvaluationError, ReferencedCellError, RangeReferenceNotAllowedError, UnknownFunctionError } from '../src/spreadsheet/spreadsheet';
 import { builtinFunctions } from '../src/functions/functions';
 
 function expectValue(formula, expected) {
@@ -67,9 +67,9 @@ test('Backslash escapes supported escape sequences', () => {
 });
 
 test('Range references are allowed only as function arguments', () => {
-    expectException('=A2:A4', RuntimeError);
-    expectException('=3 + A2:A4', RuntimeError);
-    expectException('=-A2:A4', RuntimeError);
+    expectException('=A2:A4', RangeReferenceNotAllowedError);
+    expectException('=3 + A2:A4', RangeReferenceNotAllowedError);
+    expectException('=-A2:A4', RangeReferenceNotAllowedError);
     const spreadsheet = new Spreadsheet({ A1: '1', A2: '2', A3: '=SUM(A1:A2)' }, builtinFunctions);
     expect(spreadsheet.value('A3')).toBe(3);
 });
@@ -238,7 +238,7 @@ describe('Parentheses', () => {
         expectException('=3*(2+4())', ParsingError);
         expectException('=((((3))*(((((2)+((4)))))))', ParsingError);
         expectException('=((3))*(((((2)+((4)))))))', ParsingError);
-        expectException('=A2()', RuntimeError);
+        expectException('=A2()', UnknownFunctionError);
         expectException('=3*()2', ParsingError);
     });
 });
@@ -274,13 +274,13 @@ describe('Cell references', () => {
             A1: '=A2', A2: '=A1'
         }, builtinFunctions);
 
-        expect(() => spreadsheet.value('A1')).toThrow(RuntimeError);
+        expect(() => spreadsheet.value('A1')).toThrow(CircularReferenceError);
 
         const spreadsheet2 = new Spreadsheet({
             A1: '=2 * A1'
         }, builtinFunctions);
 
-        expect(() => spreadsheet2.value('A1')).toThrow(RuntimeError);
+        expect(() => spreadsheet2.value('A1')).toThrow(CircularReferenceError);
     });
 
     //TODO: Cyclic references even in ranges etc
@@ -378,23 +378,26 @@ describe('Spreadsheet functions', () => {
         expectException('=SUM(2, 3)()', ParsingError);
     });
 
-    test('Exceptions in functions cause RuntimeErrors when evaluated', () => {
+    test('Exceptions in functions cause FunctionEvaluationErrors when evaluated', () => {
         const spreadsheet = new Spreadsheet({},
             { THROW: () => { throw new Error('Testing...'); } });
-        expect(() => spreadsheet.query('=THROW()')).toThrow(RuntimeError);
+        expect(() => spreadsheet.query('=THROW()')).toThrow(FunctionEvaluationError);
     });
 
-    test('Function throws RuntimeError when argument throws', () => {
-        const spreadsheet = new Spreadsheet({}, builtinFunctions);
-        expect(() => spreadsheet.query('=SUM(1, PI(1))')).toThrow(RuntimeError);
+    test('Function throws when argument throws', () => {
+        const spreadsheet = new Spreadsheet({}, {
+            ...builtinFunctions,
+            THROW: () => { throw 'testing' }
+        });
+        expect(() => spreadsheet.query('=SUM(1, THROW())')).toThrowError('testing');
     });
 
-    test('When a function references a function with errors, it throws a RuntimeError', () => {
+    test('When a function references a function with errors, it throws a ReferencedCellError', () => {
         const spreadsheet = new Spreadsheet(
             { A1: '=(', A2: '=A2:A4', A3: '=A1', A4: '=A2' }
         );
-        expect(() => spreadsheet.value('A3')).toThrow(RuntimeError);
-        expect(() => spreadsheet.value('A4')).toThrow(RuntimeError);
+        expect(() => spreadsheet.value('A3')).toThrow(ReferencedCellError);
+        expect(() => spreadsheet.value('A4')).toThrow(ReferencedCellError);
     });
 
     test('Function arguments can be expressions, which are evaluated', () => {

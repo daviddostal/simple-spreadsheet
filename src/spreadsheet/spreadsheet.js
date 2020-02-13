@@ -1,7 +1,7 @@
 import { Environment } from './environment';
 import * as Helpers from './helpers';
 export { Helpers };
-export { SpreadsheetError, RuntimeError, ParsingError } from './errors';
+export * from './errors';
 
 export class Spreadsheet {
     constructor(cells = new Map(), functions = new Map(), onCellsChanged = (() => { })) {

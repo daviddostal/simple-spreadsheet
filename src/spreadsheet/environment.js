@@ -1,7 +1,7 @@
 import { Tokenizer } from './tokenizer';
 import Parser from './parser';
 import Evaluator from './evaluator';
-import { RuntimeError } from './errors';
+import { UnknownFunctionError } from './errors';
 import ReferencesMap from './referencesMap';
 
 export class Environment {
@@ -61,7 +61,7 @@ export class Environment {
 
     getFunction(name) {
         if (!this.functions.has(name))
-            throw new RuntimeError(`Unknown function: ${name}`);
+            throw new UnknownFunctionError(name);
         return this.functions.get(name);
     }
 }

@@ -41,6 +41,13 @@ class RangeReferenceNotAllowedError extends RuntimeError {
     constructor() { super(`Range references are allowed only as references to functions`); }
 }
 
+class UnknownFunctionError extends RuntimeError {
+    constructor(functionName) {
+        super(`Unknown function: ${functionName}`);
+        this.functionName = functionName;
+    }
+}
+
 class TokenStream {
     constructor(tokens) {
         this._tokens = tokens;
@@ -385,7 +392,7 @@ class Parser {
 }
 
 class CircularRefInternal extends Error {
-    constructor(message, position) { super(message); this.position = position; }
+    constructor(position, circlePositions) { super(); this.position = position; this.circlePositions = circlePositions; }
 }
 
 class Evaluator {
@@ -395,7 +402,7 @@ class Evaluator {
 
     evaluateCellAt(position, expression, environment) {
         if (this.visitedCellStack.includes(position))
-            throw new CircularRefInternal(`Circular reference detected (${this.visitedCellStack.join(' -> ')} -> ${position})`, position);
+            throw new CircularRefInternal(position, [...this.visitedCellStack, position]);
 
         this.visitedCellStack.push(position);
         try {
@@ -410,7 +417,7 @@ class Evaluator {
             // Once the CircularRefInternal reaches back to the originating cell,
             // we turn it into a normal CircularReferenceError.
             if (ex instanceof CircularRefInternal && ex.position === position) {
-                throw new CircularReferenceError([...this.visitedCellStack, position]);
+                throw new CircularReferenceError(ex.circlePositions);
             } else {
                 throw ex;
             }
@@ -612,7 +619,7 @@ class Environment {
 
     getFunction(name) {
         if (!this.functions.has(name))
-            throw new RuntimeError(`Unknown function: ${name}`);
+            throw new UnknownFunctionError(name);
         return this.functions.get(name);
     }
 }
@@ -641,5 +648,5 @@ class Spreadsheet {
     }
 }
 
-export { helpers as Helpers, ParsingError, RuntimeError, Spreadsheet, SpreadsheetError };
+export { CircularReferenceError, FunctionEvaluationError, helpers as Helpers, NotImplementedError, ParsingError, RangeReferenceNotAllowedError, ReferencedCellError, RuntimeError, Spreadsheet, SpreadsheetError, UnknownFunctionError };
 //# sourceMappingURL=simple-spreadsheet.js.map
