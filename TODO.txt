@@ -16,6 +16,10 @@ Fixes and improvements
 
 Working on currently
 ====================
+- cache errors
+- return errors instead of throwing
+- cache errors and values together?
+- throw only on library boundary (Spreadsheet)
 
 Done
 ====

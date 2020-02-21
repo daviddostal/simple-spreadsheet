@@ -407,9 +407,9 @@ describe('Spreadsheet functions', () => {
 
 describe('Cell edit', () => {
     test('cells can be edited', () => {
-        const spreadsheet = new Spreadsheet({ A1: 1 });
+        const spreadsheet = new Spreadsheet({ A1: '=1' });
         expect(spreadsheet.value('A1')).toBe(1);
-        spreadsheet.set('A1', '5');
+        spreadsheet.set('A1', '=5');
         expect(spreadsheet.value('A1')).toBe(5);
     });
 

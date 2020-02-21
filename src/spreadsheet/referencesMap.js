@@ -1,7 +1,7 @@
 export default class ReferencesMap {
     constructor() {
-        this._referencesFrom = new Map();
-        this._referencesTo = new Map();
+        this._referencesFrom = new Map(); // { position => Set(referencesFrom) }
+        this._referencesTo = new Map(); // { position => Set(referencedBy) }
     }
 
     addReferences(positionFrom, referencesTo) {

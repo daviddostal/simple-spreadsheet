@@ -1,32 +1,36 @@
 import { Tokenizer } from './tokenizer';
 import Parser from './parser';
 import Evaluator from './evaluator';
-import { UnknownFunctionError } from './errors';
+import { UnknownFunctionError, RuntimeError, ParsingError } from './errors';
 import ReferencesMap from './referencesMap';
 
 export class Environment {
     constructor(cells, functions, cellsChangedListener) {
-        this.cells = cells;
-        this.functions = functions;
+        this.cells = cells; // { position => formula text }
+        this.functions = functions; // { name => function or macro }
         this.onCellsChanged = cellsChangedListener;
         this._parser = new Parser(new Tokenizer());
         this._evaluator = new Evaluator();
 
         this._expressionsCache = new Map(); // { position => expression tree (AST) }
         this._valuesCache = new Map(); // { position => value; }
-        this._referencesMap = new ReferencesMap();
+        this._errorsCache = new Map(); // { position => error; }
+        this._referencesMap = new ReferencesMap(); // tracks references between cells
     }
 
     getText(position) {
         return this.cells.has(position) ? this.cells.get(position).toString() : "";
     }
 
-    setText(position, value) {
-        this.cells.set(position, value);
+    setText(position, text) {
+        this.cells.set(position, text);
 
+        // affectedCells also contains `position`
         const affectedCells = this._referencesMap.cellsDependingOn(position);
-        for (let pos of affectedCells)
+        for (let pos of affectedCells) {
             this._valuesCache.delete(pos);
+            this._errorsCache.delete(pos);
+        }
 
         this._expressionsCache.delete(position);
         this._referencesMap.removeReferencesFrom(position);
@@ -38,20 +42,38 @@ export class Environment {
         if (this._expressionsCache.has(position))
             return this._expressionsCache.get(position);
 
+        if (this._errorsCache.has(position))
+            throw this._errorsCache.get(position);
+
         const text = this.cells.has(position) ? this.cells.get(position) : null;
-        const { parsed, references } = this._parser.parse(text);
-        this._expressionsCache.set(position, parsed);
-        this._referencesMap.addReferences(position, references);
-        return parsed;
+        try {
+            const { parsed, references } = this._parser.parse(text);
+            this._expressionsCache.set(position, parsed);
+            this._referencesMap.addReferences(position, references);
+            return parsed;
+        } catch (ex) {
+            if (ex instanceof ParsingError)
+                this._errorsCache.set(position, ex);
+            throw ex;
+        }
     }
 
     getValue(position) {
         if (this._valuesCache.has(position))
             return this._valuesCache.get(position);
 
-        const result = this._evaluator.evaluateCellAt(position, this.getExpression(position), this);
-        this._valuesCache.set(position, result);
-        return result;
+        if (this._errorsCache.has(position))
+            throw this._errorsCache.get(position);
+
+        try {
+            const result = this._evaluator.evaluateCellAt(position, this.getExpression(position), this);
+            this._valuesCache.set(position, result);
+            return result;
+        } catch (ex) {
+            if (ex instanceof RuntimeError)
+                this._errorsCache.set(position, ex);
+            throw ex;
+        }
     }
 
     evaluateQuery(expression) {
