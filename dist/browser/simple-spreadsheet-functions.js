@@ -49,5 +49,7 @@
 
     exports.builtinFunctions = builtinFunctions;
 
+    Object.defineProperty(exports, '__esModule', { value: true });
+
 }(this.SimpleSpreadsheet = this.SimpleSpreadsheet || {}));
 //# sourceMappingURL=simple-spreadsheet-functions.js.map

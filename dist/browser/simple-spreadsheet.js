@@ -219,6 +219,7 @@
     }
 
     var helpers = /*#__PURE__*/Object.freeze({
+        __proto__: null,
         positionsInRange: positionsInRange,
         parsePosition: parsePosition,
         makePosition: makePosition,
@@ -684,6 +685,8 @@
     exports.Spreadsheet = Spreadsheet;
     exports.SpreadsheetError = SpreadsheetError;
     exports.UnknownFunctionError = UnknownFunctionError;
+
+    Object.defineProperty(exports, '__esModule', { value: true });
 
 }(this.SimpleSpreadsheet = this.SimpleSpreadsheet || {}));
 //# sourceMappingURL=simple-spreadsheet.js.map

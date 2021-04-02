@@ -220,6 +220,7 @@ function columnLetter(colIndex) {
 }
 
 var helpers = /*#__PURE__*/Object.freeze({
+    __proto__: null,
     positionsInRange: positionsInRange,
     parsePosition: parsePosition,
     makePosition: makePosition,
