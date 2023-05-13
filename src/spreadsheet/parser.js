@@ -108,8 +108,35 @@ export default class Parser {
 
     _parseString(string) {
         const withoutQuotes = string.value.substring(1, string.value.length - 1);
-        const escapedString = withoutQuotes.replace(/\\(.)/g, '$1'); // TODO: check escaped characters are escapable
-        return new Value(escapedString);
+        return new Value(this._parseStringEscapes(withoutQuotes));
+    }
+
+    _parseStringEscapes(string) {
+        let result = "";
+        let isEscaped = false;
+
+        for (let char of string) {
+            if (!isEscaped) {
+                if (char !== "\\") result += char;
+                else isEscaped = true;
+            } else {
+                switch (char) {
+                    case "\\":
+                    case "\"":
+                        result += char;
+                        break;
+                    case "n":
+                        result += "\n";
+                        break;
+                    default:
+                        throw new ParsingError(`Unknown escape sequence '\\${char}'.`);
+                }
+                isEscaped = false;
+            }
+        }
+        if (isEscaped)
+            throw new ParsingError(`'\\' cannot be the last character in a string. Did you mean to escape it ('\\\\')?`);
+        return result;
     }
 
     // rangeReference => IDENTIFIER ':' IDENTIFIER

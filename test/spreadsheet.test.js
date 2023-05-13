@@ -46,14 +46,10 @@ test('Number literals are evaluated in formulas', () => {
 test('String literals are evaluated in formulas', () => {
     expectValue('="hello, world"', 'hello, world');
     expectValue('="0.908098"', '0.908098');
-    expectValue('="¨úů¨dúsafžüě"', '¨úů¨dúsafžüě');
+    expectValue('="¨úů¨dúsafžüěκόσμεたれホヘ๏ เป็นมนุ"', '¨úů¨dúsafžüěκόσμεたれホヘ๏ เป็นมนุ');
+    expectValue('="🇨🇿😊❤✔░"', '🇨🇿😊❤✔░');
 
 });
-
-// test('Backslash escapes next character in string literal', () => {
-//     expectValue('="\\jkl"', 'jkl');   //  \jkl  =>  jkl
-//     expectValue('="\\\\jkl\\\\"', '\\jkl\\');   //  \\jkl  =>  \jkl
-// });
 
 test('Backslash escapes supported escape sequences', () => {
     expectValue('="\\""', '"');       //  \"  =>  "
@@ -61,9 +57,10 @@ test('Backslash escapes supported escape sequences', () => {
     expectValue('="\\\\"', '\\');     //  \\  =>  \
     expectValue('="\\\\"', '\\'); // \\ => \
     expectValue('="\\""', '"'); // \"" => "
+    expectValue('="\n"', '\n'); // \n => newline
+
     expectException('="\\j"', ParsingError); // \j => unknown escape sequence
     expectException('="\\\\\\"', ParsingError);   //  ="\\\"  =>  last quote is escaped
-
 });
 
 test('Range references are allowed only as function arguments', () => {
