@@ -1,11 +1,9 @@
 Features
 ========
-- Macro functions like IF(...; ...; ...)
 - Performance profiling and optimizations
 - Add features section to readme
 ? Spreadsheet functions inside custom functions
 ?? Parser, lexer and evaluator extensions (custom operators etc)
-- More granular error types
 
 Fixes and improvements
 ======================
@@ -16,13 +14,15 @@ Fixes and improvements
 
 Working on currently
 ====================
-- cache errors
 - return errors instead of throwing
 - cache errors and values together?
 - throw only on library boundary (Spreadsheet)
 
 Done
 ====
+✔ cache errors
+✔ More granular error types
+✔ Macro functions like IF(...; ...; ...)
 ✔ Constants like PI, E etc.
 ✔ Events for cell changes
 ✔ Add eslint

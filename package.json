@@ -4,17 +4,18 @@
   "type": "module",
   "description": "",
   "scripts": {
-    "test": "jest --watchAll",
-    "build": "rollup -c --watch",
-    "build:prod": "rollup -c"
+    "dev": "rollup -c --watch",
+    "build": "rollup -c",
+    "test:watch": "jest --watchAll",
+    "test": "jest"
   },
   "author": "David Dostal",
   "devDependencies": {
-    "@babel/plugin-transform-modules-commonjs": "^7.13.8",
-    "eslint": "^7.23.0",
-    "jest": "^26.6.3",
-    "jest-cli": "^26.6.3",
-    "rollup": "^2.44.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.21.5",
+    "eslint": "^8.40.0",
+    "jest": "^29.5.0",
+    "jest-cli": "^29.5.0",
+    "rollup": "^2.79.1",
     "rollup-plugin-terser": "^7.0.2"
   },
   "jest": {
