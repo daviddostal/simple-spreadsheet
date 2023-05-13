@@ -1,7 +1,7 @@
-import { TokenType } from './tokenizer';
-import { ParsingError, NotImplementedError } from './errors';
-import { Value, Reference, BinaryOp, UnaryOp, Range, FunctionCall } from './expressions';
-import * as Helpers from './helpers';
+import { TokenType } from './tokenizer.js';
+import { ParsingError, NotImplementedError } from './errors.js';
+import { Value, Reference, BinaryOp, UnaryOp, Range, FunctionCall } from './expressions.js';
+import * as Helpers from './helpers.js';
 
 export default class Parser {
     constructor(tokenizer) {

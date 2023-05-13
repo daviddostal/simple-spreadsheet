@@ -1,6 +1,6 @@
-import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp } from './expressions';
-import { RuntimeError, ParsingError, CircularReferenceError, ReferencedCellError, NotImplementedError, RangeReferenceNotAllowedError, FunctionEvaluationError } from './errors';
-import * as Helpers from './helpers';
+import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp } from './expressions.js';
+import { RuntimeError, ParsingError, CircularReferenceError, ReferencedCellError, NotImplementedError, RangeReferenceNotAllowedError, FunctionEvaluationError } from './errors.js';
+import * as Helpers from './helpers.js';
 
 class CircularRefInternal extends Error {
     constructor(position, circlePositions) { super(); this.position = position; this.circlePositions = circlePositions; }

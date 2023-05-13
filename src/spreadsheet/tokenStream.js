@@ -1,4 +1,4 @@
-import { ParsingError } from "./errors";
+import { ParsingError } from "./errors.js";
 
 export default class TokenStream {
     constructor(tokens) {

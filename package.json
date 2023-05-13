@@ -2,13 +2,29 @@
   "name": "simple-spreadsheet",
   "version": "1.0.0",
   "type": "module",
+  "main": "dist/esm/simple-spreadsheet.js",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/simple-spreadsheet.js",
+      "require": "./dist/cjs/simple-spreadsheet.js"
+    },
+    "./functions": {
+      "import": "./dist/esm/simple-spreadsheet-functions.js",
+      "require": "./dist/cjs/simple-spreadsheet-functions.js"
+    }
+  },
   "description": "",
   "scripts": {
     "dev": "rollup -c --watch",
     "build": "rollup -c",
     "test:watch": "jest --watchAll",
-    "test": "jest"
+    "test": "jest",
+    "prepare": "npm run build"
   },
+  "files": [
+    "/src",
+    "/dist"
+  ],
   "author": "David Dostal",
   "devDependencies": {
     "@babel/plugin-transform-modules-commonjs": "^7.21.5",

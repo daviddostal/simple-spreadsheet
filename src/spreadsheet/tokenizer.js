@@ -1,5 +1,5 @@
-import { ParsingError } from './errors';
-import TokenStream from './tokenStream';
+import { ParsingError } from './errors.js';
+import TokenStream from './tokenStream.js';
 
 export const TokenType = Object.freeze({
     // Note: strings must be unique, because they are used for comparison

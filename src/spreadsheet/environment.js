@@ -1,8 +1,8 @@
-import { Tokenizer } from './tokenizer';
-import Parser from './parser';
-import Evaluator from './evaluator';
-import { UnknownFunctionError, RuntimeError, ParsingError } from './errors';
-import ReferencesMap from './referencesMap';
+import { Tokenizer } from './tokenizer.js';
+import Parser from './parser.js';
+import Evaluator from './evaluator.js';
+import { UnknownFunctionError, RuntimeError, ParsingError } from './errors.js';
+import ReferencesMap from './referencesMap.js';
 
 export class Environment {
     constructor(cells, functions, cellsChangedListener) {
