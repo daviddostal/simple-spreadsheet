@@ -1,5 +1,5 @@
-import { Spreadsheet, ParsingError, CircularReferenceError, FunctionEvaluationError, ReferencedCellError, RangeReferenceNotAllowedError, UnknownFunctionError } from '../src/spreadsheet/spreadsheet';
-import { builtinFunctions } from '../src/functions/functions';
+import { Spreadsheet, ParsingError, CircularReferenceError, FunctionEvaluationError, ReferencedCellError, RangeReferenceNotAllowedError, UnknownFunctionError } from '../src/spreadsheet';
+import { builtinFunctions } from '../src/functions';
 
 function expectValue(formula, expected) {
     const spreadsheet = new Spreadsheet({ A1: formula }, builtinFunctions);

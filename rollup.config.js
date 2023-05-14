@@ -29,33 +29,33 @@ function createConfig(input, output, format, extend) {
 export default [
     // Spreadsheet
     ...createConfig(
-        'src/spreadsheet/spreadsheet.js',
+        'src/spreadsheet/index.js',
         'dist/cjs/simple-spreadsheet',
         'cjs', false),
 
     ...createConfig(
-        'src/spreadsheet/spreadsheet.js',
+        'src/spreadsheet/index.js',
         'dist/esm/simple-spreadsheet',
         'esm', false),
 
     ...createConfig(
-        'src/spreadsheet/spreadsheet.js',
+        'src/spreadsheet/index.js',
         'dist/browser/simple-spreadsheet',
         'iife', true),
 
     // Functions
     ...createConfig(
-        'src/functions/functions.js',
+        'src/functions/index.js',
         'dist/cjs/simple-spreadsheet-functions',
         'cjs', false),
 
     ...createConfig(
-        'src/functions/functions.js',
+        'src/functions/index.js',
         'dist/esm/simple-spreadsheet-functions',
         'esm', false),
 
     ...createConfig(
-        'src/functions/functions.js',
+        'src/functions/index.js',
         'dist/browser/simple-spreadsheet-functions',
         'iife', true),
 ]

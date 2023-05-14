@@ -1,5 +1,5 @@
-import { Spreadsheet, FunctionEvaluationError } from '../src/spreadsheet/spreadsheet';
-import { builtinFunctions } from '../src/functions/functions';
+import { Spreadsheet, FunctionEvaluationError } from '../src/spreadsheet';
+import { builtinFunctions } from '../src/functions';
 
 describe('SUM function', () => {
     test('returns 0 for empty array', () => {
