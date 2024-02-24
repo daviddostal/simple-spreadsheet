@@ -1,9 +1,8 @@
 export function positionsInRange(from, to) {
     const positions = [];
-    // TODO: Use flatMap?
-    for (let col of _range(columnIndex(from.col), columnIndex(to.col)))
+    for (let col of _range(stringToColIndex(from.col), stringToColIndex(to.col)))
         for (let row of _range(from.row, to.row))
-            positions.push({ col: columnLetter(col), row: row });
+            positions.push({ col: colIndexToString(col), row: row });
     return positions;
 }
 
@@ -23,10 +22,18 @@ export function makePosition(col, row) {
     return `${col}${row}`;
 }
 
-export function columnIndex(colLetter) {
-    return colLetter.charCodeAt(0) - 65;
+export function colIndexToString(colNumber) {
+    return String.fromCharCode("A".charCodeAt() + colNumber);
 }
 
-export function columnLetter(colIndex) {
-    return String.fromCharCode(colIndex + 65);
+export function stringToColIndex(colString) {
+    return colString.charCodeAt(0) - "A".charCodeAt();
+}
+
+export function rowIndexToString(rowNumber) {
+    return (rowNumber + 1).toString();
+}
+
+export function stringToRowIndex(rowString) {
+    return parseInt(rowString) - 1;
 }
