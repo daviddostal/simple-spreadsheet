@@ -50,7 +50,7 @@ export class FunctionEvaluationError extends RuntimeError {
 export class RangeReferenceNotAllowedError extends RuntimeError {
     shortName = "#RANGEREF!";
     constructor() {
-        super(`Range references are allowed only as references to functions`);
+        super(`Range references are allowed only as arguments to functions`);
     }
 }
 
