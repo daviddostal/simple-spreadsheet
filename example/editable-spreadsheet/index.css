@@ -1,0 +1,159 @@
+:root {
+  color-scheme: light;
+
+  --clr-text: #000;
+  --clr-background: #fff;
+
+  --clr-th-background: #eee;
+  --clr-th-border: #aaa;
+
+  --clr-td-background: #fefefe;
+  --clr-td-border: #ccc;
+  --clr-td-focus-outline: #999;
+
+  --clr-td-editor-outline: #0060df;
+  --clr-editor-background: #f6f9ff;
+
+  --clr-function-icon: #070;
+
+  --clr-error-text: #700;
+  --clr-error-background: #fee;
+}
+
+@media(prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --clr-text: #fff;
+    --clr-background: #000;
+
+    --clr-th-background: #141414;
+    --clr-th-border: #555;
+
+    --clr-td-background: #050505;
+    --clr-td-border: #333;
+    --clr-td-focus-outline: #777;
+
+    --clr-td-editor-outline: #56b6ff;
+    --clr-editor-background: #0f1727;
+
+    --clr-function-icon: #5c5;
+
+    --clr-error-text: #fcc;
+    --clr-error-background: #1b0a0a;
+  }
+}
+
+body {
+  font-family: sans-serif;
+  margin: 0;
+  color: var(--clr-text);
+  background-color: var(--clr-background);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+table td,
+table th {
+  padding: .5em 1em;
+  position: relative;
+}
+
+table th {
+  background-color: var(--clr-th-background);
+  border: 1px solid var(--clr-th-border);
+}
+
+table td {
+  background-color: var(--clr-td-background);
+  border: 1px solid var(--clr-td-border);
+  min-width: 6ch;
+}
+
+table td:focus {
+  /* Remove default outline, because we add our own using ::before. */
+  outline: none;
+}
+
+table td:focus::before {
+  content: "";
+  z-index: 1;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+
+  outline: 2px solid var(--clr-td-focus-outline);
+  outline-offset: -1px;
+}
+
+[data-spreadsheet-table] {
+  width: 100%;
+}
+
+table td[data-is-formula]::after {
+  content: "fx";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 2px;
+
+  font-size: 11px;
+  color: var(--clr-function-icon);
+  font-weight: bold;
+  font-style: italic;
+  font-family: serif;
+}
+
+table td[data-has-error] {
+  color: var(--clr-error-text);
+  background-color: var(--clr-error-background);
+  outline: 1px dashed var(--clr-error-text);
+  outline-offset: -1px;
+}
+
+table td[data-has-error][data-is-formula]::after {
+  color: var(--clr-error-text);
+  content: "err";
+}
+
+table td [data-cell-edit] {
+  font: inherit;
+  line-height: inherit;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  min-width: 100%;
+  min-height: 100%;
+  height: 100%;
+  width: 100%;
+  border: 0;
+  margin: 0;
+  padding: inherit;
+  resize: horizontal;
+  white-space: nowrap;
+  overflow-x: hidden;
+
+  border-radius: 3px;
+  outline-offset: -1px;
+  outline: 2px solid var(--clr-td-editor-outline);
+  background-color: var(--clr-editor-background);
+}
+
+noscript {
+  min-width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: .5em 1em;
+}

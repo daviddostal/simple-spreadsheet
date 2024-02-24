@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Editable spreadsheet demo</title>
+  <script src="../../dist/browser/simple-spreadsheet.js"></script>
+  <script src="../../dist/browser/simple-spreadsheet-functions.js"></script>
+  <script src="./spreadsheet-editor.js"></script>
+  <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+  <noscript>
+    <div>
+      <p>This example requires JavaScript in order to work.</p>
+      <p>Please enable JavaScript in your browser, then refresh this page.</p>
+    </div>
+  </noscript>
+  <div id="tableRoot"></div>
+
+  <script type="module">
+    const initialValues = {
+      A1: "", B1: "Unit price", C1: "Quantity", D1: "Discount %", E1: "Total",
+      A2: "Cucumber", B2: 21.99, C2: 3, D2: "0", E2: "=B2*C2*(1-D2/100)",
+      A3: "Paprika", B3: 26.20, C3: 5, D3: "0", E3: "=B3*C3*(1-D3/100)",
+      A4: "Avocado", B4: 44.00, C4: 1, D4: "25", E4: "=B4*C4*(1-D4/100)",
+      A6: "TOTAL", B6: "", C6: "", D6: "", E6: "=SUM(E2:E4)",
+    };
+
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
+      initialValues,
+      SimpleSpreadsheet.builtinFunctions,
+      onCellsUpdated
+    );
+
+    const tableRoot = document.querySelector("#tableRoot");
+    const spreadsheetTable = new SpreadsheetEditor(tableRoot, {
+      width: 10, height: 10,
+      getCellText: position => spreadsheet.text(position),
+      getCellValue: position => {
+        try {
+          const value = spreadsheet.value(position);
+          return { isError: false, value };
+        } catch (err) {
+          if (err instanceof SimpleSpreadsheet.Errors.SpreadsheetError) {
+            return { isError: true, error: err };
+          } else {
+            throw err;
+          }
+        }
+      },
+      onCellEdited: (position, newText) => spreadsheet.set(position, newText),
+      formatCellValue: value => (typeof (value) === "number")
+        ? parseFloat(value.toFixed(4)).toString()
+        : value,
+    });
+
+    function onCellsUpdated(changedCellPositions) {
+      for (let position of changedCellPositions) {
+        spreadsheetTable.invalidateValue(position, { animate: true });
+      }
+    }
+  </script>
+</body>
+
+</html>
