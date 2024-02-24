@@ -507,4 +507,20 @@ describe('Cell edit', () => {
         spreadsheet.set('A1', '=3+2');
         expect(changedPositions).toStrictEqual([['A1', 'A2', 'A3']]);
     });
+
+    test('Cell change is not triggered if original cell text remains unchanged', () => {
+        const changedPositions = [];
+        const spreadsheet = new Spreadsheet(
+            { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' },
+            {},
+            changed => changedPositions.push(changed)
+        );
+
+        // evaluates A3, A2 and A1
+        spreadsheet.value('A3');
+        spreadsheet.set('A1', "1");
+        spreadsheet.set('A2', "=A1 * 2");
+
+        expect(changedPositions.length).toBe(0);
+    })
 });

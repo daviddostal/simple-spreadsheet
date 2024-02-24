@@ -23,6 +23,8 @@ export class Environment {
     }
 
     setText(position, text) {
+        if (this.getText(position) === text) return;
+
         this.cells.set(position, text);
 
         // affectedCells also contains `position`
