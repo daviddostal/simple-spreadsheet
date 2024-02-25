@@ -29,6 +29,11 @@ function cellAtOffsetVertical(position, offset, height) {
   return indicesToPosition(colIndex, nextRowIndex);
 }
 
+function onlyAllowedModifiers(event, allowedKeys = []) {
+  const modifierKeys = ["altKey", "shiftKey", "ctrlKey", "metaKey"];
+  return modifierKeys.every(key => allowedKeys.includes(key) || !event[key]);
+}
+
 class SpreadsheetEditor {
   constructor(
     rootElement,
@@ -98,30 +103,30 @@ class SpreadsheetEditor {
       nextCellElement.focus();
     }.bind(this);
 
+    const arrowDirections = {
+      "ArrowRight": [1, 0], "ArrowLeft": [-1, 0], "ArrowDown": [0, 1], "ArrowUp": [0, -1],
+    };
+    const isArrowKey = event => Object.keys(arrowDirections).some(arrow => event.key === arrow);
+
+    // Destructuring is needed to still count multi-byte characters as 1.
+    const isPrintableCharacter = event => [...event.key].length === 1;
+
     cellElement.addEventListener("keydown", event => {
       if (event.target !== cellElement) return;
 
-      if (event.key === "Enter" || event.key === "F2") {
+      if ((event.key === "Enter" && onlyAllowedModifiers(event, ["shiftKey"])) ||
+        (event.key === "F2" && onlyAllowedModifiers(event))) {
         event.preventDefault();
         this._editCell(cellPosition);
-      } else if ([...event.key].length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) { // Printable character
-        event.preventDefault();
-        this._editCell(cellPosition, event.key);
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        handleCellNavigation(1, 0);
-      } else if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        handleCellNavigation(-1, 0);
-      } else if (event.key === "ArrowDown") {
-        event.preventDefault();
-        handleCellNavigation(0, 1);
-      } else if (event.key === "ArrowUp") {
-        event.preventDefault();
-        handleCellNavigation(0, -1);
-      } else if (event.key === "Delete") {
+      } else if (event.key === "Delete" && onlyAllowedModifiers(event, ["ctrlKey"])) {
         event.preventDefault();
         this._onCellEdited(cellPosition, "");
+      } else if (isArrowKey(event) && onlyAllowedModifiers(event, ["shiftKey", "ctrlKey"])) {
+        event.preventDefault();
+        handleCellNavigation(...arrowDirections[event.key]);
+      } else if (isPrintableCharacter(event) && onlyAllowedModifiers(event, ["shiftKey"])) {
+        event.preventDefault();
+        this._editCell(cellPosition, event.key);
       }
     });
 
@@ -173,6 +178,7 @@ class SpreadsheetEditor {
     const textareaElement = document.createElement("textarea");
     textareaElement.setAttribute("data-cell-edit", "");
     textareaElement.setAttribute("rows", 1);
+    textareaElement.setAttribute("wrap", "off");
     const currentText = overrideText === undefined ? originalText : overrideText;
     textareaElement.textContent = currentText;
     const self = this;
@@ -194,13 +200,14 @@ class SpreadsheetEditor {
 
     function handleTextareaKeyDown(event) {
       if (event.target !== textareaElement) return;
-      if (event.key === "Enter") {
+
+      if (event.key === "Enter" && onlyAllowedModifiers(event)) {
         event.preventDefault();
         event.stopPropagation();
         stopEditing();
         cellElement.focus();
         return false;
-      } else if (event.key === "Escape") {
+      } else if (event.key === "Escape" && onlyAllowedModifiers(event)) {
         event.preventDefault();
         event.stopPropagation();
         stopEditing(false);

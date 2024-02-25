@@ -38,7 +38,7 @@
 
     const tableRoot = document.querySelector("#tableRoot");
     const spreadsheetTable = new SpreadsheetEditor(tableRoot, {
-      width: 10, height: 10,
+      width: 10, height: 15,
       getCellText: position => spreadsheet.text(position),
       getCellValue: position => {
         try {
