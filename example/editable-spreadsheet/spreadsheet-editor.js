@@ -179,6 +179,7 @@ class SpreadsheetEditor {
     textareaElement.setAttribute("data-cell-edit", "");
     textareaElement.setAttribute("rows", 1);
     textareaElement.setAttribute("wrap", "off");
+    textareaElement.setAttribute("autocapitalize", "off");
     const currentText = overrideText === undefined ? originalText : overrideText;
     textareaElement.textContent = currentText;
     const self = this;
