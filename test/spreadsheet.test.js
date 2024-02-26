@@ -1,4 +1,5 @@
-import { Spreadsheet, ParsingError, CircularReferenceError, FunctionEvaluationError, ReferencedCellError, RangeReferenceNotAllowedError, UnknownFunctionError } from '../src/spreadsheet';
+import { Spreadsheet } from '../src/spreadsheet';
+import { ParsingError, CircularReferenceError, FunctionEvaluationError, ReferencedCellError, RangeReferenceNotAllowedError, UnknownFunctionError, SpreadsheetError } from '../src/spreadsheet/errors';
 import { builtinFunctions } from '../src/functions';
 
 function expectValue(formula, expected) {
@@ -9,6 +10,7 @@ function expectValue(formula, expected) {
 }
 
 function expectException(formula, exceptionType) {
+    expect(exceptionType).toBeDefined();
     expect(() => new Spreadsheet({ A1: formula }, builtinFunctions).value('A1'))
         .toThrow(exceptionType);
 }
