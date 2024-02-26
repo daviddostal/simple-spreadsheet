@@ -1,0 +1,128 @@
+// file: environment.js
+
+import { Tokenizer } from './tokenizer';
+import Parser from './parser';
+import Evaluator from './evaluator';
+import { CircularReferenceError, UnknownFunctionError } from './errors';
+import ReferencesMap from './referencesMap';
+
+export class Environment {
+    constructor(cells = new Map(), functions = new Map(), cellsChangedListener) {
+        this.cells = cells;
+        this.functions = functions;
+        this.onCellsChanged = cellsChangedListener;
+        this._parser = new Parser(new Tokenizer());
+        this._evaluator = new Evaluator();
+
+        this._expressionsCache = new Map(); // { position => expression tree (AST) }
+        this._valuesCache = new Map(); // { position => value; }
+        this._referencesMap = new ReferencesMap();
+
+        // TODO: cache cells with errors?
+    }
+
+    getText(position) {
+        return this.cells.has(position) ? this.cells.get(position).toString() : "";
+    }
+
+    setText(position, value) {
+        this.cells.set(position, value);
+
+        const affectedCells = this._referencesMap.cellsDependingOn(position);
+        for (let pos of affectedCells)
+            this._valuesCache.delete(pos);
+
+        this._expressionsCache.delete(position);
+        this._referencesMap.removeReferencesFrom(position);
+
+        this.onCellsChanged([...affectedCells]); // TODO: should this remain a Set?
+    }
+
+    getExpression(position) {
+        if (this._expressionsCache.has(position))
+            return this._expressionsCache.get(position);
+
+        const text = this.cells.has(position) ? this.cells.get(position) : null;
+        const { parsed, references } = this._parser.parse(text);
+        this._expressionsCache.set(position, parsed);
+        this._referencesMap.addReferences(position, references);
+        return parsed;
+    }
+
+    getValue(position) {
+        // Make sure all outgoing references (including `position` itself) are evaluated before
+        // getting the value
+        this._evalReferencesFrom(position);
+        return this._valuesCache.get(position);
+    }
+
+    _evalReferencesFrom(position) {
+        this._traversePostorder(
+            position,
+            pos => [...this._referencesMap.cellsReferencedFrom(pos)],
+            pos => this._valuesCache.has(pos),
+            pos => {
+                const result = this._evaluator.evaluateCellAt(pos, this.getExpression(pos), this);
+                this._valuesCache.set(pos, result);
+            })
+    }
+
+    _traversePostorder(start, neighborsFn, isFinishedFn, onFinishedFn) {
+        // By default nodes are unvisited.
+        // Nodes on the stack are visited (tracked in separate Set).
+        // Nodes popped off the stack are finished.
+        // The caller is responsible for tracking finished nodes.
+
+        // Nodes can only go from unvisited -> visited -> finished and each iteration
+        // at least 1 node is moved to a new group. Each node is moved max. 2 times.
+
+        // Edges are traversed only for visited nodes and max. 2 times (once when it has
+        // unevaluated children and once before it is popped off). Time complexity is
+        // therefore approximately O(|V| + |E|).
+
+        if (isFinishedFn(start)) return;
+
+        const stack = [start];
+        const visited = new Set([start]);
+
+        while (stack.length > 0) {
+            const current = stack[stack.length - 1];
+            const notFinishedChildren = neighborsFn(current)
+                .filter(neighbor => !isFinishedFn(neighbor) && !visited.has(neighbor));
+
+            if (notFinishedChildren.length === 0) { // all children are evaluated
+                onFinishedFn(current);
+                stack.pop();
+
+            } else { // some children are not evaluated
+                // const hasVisitedChild = notFinishedChildren.some(child => visited.has(child));
+                // TODO: report specific nodes in circle
+                // if (hasVisitedChild) throw new Error(`Circular reference`, current);
+
+                for (let child of notFinishedChildren) {
+                    visited.add(child);
+                    stack.push(child);
+                }
+            }
+        }
+    }
+
+    evaluateQuery(expression) {
+        const { parsed, _ } = this._parser.parse(expression);
+        return this._evaluator.evaluateQuery(parsed, this);
+    }
+
+    getFunction(name) {
+        if (!this.functions.has(name))
+            throw new UnknownFunctionError(name);
+        return this.functions.get(name);
+    }
+}
+
+// file: referencesMap.js
+
+    cellsReferencedFrom(position) {
+        return this._referencesFrom.has(position) ?
+            this._referencesFrom.get(position) :
+            new Set();
+    }

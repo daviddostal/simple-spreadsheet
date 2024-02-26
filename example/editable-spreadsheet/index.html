@@ -19,7 +19,7 @@
       <p>Please enable JavaScript in your browser, then refresh this page.</p>
     </div>
   </noscript>
-  <div id="tableRoot"></div>
+  <div id="table-root"></div>
 
   <script type="module">
     const initialValues = {
@@ -36,9 +36,9 @@
       onCellsUpdated
     );
 
-    const tableRoot = document.querySelector("#tableRoot");
+    const tableRoot = document.querySelector("#table-root");
     const spreadsheetTable = new SpreadsheetEditor(tableRoot, {
-      width: 10, height: 15,
+      width: 10, height: 20,
       getCellText: position => spreadsheet.text(position),
       getCellValue: position => {
         try {

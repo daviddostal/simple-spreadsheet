@@ -8,6 +8,7 @@
   --clr-th-border: #aaa;
 
   --clr-td-background: #fefefe;
+  --clr-td-background-hover: #fafafa;
   --clr-td-border: #ccc;
   --clr-td-focus-outline: #999;
 
@@ -27,10 +28,11 @@
     --clr-text: #fff;
     --clr-background: #000;
 
-    --clr-th-background: #141414;
+    --clr-th-background: #222;
     --clr-th-border: #555;
 
-    --clr-td-background: #050505;
+    --clr-td-background: #040404;
+    --clr-td-background-hover: #191919;
     --clr-td-border: #333;
     --clr-td-focus-outline: #777;
 
@@ -53,6 +55,11 @@ body {
   margin: 0;
   color: var(--clr-text);
   background-color: var(--clr-background);
+}
+
+#table-root {
+  max-width: 180rem;
+  margin: 0 auto;
 }
 
 *,
@@ -81,6 +88,7 @@ table td {
   background-color: var(--clr-td-background);
   border: 1px solid var(--clr-td-border);
   min-width: 6ch;
+  transition: background-color 50ms ease-out;
 }
 
 table td:focus {
@@ -98,6 +106,10 @@ table td:focus::before {
 
   outline: 2px solid var(--clr-td-focus-outline);
   outline-offset: -1px;
+}
+
+table td:hover {
+  background-color: var(--clr-td-background-hover);
 }
 
 [data-spreadsheet-table] {
