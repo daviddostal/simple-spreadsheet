@@ -402,6 +402,19 @@ describe('Spreadsheet functions', () => {
     test('Function arguments can be expressions, which are evaluated', () => {
         expectValue('=SUM(1, 2 + 8, SUM(3, 4, 5))', 23);
     });
+
+    test('Function names can be any valid identifier', () => {
+        expectException('=A(', ParsingError);
+        expectException('=1A()', ParsingError);
+        expectException('=_A()', ParsingError);
+        expectException('=A()', UnknownFunctionError);
+        expectException('=AB()', UnknownFunctionError);
+        expectException('=A_B()', UnknownFunctionError);
+        expectException('=A1()', UnknownFunctionError);
+        expectException('=A-()', ParsingError);
+        expectException('=A:()', ParsingError);
+        expectException('=A1:A3()', ParsingError);
+    })
 });
 
 describe('Cell edit', () => {

@@ -26,7 +26,7 @@ export class Tokenizer {
             // Patterns usually start with ^ so they match the start of the remaining
             // string, not anywhere in the middle.
             { pattern: /^\d+(?:\.\d+)?/, type: TokenType.NUMBER },
-            { pattern: /^[a-zA-Z]\w+/, type: TokenType.IDENTIFIER },
+            { pattern: /^[a-zA-Z]\w*/, type: TokenType.IDENTIFIER },
             { pattern: /^"(?:[^"\\]|\\.)*"/, type: TokenType.STRING },
             { pattern: /^$/, type: TokenType.EOF },
         ];
