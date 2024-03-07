@@ -33,6 +33,9 @@ class SpreadsheetEditor {
     this._onCellEdited = onCellEdited;
     this._formatCellValue = formatCellValue;
 
+    this._undoStack = [];
+    this._redoStack = [];
+
     this._initializeTable();
   }
 
@@ -106,10 +109,16 @@ class SpreadsheetEditor {
         this._editCell(cellPosition);
       } else if (event.key === "Delete" && onlyAllowedModifiers(event, ["ctrlKey"])) {
         event.preventDefault();
-        this._onCellEdited(cellPosition, "");
+        this._updateCellValue(cellPosition, "");
       } else if (event.key === "Backspace" && onlyAllowedModifiers(event)) {
         event.preventDefault();
         this._editCell(cellPosition, "");
+      } else if (event.key === "z" && event.ctrlKey && onlyAllowedModifiers(event, "ctrlKey")) {
+        event.preventDefault();
+        this._undo();
+      } else if (event.key === "y" && event.ctrlKey && onlyAllowedModifiers(event, "ctrlKey")) {
+        event.preventDefault();
+        this._redo();
       } else if (isArrowKey(event) && onlyAllowedModifiers(event, ["shiftKey", "ctrlKey"])) {
         event.preventDefault();
         handleCellNavigation(...arrowDirections[event.key]);
@@ -158,6 +167,45 @@ class SpreadsheetEditor {
     }
   }
 
+  _updateCellValue(position, newText) {
+    const previousText = this._getCellText(position);
+    if (previousText !== newText) {
+      this._onCellEdited(position, newText);
+      this._undoStack.push({ type: "edit-cell", cell: position, text: previousText });
+      this._redoStack = [];
+    }
+  }
+
+  _undo() {
+    if (this._undoStack.length > 0) {
+      const action = this._undoStack.pop();
+      switch (action.type) {
+        case "edit-cell":
+          const currentText = this._getCellText(action.cell);
+          this._onCellEdited(action.cell, action.text);
+          this._redoStack.push({ type: "edit-cell", cell: action.cell, text: currentText });
+          break;
+        default:
+          throw new Error(`Unknown undo action type '${action.type}'.`);
+      }
+    }
+  }
+
+  _redo() {
+    if (this._redoStack.length > 0) {
+      const action = this._redoStack.pop();
+      switch (action.type) {
+        case "edit-cell":
+          const previousText = this._getCellText(action.cell);
+          this._onCellEdited(action.cell, action.text);
+          this._undoStack.push({ type: "edit-cell", cell: action.cell, text: previousText });
+          break;
+        default:
+          throw new Error(`Unknown redo action type '${action.type}'.`);
+      }
+    }
+  }
+
   _editCell(position, overrideText) {
     const cellElement = this._cellElements.get(position);
     if (cellElement === undefined)
@@ -179,8 +227,8 @@ class SpreadsheetEditor {
       textareaElement.removeEventListener("blur", handleTextareaBlur);
       textareaElement.remove();
       cellElement.setAttribute("tabindex", "0");
-      if (updateCell && newText !== originalText) {
-        self._onCellEdited(position, newText);
+      if (updateCell) {
+        self._updateCellValue(position, newText);
       }
     }
 
