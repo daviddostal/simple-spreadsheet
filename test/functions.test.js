@@ -83,7 +83,7 @@ describe('PI function', () => {
     });
 });
 
-describe('IF macro', () => {
+describe('IF function', () => {
     let evaluatedBranches;
     const spreadsheet = new Spreadsheet({}, {
         ...builtinFunctions,
@@ -99,7 +99,7 @@ describe('IF macro', () => {
         expect(spreadsheet.query('=IF(0, 2, 3)')).toBe(3);
     });
 
-    test('Evaluates only one branch of the macro', () => {
+    test('Evaluates only one branch of the function', () => {
         evaluatedBranches = [];
         spreadsheet.query('=IF(1, TEST(2), TEST(3))');
         expect(evaluatedBranches).toEqual([2]);
@@ -109,7 +109,7 @@ describe('IF macro', () => {
         expect(evaluatedBranches).toEqual([3]);
     });
 
-    test('Exception in macro causes FunctionEvaluationError', () => {
+    test('Exception in function causes FunctionEvaluationError', () => {
         expect(() => spreadsheet.query('=IF(1, THROW(), 3)')).toThrow(FunctionEvaluationError);
         expect(() => spreadsheet.query('=IF(0, THROW(), 3)')).not.toThrow();
         expect(() => spreadsheet.query('=IF(THROW(), 2, 3)')).toThrow(FunctionEvaluationError);

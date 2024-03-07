@@ -98,9 +98,9 @@ export default class Evaluator {
 
     _evaluateFunction(functionName, args, environment) {
         let func = environment.getFunction(functionName);
-        func = func instanceof Function ? { isMacro: false, function: func } : func;
-        return (func.isMacro === true) ?
-            this._evaluateMacro(functionName, func, args, environment) :
+        func = func instanceof Function ? { isLazy: false, function: func } : func;
+        return (func.isLazy === true) ?
+            this._evaluateLazySpreadsheetFunction(functionName, func, args, environment) :
             this._evaluateSpreadsheetFunction(functionName, func, args, environment);
     }
 
@@ -113,12 +113,12 @@ export default class Evaluator {
         }
     }
 
-    _evaluateMacro(macroName, macro, args, environment) {
+    _evaluateLazySpreadsheetFunction(functionName, func, args, environment) {
         const argsLazyValues = args.map(arg => () => this._evaluateExpression(arg, environment));
         try {
-            return macro.function(...argsLazyValues);
+            return func.function(...argsLazyValues);
         } catch (ex) {
-            throw new FunctionEvaluationError(macroName, ex);
+            throw new FunctionEvaluationError(functionName, ex);
         }
     }
 

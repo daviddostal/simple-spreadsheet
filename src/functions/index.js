@@ -25,7 +25,7 @@ export const builtinFunctions = {
     },
 
     IF: {
-        isMacro: true,
+        isLazy: true,
         function: function(condition, trueBranch, falseBranch) {
             return condition() ? trueBranch() : falseBranch()
         }

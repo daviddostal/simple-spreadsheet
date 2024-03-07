@@ -7,7 +7,7 @@ import ReferencesMap from './referencesMap.js';
 export class Environment {
     constructor(cells, functions, cellsChangedListener) {
         this.cells = cells; // { position => formula text }
-        this.functions = functions; // { name => function or macro }
+        this.functions = functions; // { name => function or lazy function }
         this.onCellsChanged = cellsChangedListener;
         this._parser = new Parser(new Tokenizer());
         this._evaluator = new Evaluator();
