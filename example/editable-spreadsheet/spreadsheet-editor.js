@@ -107,6 +107,9 @@ class SpreadsheetEditor {
       } else if (event.key === "Delete" && onlyAllowedModifiers(event, ["ctrlKey"])) {
         event.preventDefault();
         this._onCellEdited(cellPosition, "");
+      } else if (event.key === "Backspace" && onlyAllowedModifiers(event)) {
+        event.preventDefault();
+        this._editCell(cellPosition, "");
       } else if (isArrowKey(event) && onlyAllowedModifiers(event, ["shiftKey", "ctrlKey"])) {
         event.preventDefault();
         handleCellNavigation(...arrowDirections[event.key]);
