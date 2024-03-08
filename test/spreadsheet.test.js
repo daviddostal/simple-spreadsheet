@@ -287,6 +287,13 @@ describe('Cell references', () => {
         expect(spreadsheet.query('=a2')).toBe(null);
     });
 
+    test('Columns can go further than Z', () => {
+        const spreadsheet = new Spreadsheet({ Y10: 1, Z10: 2, AA10: 3, AB10: 4, '[': 99 }, builtinFunctions);
+        expect(spreadsheet.query('=AA10')).toBe(3);
+        expect(spreadsheet.query('=SUM(Y10:AB10)')).toBe(10);
+        expect(() => spreadsheet.query('=AŽ10')).toThrow(ParsingError);
+    })
+
     test('Cyclic references cause runtime exception', () => {
         const spreadsheet = new Spreadsheet({
             A1: '=A2', A2: '=A1'
