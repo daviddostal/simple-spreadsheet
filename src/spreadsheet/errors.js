@@ -1,29 +1,29 @@
 export class NotImplementedError extends Error {
-    shortName = "#IMPL!";
+    shortName = '#IMPL!';
     constructor(message) { super(message); }
     toString() { return `Not implemented: ${this.message}` }
 }
 
 export class SpreadsheetError extends Error {
-    shortName = "#ERR!";
+    shortName = '#ERR!';
     constructor(message) { super(message); }
     toString() { return `Spreadsheet error: ${this.message}`; }
 }
 
 export class ParsingError extends SpreadsheetError {
-    shortName = "#SYNTAX!";
+    shortName = '#SYNTAX!';
     constructor(message) { super(message); }
     toString() { return `Syntax error: ${this.message}`; }
 }
 
 export class RuntimeError extends SpreadsheetError {
-    shortName = "#EVAL!";
+    shortName = '#EVAL!';
     constructor(message) { super(message); }
     toString() { return `Evaluation error: ${this.message}`; }
 }
 
 export class ReferencedCellError extends RuntimeError {
-    shortName = "#REF!";
+    shortName = '#REF!';
     constructor(cell) {
         super(`Error in referenced cell: ${cell}`);
         this.cell = cell;
@@ -31,7 +31,7 @@ export class ReferencedCellError extends RuntimeError {
 }
 
 export class CircularReferenceError extends RuntimeError {
-    shortName = "#CIRCREF!"
+    shortName = '#CIRCREF!';
     constructor(cells) {
         super(`Circular reference detected: ${cells.join(' -> ')}`);
         this.cells = cells;
@@ -39,7 +39,7 @@ export class CircularReferenceError extends RuntimeError {
 }
 
 export class FunctionEvaluationError extends RuntimeError {
-    shortName = "#FUNC!";
+    shortName = '#FUNC!';
     constructor(functionName, error) {
         super(`Error in function ${functionName}: ${error}`)
         this.functionName = functionName;
@@ -48,14 +48,14 @@ export class FunctionEvaluationError extends RuntimeError {
 }
 
 export class RangeReferenceNotAllowedError extends RuntimeError {
-    shortName = "#RANGEREF!";
+    shortName = '#RANGEREF!';
     constructor() {
         super(`Range references are allowed only as arguments to functions`);
     }
 }
 
 export class UnknownFunctionError extends RuntimeError {
-    shortName = "#FNAME?"
+    shortName = '#FNAME?';
     constructor(functionName) {
         super(`Unknown function: ${functionName}`);
         this.functionName = functionName;

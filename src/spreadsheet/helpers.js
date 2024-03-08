@@ -23,11 +23,11 @@ export function makePosition(col, row) {
 }
 
 export function colIndexToString(colNumber) {
-    return String.fromCharCode("A".charCodeAt() + colNumber);
+    return String.fromCharCode('A'.charCodeAt() + colNumber);
 }
 
 export function stringToColIndex(colString) {
-    return colString.charCodeAt(0) - "A".charCodeAt();
+    return colString.charCodeAt(0) - 'A'.charCodeAt();
 }
 
 export function rowIndexToString(rowNumber) {

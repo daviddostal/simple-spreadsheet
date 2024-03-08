@@ -19,7 +19,7 @@ export class Environment {
     }
 
     getText(position) {
-        return this.cells.has(position) ? this.cells.get(position).toString() : "";
+        return this.cells.has(position) ? this.cells.get(position).toString() : '';
     }
 
     setText(position, text) {

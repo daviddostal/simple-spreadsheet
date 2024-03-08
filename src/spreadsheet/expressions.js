@@ -2,7 +2,7 @@ export class Expression { }
 
 export class Value extends Expression {
     constructor(value) { super(); this.value = value; }
-    toString() { return typeof(this.value) === "string" ? `"${this.value}"` : `${this.value}`; }
+    toString() { return typeof(this.value) === 'string' ? `"${this.value}"` : `${this.value}`; }
 }
 
 export class Reference extends Expression {

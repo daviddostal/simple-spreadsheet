@@ -1,5 +1,5 @@
 import { Spreadsheet } from '../src/spreadsheet';
-import { ParsingError, CircularReferenceError, FunctionEvaluationError, ReferencedCellError, RangeReferenceNotAllowedError, UnknownFunctionError, SpreadsheetError } from '../src/spreadsheet/errors';
+import { ParsingError, CircularReferenceError, FunctionEvaluationError, ReferencedCellError, RangeReferenceNotAllowedError, UnknownFunctionError } from '../src/spreadsheet/errors';
 import { builtinFunctions } from '../src/functions';
 
 function expectValue(formula, expected) {
@@ -47,7 +47,7 @@ test('Number literals are evaluated in formulas', () => {
 
 test('Formulas must begin with "="', () => {
     expectValue('=1', 1);
-    expectValue(' =1 ', " =1 ");
+    expectValue(' =1 ', ' =1 ');
     expectValue('=  1  ', 1);
 });
 
@@ -556,8 +556,8 @@ describe('Cell edit', () => {
 
         // evaluates A3, A2 and A1
         spreadsheet.value('A3');
-        spreadsheet.set('A1', "1");
-        spreadsheet.set('A2', "=A1 * 2");
+        spreadsheet.set('A1', '1');
+        spreadsheet.set('A2', '=A1 * 2');
 
         expect(changedPositions.length).toBe(0);
     });

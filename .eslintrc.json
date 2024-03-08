@@ -1,0 +1,33 @@
+{
+    "extends": "eslint:recommended",
+    "env": {
+        "es2022": true,
+        "jest": true
+    },
+    "parserOptions": {
+        "sourceType": "module"
+    },
+    "plugins": [
+        "@stylistic/js"
+    ],
+    "ignorePatterns":[
+        "example/**"
+    ],
+    "rules": {
+        "no-unused-vars": [
+            "error",
+            {
+                "varsIgnorePattern": "^_",
+                "argsIgnorePattern": "^_"
+            }
+        ],
+        "@stylistic/js/quotes": [
+            "warn",
+            "single",
+            {
+                "avoidEscape": true,
+                "allowTemplateLiterals": true
+            }
+        ]
+    }
+}

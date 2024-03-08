@@ -25,7 +25,7 @@ export default class Parser {
         // empty cell or non-string value
         // TODO: should arbitrary JS values be allowed here or should we just make exceptions for
         // whitelisted types (numbers, strings)?
-        if (typeof(text) !== "string")
+        if (typeof(text) !== 'string')
             return { parsed: new Value(text), references: [] };
 
         // formula
@@ -135,21 +135,21 @@ export default class Parser {
     }
 
     _parseStringEscapes(string) {
-        let result = "";
+        let result = '';
         let isEscaped = false;
 
         for (let char of string) {
             if (!isEscaped) {
-                if (char !== "\\") result += char;
+                if (char !== '\\') result += char;
                 else isEscaped = true;
             } else {
                 switch (char) {
-                    case "\\":
-                    case "\"":
+                    case '\\':
+                    case '"':
                         result += char;
                         break;
-                    case "n":
-                        result += "\n";
+                    case 'n':
+                        result += '\n';
                         break;
                     default:
                         throw new ParsingError(`Unknown escape sequence '\\${char}'.`);
