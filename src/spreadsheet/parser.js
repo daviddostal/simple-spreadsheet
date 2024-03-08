@@ -3,6 +3,17 @@ import { ParsingError, NotImplementedError } from './errors.js';
 import { Value, Reference, BinaryOp, UnaryOp, Range, FunctionCall } from './expressions.js';
 import * as Helpers from './helpers.js';
 
+// NOTE: Above most parser functions, there are comments describing the grammar rules of the syntax
+// being parsed. It uses the following notation:
+// 
+// - => separates the name of the grammar rule from its meaning
+// - UPPERCASE means tokens from the tokenizer
+// - 'quoted' strings mean literal characters or character sequences
+// - lowercase names reference other rules of this parser
+// - (parentheses) mean nothing and are used just for grouping, unless they are quoted: '('
+// - |, *, +, [], \d, A-Z etc. are borrowed from regexes and have approximately the same meaning
+//   (* meaning 0 or more, + meaning 1 or more, \d matching digits etc.)
+
 export default class Parser {
     constructor(tokenizer) {
         this._tokenizer = tokenizer;
@@ -11,12 +22,14 @@ export default class Parser {
 
     // cell => empty | '=' expression EOF | number | string
     parse(text) {
-        const needsParsing = text !== null && text !== undefined && text.constructor === String;
-        if (!needsParsing)
+        // empty cell or non-string value
+        // TODO: should arbitrary JS values be allowed here or should we just make exceptions for
+        // whitelisted types (numbers, strings)?
+        if (typeof(text) !== "string")
             return { parsed: new Value(text), references: [] };
 
-        const isFormula = text[0] === '='; // TODO: add test with and without whitespace
-        if (isFormula) {
+        // formula
+        if (text[0] === '=') {
             this._tokens = this._tokenizer.tokenize(text);
             this._tokens.require(TokenType.EQUALS);
             const parsed = this._parseExpression();
@@ -58,13 +71,17 @@ export default class Parser {
         return left;
     }
 
-    // range => unary (':' unary)*
+    // range => unary
     _parseRange() {
-        // TODO: Make ranges first-class
+        // NOTE:
+        // Currently ranges are allowed only inside function calls, so this function does nothing.
+        // In the future, we could make ':' a proper binary operator instead of just part of a range
+        // reference, but this would require support for array data types inside cells or for
+        // "spilling" cell values into neighboring cells.
         return this._parseUnary();
     }
 
-    // unary => ('+'|'-') unary | call
+    // unary => ('+'|'-') unary | value
     _parseUnary() {
         const operation = this._tokens.expect(TokenType.PLUS, TokenType.MINUS);
         return operation !== null
@@ -72,15 +89,18 @@ export default class Parser {
             : this._parseValue();
     }
 
-    // value => number | string | rangeReference | reference | parenthesized | functionCall
+    // value => parenthesized | number | string | rangeReference | functionCall | reference
     _parseValue() {
+        // parenthesized expression
         if (this._tokens.expect(TokenType.LPAREN))
             return this._finishParenthesized();
 
+        // number
         const number = this._tokens.expect(TokenType.NUMBER)
         if (number !== null)
             return new Value(parseFloat(number.value));
 
+        // string
         const string = this._tokens.expect(TokenType.STRING);
         if (string !== null)
             return this._parseString(string);
@@ -88,12 +108,15 @@ export default class Parser {
 
         const identifier = this._tokens.expect(TokenType.IDENTIFIER);
         if (identifier !== null) {
+            // range reference
             if (this._tokens.expect(TokenType.COLON))
                 return this._finishRangeReference(identifier);
 
+            // function call
             if (this._tokens.expect(TokenType.LPAREN))
                 return this._finishFunctionCall(identifier);
 
+            // reference
             return this._parseReference(identifier.value);
         }
         throw new ParsingError(`Unexpected ${this._tokens.peek().type.description}, expected an expression or value`)
@@ -148,11 +171,13 @@ export default class Parser {
         return new Range(from, to);
     }
 
-    // functionCall => IDENTIFIER ('(' arguments ')')*
+    // functionCall => IDENTIFIER '(' arguments ')'
     _finishFunctionCall(identifier) {
-        // TODO: Test or remove nested function calls such as FOO()()
-        // Or check for function return types at runtime?
-
+        // NOTE: Currently nested function calls such as FOO()() are not supported.
+        // If they were to be added in the future, this would require support for first-class
+        // functions as cell values with all the consequences that this includes, such as
+        // not knowing what is a function and what not until runtime and making it harder
+        // to distinguish cell references from function names.
         const args = this._parseArguments();
         this._tokens.expect(TokenType.RPAREN);
         return new FunctionCall(identifier.value, args);
@@ -166,7 +191,7 @@ export default class Parser {
         return new Reference(position.col, position.row);
     }
 
-    // arguments => (expression (',' expression)*)?
+    // arguments => (expression (',' expression)* )?
     _parseArguments() {
         const args = [];
         while (this._tokens.peek().type !== TokenType.RPAREN) {
