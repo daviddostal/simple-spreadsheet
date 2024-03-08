@@ -93,10 +93,23 @@ test('Non-string values yield the given value without parsing', () => {
 });
 
 describe('Unary operators', () => {
-    test('work properly', () => { // TODO: refactor
+    test('unary minus negates the following number', () => {
         expectValue('=-0.2', -0.2);
-        expectValue('=--0.2', 0.2);
+    });
+
+    test('unary plus does nothing to the value of the following number', () => {
         expectValue('=+0.2', 0.2);
+    });
+
+    test('unary + and - convert strings to numbers', () => {
+        expectValue('=+"abc"', NaN);
+        expectValue('=+"10"', 10);
+        expectValue('=-"abc"', NaN);
+        expectValue('=-"10"', -10);
+    });
+
+    test('sequences of multiple unary operators work as expected', () => {
+        expectValue('=--0.2', 0.2);
         expectValue('=--+-0.2', -0.2);
         expectValue('=--+-+-0.2', 0.2);
         expectValue('=-23', -23);

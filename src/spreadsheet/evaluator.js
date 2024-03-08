@@ -78,7 +78,7 @@ export default class Evaluator {
     _evaluateUnary(op, expression, environment) {
         const value = this._evaluateCell(expression, environment);
         switch (op) {
-            case '+': return value;
+            case '+': return +value;
             case '-': return -value;
             default: throw new NotImplementedError(`Unknown unary operator: '${op}'`);
         }
