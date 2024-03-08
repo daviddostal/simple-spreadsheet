@@ -45,6 +45,12 @@ test('Number literals are evaluated in formulas', () => {
     expectValue('=10000000.000000', 10000000);
 });
 
+test('Formulas must begin with "="', () => {
+    expectValue('=1', 1);
+    expectValue(' =1 ', " =1 ");
+    expectValue('=  1  ', 1);
+});
+
 test('String literals are evaluated in formulas', () => {
     expectValue('="hello, world"', 'hello, world');
     expectValue('="0.908098"', '0.908098');
@@ -273,7 +279,7 @@ describe('Cell references', () => {
         expect(spreadsheet.query('=A01')).toBe(1);
     });
 
-    test('Cell references are case sensitive', () => { //TODO: Should they though?
+    test('Cell references are case sensitive', () => {
         const spreadsheet = new Spreadsheet({ a1: 1, A2: 2 });
         expect(spreadsheet.query('=a1')).toBe(1);
         expect(spreadsheet.query('=A1')).toBe(null);
@@ -293,9 +299,13 @@ describe('Cell references', () => {
         }, builtinFunctions);
 
         expect(() => spreadsheet2.value('A1')).toThrow(CircularReferenceError);
-    });
 
-    //TODO: Cyclic references even in ranges etc
+        const spreadsheet3 = new Spreadsheet({
+            B2: '=SUM(A1:C3)'
+        }, builtinFunctions);
+
+        expect(() => spreadsheet3.value('B2')).toThrow(CircularReferenceError);
+    });
 });
 
 describe('Range references', () => {
@@ -550,5 +560,26 @@ describe('Cell edit', () => {
         spreadsheet.set('A2', "=A1 * 2");
 
         expect(changedPositions.length).toBe(0);
-    })
+    });
+
+    test('Cell edits do not trigger a cell change for cells after their reference has changed', () => {
+        let changedPositions = [];
+        const spreadsheet = new Spreadsheet(
+            { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2', A5: '=A2', A6: '=A3', A7: '=A4' },
+            {},
+            changed => changedPositions.push(changed)
+        );
+        // trigger evaluation of A1-A4
+        spreadsheet.value('A4');
+        
+        spreadsheet.set('A3', '=A1 * 2');
+        expect(changedPositions).toStrictEqual([['A3', 'A4']]);
+        
+        changedPositions = [];
+        // trigger evaluation of A1-A4
+        spreadsheet.value('A4');
+        spreadsheet.value('A2');
+        spreadsheet.set('A2', 10);
+        expect(changedPositions).toStrictEqual([['A2']]);
+    });
 });

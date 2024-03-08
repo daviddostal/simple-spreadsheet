@@ -2,12 +2,10 @@ export class Expression { }
 
 export class Value extends Expression {
     constructor(value) { super(); this.value = value; }
-    toString() { return this.value.constructor === String ? `"${this.value}"` : `${this.value}`; }
+    toString() { return typeof(this.value) === "string" ? `"${this.value}"` : `${this.value}`; }
 }
 
 export class Reference extends Expression {
-    // TODO: Maybe refactor to only hold single property?
-    // Normalize position?
     constructor(col, row) { super(); this.col = col; this.row = row; }
     toString() { return `${this.col}${this.row}`; }
 }

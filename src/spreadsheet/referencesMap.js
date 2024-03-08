@@ -18,7 +18,6 @@ export default class ReferencesMap {
     }
 
     removeReferencesFrom(position) {
-        // TODO: test this code works properly
         const targetNodes = this._referencesFrom.get(position);
         if (targetNodes) {
             for (let target of targetNodes)
