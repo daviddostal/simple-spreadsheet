@@ -19,26 +19,30 @@
       <p>Please enable JavaScript in your browser, then refresh this page.</p>
     </div>
   </noscript>
+
   <div id="table-root"></div>
 
   <script type="module">
-    const initialValues = {
-      A1: "", B1: "Unit price", C1: "Quantity", D1: "Discount %", E1: "Total",
-      A2: "Cucumber", B2: 21.99, C2: 3, D2: "0", E2: "=B2*C2*(1-D2/100)",
-      A3: "Paprika", B3: 26.20, C3: 5, D3: "0", E3: "=B3*C3*(1-D3/100)",
-      A4: "Avocado", B4: 44.00, C4: 1, D4: "25", E4: "=B4*C4*(1-D4/100)",
-      A6: "TOTAL", B6: "", C6: "", D6: "", E6: "=SUM(E2:E4)",
+    const initialCellData = {
+      A1: "", B1: "Unit price", C1: "Quantity", D1: "Total",
+      A2: "Cucumber", B2: 19.99, C2: 2, D2: "=B2*C2",
+      A3: "Paprika", B3: 29.9, C3: 5, D3: "=B3*C3",
+      A4: "Avocado", B4: 44.5, C4: 3, D4: "=B4*C4",
+      A5: "Eggplant", B5: 14.9, C5: 1, D5: "=B5*C5",
+      A6: "Pumpkin", B6: 27.95, C6: 1, D6: "=B6*C6",
+
+      A8: "TOTAL", D8: "=SUM(D2:D6",
     };
 
     const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
-      initialValues,
+      initialCellData,
       SimpleSpreadsheet.builtinFunctions,
       onCellsUpdated
     );
 
     const tableRoot = document.querySelector("#table-root");
     const spreadsheetTable = new SpreadsheetEditor(tableRoot, {
-      width: 10, height: 20,
+      width: 10, height: 30,
       getCellText: position => spreadsheet.text(position),
       getCellValue: position => {
         try {

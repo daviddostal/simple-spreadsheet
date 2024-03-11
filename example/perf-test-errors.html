@@ -13,47 +13,70 @@
 <body>
   <p>
     This example only prints some information to the developer console.
-    Open the browser's developer tools to show the results of cell evaluation.
+    Open the browser's developer tools to show the profiling results.
   </p>
 
   <script>
+    function generateTestData(cellCount, generateCell, initialCells) {
+      const cells = new Map(Object.entries(initialCells));
+      for (let i = cells.size; i < cellCount; i++) {
+        const { position, text } = generateCell(i);
+        cells.set(position, text);
+      }
+      return cells;
+    }
+
+    function profile(callback) {
+      const startTime = new Date();
+      const result = callback();
+      const endTime = new Date();
+      return { timeMs: endTime - startTime, result };
+    }
+
+    function profileSpreadsheetEvaluation(label, testData) {
+      const spreadsheet = new SimpleSpreadsheet.Spreadsheet(testData);
+      const cellCount = testData.size;
+      console.log(`[${label}]:`);
+      console.log(`Profiling evaluation of ${cellCount} cells...`);
+      const { timeMs, result } = profile(() => {
+        let valueSum = 0;
+        spreadsheet.cells.forEach((_, position) => {
+          try {
+            // Just to make sure the value is actually used and calculating it
+            // can under no circumstances be optimized away;
+            valueSum += spreadsheet.value(position);
+          } catch {
+            // we don't really care about the error here
+          }
+        });
+        return valueSum;
+      });
+      console.log(`Took ${timeMs}ms (${(1000 * cellCount / timeMs).toFixed(0)} cells/s) and returned ${result}.`);
+    }
+
     // Delay running scripts until after the initial HTML is shown.
     requestIdleCallback(() => {
-      let s = '';
-      const sampleCount = 100_000;
-      function generateCells(count) {
-        const cells = new Map();
-        cells.set('A0', '=)');
-        cells.set('A1', '=(');
-        for (let i = 2; i < count; i++) {
-          const position = `A${i}`;
-          const text = `=A${i - 1} - 1`;
-          cells.set(position, text);
-        }
-        return cells;
-      }
+      const SAMPLE_COUNT = 100_000;
 
-      const spreadsheet = new SimpleSpreadsheet.Spreadsheet(generateCells(sampleCount), SimpleSpreadsheet.builtinFunctions);
+      profileSpreadsheetEvaluation(
+        'Without errors',
+        generateTestData(
+          SAMPLE_COUNT,
+          i => ({ position: `A${i}`, text: `=A${i - 1} - A${i - 2}` }),
+          { A0: 0, A1: 1 },
+        ),
+      );
 
-      console.time('eval');
-      spreadsheet.cells.forEach((_, position) => {
-        try {
-          const value = spreadsheet.value(position);
-          s += value.toString()[0];
-        } catch {
+      console.log('');
 
-        }
-      });
-      console.timeEnd('eval');
-
-      const lastCell = `A${sampleCount - 1}`;
-      console.time('update');
-      spreadsheet.set('A0', 2);
-      const newValue = spreadsheet.value(lastCell);
-      console.timeEnd('update');
-
-      console.log(newValue);
-      console.log(s.length);
+      profileSpreadsheetEvaluation(
+        'With errors',
+        generateTestData(
+          SAMPLE_COUNT,
+          i => ({ position: `A${i}`, text: `=A${i - 1} - A${i - 2}` }),
+          { A0: '=)', A1: "=(" },
+        ),
+      );
     })
   </script>
 </body>
