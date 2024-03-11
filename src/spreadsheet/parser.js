@@ -188,7 +188,7 @@ export default class Parser {
         const position = Helpers.parsePosition(reference);
         if (position === null)
             throw new ParsingError(`Invalid format of cell reference: ${reference}`);
-        return new Reference(position.col, position.row);
+        return new Reference(Helpers.makePosition(position.col, position.row));
     }
 
     // arguments => (expression (',' expression)* )?
@@ -207,7 +207,7 @@ export default class Parser {
             case Value:
                 return [];
             case Reference:
-                return [Helpers.makePosition(expression.col, expression.row)];
+                return [expression.position];
             case UnaryOp:
                 return this._referencesIn(expression.value);
             case BinaryOp:
@@ -215,8 +215,7 @@ export default class Parser {
             case FunctionCall:
                 return expression.args.flatMap(arg => this._referencesIn(arg));
             case Range:
-                return Helpers.positionsInRange(expression.from, expression.to)
-                    .map(pos => Helpers.makePosition(pos.col, pos.row));
+                return Helpers.positionsInRange(expression.from.position, expression.to.position)
             default:
                 throw new NotImplementedError(`Unknown expression type: ${typeof expression}`);
         }

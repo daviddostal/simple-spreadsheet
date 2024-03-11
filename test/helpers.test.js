@@ -1,4 +1,4 @@
-import { colIndexToString, makePosition, parsePosition, positionsInRange, stringToColIndex } from '../src/spreadsheet/helpers';
+import { colIndexToString, positionsInRange, stringToColIndex } from '../src/spreadsheet/helpers';
 
 describe('Spreadsheet helpers', () => {
   test('colIndexToString', () => {
@@ -25,8 +25,7 @@ describe('Spreadsheet helpers', () => {
 
   test('positionsInRange', () => {
     expect(
-      positionsInRange(parsePosition('A1'), parsePosition('C3'))
-        .map(({ col, row }) => makePosition(col, row))
+      positionsInRange('A1', 'C3')
     ).toStrictEqual([
       'A1', 'B1', 'C1',
       'A2', 'B2', 'C2',
@@ -34,13 +33,11 @@ describe('Spreadsheet helpers', () => {
     ]);
 
     expect(
-      positionsInRange(parsePosition('Z1'), parsePosition('AB3'))
-        .map(({ col, row }) => makePosition(col, row))
-    )
-      .toStrictEqual([
-        'Z1', 'AA1', 'AB1',
-        'Z2', 'AA2', 'AB2',
-        'Z3', 'AA3', 'AB3',
-      ]);
+      positionsInRange('Z1', 'AB3')
+    ).toStrictEqual([
+      'Z1', 'AA1', 'AB1',
+      'Z2', 'AA2', 'AB2',
+      'Z3', 'AA3', 'AB3',
+    ]);
   })
 })

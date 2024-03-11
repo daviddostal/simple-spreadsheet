@@ -1,8 +1,11 @@
 export function positionsInRange(from, to) {
+    const { row: fromRow, col: fromCol } = parsePosition(from);
+    const { row: toRow, col: toCol } = parsePosition(to);
+    
     const positions = [];
-    for (let row of _range(from.row, to.row))
-        for (let col of _range(stringToColIndex(from.col), stringToColIndex(to.col)))
-            positions.push({ col: colIndexToString(col), row: row });
+    for (let row of _range(fromRow, toRow))
+        for (let col of _range(stringToColIndex(fromCol), stringToColIndex(toCol)))
+            positions.push(makePosition(colIndexToString(col), row))
     return positions;
 }
 

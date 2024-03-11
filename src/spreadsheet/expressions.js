@@ -6,8 +6,8 @@ export class Value extends Expression {
 }
 
 export class Reference extends Expression {
-    constructor(col, row) { super(); this.col = col; this.row = row; }
-    toString() { return `${this.col}${this.row}`; }
+    constructor(position) { super(); this.position = position; }
+    toString() { return this.position.toString() }
 }
 
 export class BinaryOp extends Expression {

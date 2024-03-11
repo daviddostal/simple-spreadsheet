@@ -44,7 +44,7 @@ export default class Evaluator {
             case Value:
                 return expression.value;
             case Reference:
-                return this._evaluateReference(Helpers.makePosition(expression.col, expression.row), environment);
+                return this._evaluateReference(expression.position, environment);
             case UnaryOp:
                 return this._evaluateUnary(expression.op, expression.value, environment);
             case BinaryOp:
@@ -123,8 +123,7 @@ export default class Evaluator {
     }
 
     _evaluateRange(from, to, environment) {
-        return Helpers.positionsInRange(from, to)
-            .map(pos => Helpers.makePosition(pos.col, pos.row))
+        return Helpers.positionsInRange(from.position, to.position)
             .map(pos => this._evaluateReference(pos, environment));
     }
 }
