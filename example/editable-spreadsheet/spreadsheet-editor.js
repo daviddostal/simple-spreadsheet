@@ -9,24 +9,10 @@ function indicesToPosition(colIndex, rowIndex) {
   return makePosition(colIndexToString(colIndex), rowIndexToString(rowIndex));
 }
 
-function cellAtOffsetHorizontal(position, offset, width) {
-  const [colIndex, rowIndex] = positionToIndices(position);
-  const nextColIndex = colIndex + offset;
-  if (nextColIndex >= width || nextColIndex < 0) return null;
-  return indicesToPosition(nextColIndex, rowIndex);
-}
-
 function cellAtOffset(position, horizontalOffset, verticalOffset) {
   const [colIndex, rowIndex] = positionToIndices(position);
   const [nextColIndex, nextRowIndex] = [colIndex + horizontalOffset, rowIndex + verticalOffset];
   return indicesToPosition(nextColIndex, nextRowIndex);
-}
-
-function cellAtOffsetVertical(position, offset, height) {
-  const [colIndex, rowIndex] = positionToIndices(position);
-  const nextRowIndex = rowIndex + offset;
-  if (nextRowIndex >= height || nextRowIndex < 0) return null;
-  return indicesToPosition(colIndex, nextRowIndex);
 }
 
 function onlyAllowedModifiers(event, allowedKeys = []) {
