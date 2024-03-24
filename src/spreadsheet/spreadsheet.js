@@ -1,25 +1,35 @@
 import { Environment } from './environment.js';
 
 export class Spreadsheet {
-    constructor(cells = new Map(), functions = new Map(), onCellsChanged = (() => { })) {
-        this.cells = cells instanceof Map ? cells : new Map(Object.entries(cells));
-        this.functions = functions instanceof Map ? functions : new Map(Object.entries(functions));
-        this._environment = new Environment(this.cells, this.functions, onCellsChanged);
+    constructor({
+        cells = new Map(),
+        functions = new Map(),
+        onCellsChanged = (() => { })
+    } = {}) {
+        this._environment = new Environment({
+            cells: cells instanceof Map ? cells : new Map(Object.entries(cells)),
+            functions: functions instanceof Map ? functions : new Map(Object.entries(functions)),
+            onCellsChanged
+        });
     }
 
-    text(position) {
+    getText(position) {
         return this._environment.getText(position);
     }
 
-    set(position, text) {
+    setText(position, text) {
         this._environment.setText(position, text);
     }
 
-    value(position) {
+    getValue(position) {
         return this._environment.getValue(position);
     }
 
-    query(expression) {
+    evaluateQuery(expression) {
         return this._environment.evaluateQuery(expression);
+    }
+
+    cells() {
+        return this._environment.cells();
     }
 }

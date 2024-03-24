@@ -5,10 +5,10 @@ import { UnknownFunctionError, RuntimeError, ParsingError } from './errors.js';
 import ReferencesMap from './referencesMap.js';
 
 export class Environment {
-    constructor(cells, functions, cellsChangedListener) {
-        this.cells = cells; // { position => formula text }
-        this.functions = functions; // { name => function or lazy function }
-        this.onCellsChanged = cellsChangedListener;
+    constructor({ cells = new Map(), functions = new Map(), onCellsChanged = () => {} }) {
+        this._cells = cells; // { position => formula text }
+        this._functions = functions; // { name => function or lazy function }
+        this._onCellsChanged = onCellsChanged;
         this._parser = new Parser(new Tokenizer());
         this._evaluator = new Evaluator();
 
@@ -19,13 +19,13 @@ export class Environment {
     }
 
     getText(position) {
-        return this.cells.has(position) ? this.cells.get(position).toString() : '';
+        return this._cells.has(position) ? this._cells.get(position).toString() : '';
     }
 
     setText(position, text) {
         if (this.getText(position) === text) return;
 
-        this.cells.set(position, text);
+        this._cells.set(position, text);
 
         // affectedCells also contains `position`
         const affectedCells = this._referencesMap.cellsDependingOn(position);
@@ -37,7 +37,7 @@ export class Environment {
         this._expressionsCache.delete(position);
         this._referencesMap.removeReferencesFrom(position);
 
-        this.onCellsChanged([...affectedCells]);
+        this._onCellsChanged([...affectedCells]);
     }
 
     getExpression(position) {
@@ -47,7 +47,7 @@ export class Environment {
         if (this._errorsCache.has(position))
             throw this._errorsCache.get(position);
 
-        const text = this.cells.has(position) ? this.cells.get(position) : null;
+        const text = this._cells.has(position) ? this._cells.get(position) : null;
         try {
             const { parsed, references } = this._parser.parse(text);
             this._expressionsCache.set(position, parsed);
@@ -84,8 +84,12 @@ export class Environment {
     }
 
     getFunction(name) {
-        if (!this.functions.has(name))
+        if (!this._functions.has(name))
             throw new UnknownFunctionError(name);
-        return this.functions.get(name);
+        return this._functions.get(name);
+    }
+
+    cells() {
+        return this._cells.entries();
     }
 }

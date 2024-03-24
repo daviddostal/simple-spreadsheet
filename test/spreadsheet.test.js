@@ -3,15 +3,15 @@ import { ParsingError, CircularReferenceError, FunctionEvaluationError, Referenc
 import { builtinFunctions } from '../src/functions';
 
 function expectValue(formula, expected) {
-    const spreadsheet = new Spreadsheet({ A1: formula }, builtinFunctions);
-    const value = spreadsheet.value('A1');
+    const spreadsheet = new Spreadsheet({ cells: { A1: formula }, functions: builtinFunctions });
+    const value = spreadsheet.getValue('A1');
     expect(value).toBe(expected);
-    expect(spreadsheet.query(formula)).toBe(expected);
+    expect(spreadsheet.evaluateQuery(formula)).toBe(expected);
 }
 
 function expectException(formula, exceptionType) {
     expect(exceptionType).toBeDefined();
-    expect(() => new Spreadsheet({ A1: formula }, builtinFunctions).value('A1'))
+    expect(() => new Spreadsheet({ cells: { A1: formula }, functions: builtinFunctions }).getValue('A1'))
         .toThrow(exceptionType);
 }
 
@@ -26,7 +26,7 @@ test('Non-formula cells are text by default', () => {
 
 test('Empty cells contain null values', () => {
     const spreadsheet = new Spreadsheet();
-    expect(spreadsheet.value('A1')).toBe(null);
+    expect(spreadsheet.getValue('A1')).toBe(null);
 });
 
 test('Numeric cells are parsed as numbers', () => {
@@ -75,8 +75,11 @@ test('Range references are allowed only as function arguments', () => {
     expectException('=A2:A4', RangeReferenceNotAllowedError);
     expectException('=3 + A2:A4', RangeReferenceNotAllowedError);
     expectException('=-A2:A4', RangeReferenceNotAllowedError);
-    const spreadsheet = new Spreadsheet({ A1: '1', A2: '2', A3: '=SUM(A1:A2)' }, builtinFunctions);
-    expect(spreadsheet.value('A3')).toBe(3);
+    const spreadsheet = new Spreadsheet({
+        cells: { A1: '1', A2: '2', A3: '=SUM(A1:A2)' },
+        functions: builtinFunctions
+    });
+    expect(spreadsheet.getValue('A3')).toBe(3);
 });
 
 test('Non-string values yield the given value without parsing', () => {
@@ -264,73 +267,79 @@ describe('Parentheses', () => {
 describe('Cell references', () => {
     test('give value at referenced cell', () => {
         const spreadsheet = new Spreadsheet({
-            A1: 34, A2: '42', A3: '=23', Z3423: '=A1 + A3', B43: '=23 + 5.2 + Z3423 + Z3423 + A1'
+            cells: { A1: 34, A2: '42', A3: '=23', Z3423: '=A1 + A3', B43: '=23 + 5.2 + Z3423 + Z3423 + A1' }
         });
-        expect(spreadsheet.value('A1')).toBe(34);
-        expect(spreadsheet.value('A2')).toBe(42);
-        expect(spreadsheet.value('A3')).toBe(23);
-        expect(spreadsheet.value('Z3423')).toBe(57);
-        expect(spreadsheet.value('B43')).toBe(176.2);
+        expect(spreadsheet.getValue('A1')).toBe(34);
+        expect(spreadsheet.getValue('A2')).toBe(42);
+        expect(spreadsheet.getValue('A3')).toBe(23);
+        expect(spreadsheet.getValue('Z3423')).toBe(57);
+        expect(spreadsheet.getValue('B43')).toBe(176.2);
     });
 
     test('rows are parsed as numbers', () => {
-        const spreadsheet = new Spreadsheet({ A1: 1 });
-        expect(spreadsheet.query('=A1')).toBe(1);
-        expect(spreadsheet.query('=A01')).toBe(1);
+        const spreadsheet = new Spreadsheet({ cells: { A1: 1 } });
+        expect(spreadsheet.evaluateQuery('=A1')).toBe(1);
+        expect(spreadsheet.evaluateQuery('=A01')).toBe(1);
     });
 
     test('Cell references are case sensitive', () => {
-        const spreadsheet = new Spreadsheet({ a1: 1, A2: 2 });
-        expect(spreadsheet.query('=a1')).toBe(1);
-        expect(spreadsheet.query('=A1')).toBe(null);
-        expect(spreadsheet.query('=A2')).toBe(2);
-        expect(spreadsheet.query('=a2')).toBe(null);
+        const spreadsheet = new Spreadsheet({ cells: { a1: 1, A2: 2 } });
+        expect(spreadsheet.evaluateQuery('=a1')).toBe(1);
+        expect(spreadsheet.evaluateQuery('=A1')).toBe(null);
+        expect(spreadsheet.evaluateQuery('=A2')).toBe(2);
+        expect(spreadsheet.evaluateQuery('=a2')).toBe(null);
     });
 
     test('Columns can go further than Z', () => {
-        const spreadsheet = new Spreadsheet({ Y10: 1, Z10: 2, AA10: 3, AB10: 4, '[': 99 }, builtinFunctions);
-        expect(spreadsheet.query('=AA10')).toBe(3);
-        expect(spreadsheet.query('=SUM(Y10:AB10)')).toBe(10);
-        expect(() => spreadsheet.query('=AŽ10')).toThrow(ParsingError);
+        const spreadsheet = new Spreadsheet({
+            cells: { Y10: 1, Z10: 2, AA10: 3, AB10: 4, '[': 99 },
+            functions: builtinFunctions
+        });
+        expect(spreadsheet.evaluateQuery('=AA10')).toBe(3);
+        expect(spreadsheet.evaluateQuery('=SUM(Y10:AB10)')).toBe(10);
+        expect(() => spreadsheet.evaluateQuery('=AŽ10')).toThrow(ParsingError);
     })
 
     test('Cyclic references cause runtime exception', () => {
         const spreadsheet = new Spreadsheet({
-            A1: '=A2', A2: '=A1'
-        }, builtinFunctions);
+            cells: { A1: '=A2', A2: '=A1' }, functions: builtinFunctions
+        });
 
-        expect(() => spreadsheet.value('A1')).toThrow(CircularReferenceError);
+        expect(() => spreadsheet.getValue('A1')).toThrow(CircularReferenceError);
 
         const spreadsheet2 = new Spreadsheet({
-            A1: '=2 * A1'
-        }, builtinFunctions);
+            cells: { A1: '=2 * A1' }, functions: builtinFunctions
+        });
 
-        expect(() => spreadsheet2.value('A1')).toThrow(CircularReferenceError);
+        expect(() => spreadsheet2.getValue('A1')).toThrow(CircularReferenceError);
 
         const spreadsheet3 = new Spreadsheet({
-            B2: '=SUM(A1:C3)'
-        }, builtinFunctions);
+            cells: { B2: '=SUM(A1:C3)' }, functions: builtinFunctions
+        });
 
-        expect(() => spreadsheet3.value('B2')).toThrow(CircularReferenceError);
+        expect(() => spreadsheet3.getValue('B2')).toThrow(CircularReferenceError);
     });
 });
 
 describe('Range references', () => {
     test('Range references work for any start and end position', () => {
         const spreadsheet = new Spreadsheet({
-            A1: 1, B1: 2, C1: 3, D1: 4,
-            A2: 5, B2: 6, C2: 7, D2: 8,
-            A3: 9, B3: 10, C3: 11, D3: 12,
-            A4: 13, B4: 14, C4: 15, D4: 16,
-            A5: 17, B5: 18, C5: 19, D5: 20,
-        }, builtinFunctions);
-        expect(spreadsheet.query('=SUM(A1:C3)')).toBe(54)
-        expect(spreadsheet.query('=SUM(C3:A1)')).toBe(54);
-        expect(spreadsheet.query('=SUM(A1:A1)')).toBe(1);
-        expect(spreadsheet.query('=SUM(A1:D1)')).toBe(10);
-        expect(spreadsheet.query('=SUM(D1:A1)')).toBe(10);
-        expect(spreadsheet.query('=SUM(A1:A5)')).toBe(45);
-        expect(spreadsheet.query('=SUM(A5:A1)')).toBe(45);
+            cells: {
+                A1: 1, B1: 2, C1: 3, D1: 4,
+                A2: 5, B2: 6, C2: 7, D2: 8,
+                A3: 9, B3: 10, C3: 11, D3: 12,
+                A4: 13, B4: 14, C4: 15, D4: 16,
+                A5: 17, B5: 18, C5: 19, D5: 20,
+            },
+            functions: builtinFunctions
+        });
+        expect(spreadsheet.evaluateQuery('=SUM(A1:C3)')).toBe(54)
+        expect(spreadsheet.evaluateQuery('=SUM(C3:A1)')).toBe(54);
+        expect(spreadsheet.evaluateQuery('=SUM(A1:A1)')).toBe(1);
+        expect(spreadsheet.evaluateQuery('=SUM(A1:D1)')).toBe(10);
+        expect(spreadsheet.evaluateQuery('=SUM(D1:A1)')).toBe(10);
+        expect(spreadsheet.evaluateQuery('=SUM(A1:A5)')).toBe(45);
+        expect(spreadsheet.evaluateQuery('=SUM(A5:A1)')).toBe(45);
     })
 });
 
@@ -343,11 +352,11 @@ describe('Spreadsheet functions', () => {
             A4: '=ADD1("abc")',
         };
         const functions = { ADD1: x => x + 1 };
-        const spreadsheet = new Spreadsheet(cells, functions);
-        expect(spreadsheet.value('A1')).toBe(5);
-        expect(spreadsheet.value('A2')).toBe(4.95);
-        expect(spreadsheet.value('A3')).toBe(5.95);
-        expect(spreadsheet.value('A4')).toBe('abc1');
+        const spreadsheet = new Spreadsheet({ cells, functions });
+        expect(spreadsheet.getValue('A1')).toBe(5);
+        expect(spreadsheet.getValue('A2')).toBe(4.95);
+        expect(spreadsheet.getValue('A3')).toBe(5.95);
+        expect(spreadsheet.getValue('A4')).toBe('abc1');
     });
 
     test('Spreadsheet functions can have multiple arguments and be any JS function', () => {
@@ -359,48 +368,48 @@ describe('Spreadsheet functions', () => {
             SUB_THEN_ADD: function (a, b, c) { return a - b + c },
             MULTIPLY_ALL: (...values) => values.reduce((a, b) => a * b, 1),
         };
-        const spreadsheet = new Spreadsheet({}, functions);
-        expect(spreadsheet.query('=GET_1()')).toBe(1);
-        expect(spreadsheet.query('=SUB_3(100)')).toBe(97);
-        expect(spreadsheet.query('=POW(2,5)')).toBe(32);
-        expect(spreadsheet.query('=POW2(2, 5)')).toBe(32);
-        expect(spreadsheet.query('=SUB_THEN_ADD(1, 2, 3)')).toBe(2);
-        expect(spreadsheet.query('=MULTIPLY_ALL(2, 3, 4)')).toBe(24);
-        expect(spreadsheet.query('=MULTIPLY_ALL()')).toBe(1);
+        const spreadsheet = new Spreadsheet({ functions });
+        expect(spreadsheet.evaluateQuery('=GET_1()')).toBe(1);
+        expect(spreadsheet.evaluateQuery('=SUB_3(100)')).toBe(97);
+        expect(spreadsheet.evaluateQuery('=POW(2,5)')).toBe(32);
+        expect(spreadsheet.evaluateQuery('=POW2(2, 5)')).toBe(32);
+        expect(spreadsheet.evaluateQuery('=SUB_THEN_ADD(1, 2, 3)')).toBe(2);
+        expect(spreadsheet.evaluateQuery('=MULTIPLY_ALL(2, 3, 4)')).toBe(24);
+        expect(spreadsheet.evaluateQuery('=MULTIPLY_ALL()')).toBe(1);
     });
 
     test('Ranges are passed to functions as arrays', () => {
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: 2, B1: 3, B2: 4 },
-            {
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: 2, B1: 3, B2: 4 },
+            functions: {
                 TEST_RANGE: (numbers) => {
                     if (!(numbers instanceof Array)) throw new Error('Not an array');
                     return numbers.reduce((a, b) => a + b, 0);
                 }
-            });
-        expect(spreadsheet.query('=TEST_RANGE(A1:B2)')).toBe(10);
+            }
+        });
+        expect(spreadsheet.evaluateQuery('=TEST_RANGE(A1:B2)')).toBe(10);
     });
 
     test('Functions can be nested', () => {
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: 2, B1: 3, B2: 4 },
-            { ADD: (a, b) => a + b });
-        expect(spreadsheet.query('=ADD(A1, ADD(ADD(2, A2), ADD(B1, B2)))')).toBe(12);
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: 2, B1: 3, B2: 4 },
+            functions: { ADD: (a, b) => a + b }
+        });
+        expect(spreadsheet.evaluateQuery('=ADD(A1, ADD(ADD(2, A2), ADD(B1, B2)))')).toBe(12);
     });
 
     test('Functions can return arbitrary JS values, even functions', () => {
         const testFunction1 = function (name) { return `Hello, ${name}` };
         const testFunction2 = function () { return testFunction1 };
-        const spreadsheet = new Spreadsheet({},
-            { TEST: testFunction2 });
-        expect(spreadsheet.query('=TEST()')).toBe(testFunction1);
+        const spreadsheet = new Spreadsheet({ functions: { TEST: testFunction2 } });
+        expect(spreadsheet.evaluateQuery('=TEST()')).toBe(testFunction1);
     });
 
     test('Functions can accept any JS values as arguments', () => {
         const fn = () => 2;
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: fn, B1: 3, B2: 4 }, {});
-        expect(spreadsheet.query('=A2')).toBe(fn);
+        const spreadsheet = new Spreadsheet({ cells: { A1: 1, A2: fn, B1: 3, B2: 4 } });
+        expect(spreadsheet.evaluateQuery('=A2')).toBe(fn);
     });
 
     test('Cannot call result of a function', () => {
@@ -408,25 +417,25 @@ describe('Spreadsheet functions', () => {
     });
 
     test('Exceptions in functions cause FunctionEvaluationErrors when evaluated', () => {
-        const spreadsheet = new Spreadsheet({},
-            { THROW: () => { throw new Error('Testing...'); } });
-        expect(() => spreadsheet.query('=THROW()')).toThrow(FunctionEvaluationError);
+        const spreadsheet = new Spreadsheet({
+            functions: { THROW: () => { throw new Error('Testing...'); } }
+        });
+        expect(() => spreadsheet.evaluateQuery('=THROW()')).toThrow(FunctionEvaluationError);
     });
 
     test('Function throws when argument throws', () => {
-        const spreadsheet = new Spreadsheet({}, {
-            ...builtinFunctions,
-            THROW: () => { throw 'testing' }
+        const spreadsheet = new Spreadsheet({
+            functions: { ...builtinFunctions, THROW: () => { throw 'testing' } }
         });
-        expect(() => spreadsheet.query('=SUM(1, THROW())')).toThrowError('testing');
+        expect(() => spreadsheet.evaluateQuery('=SUM(1, THROW())')).toThrowError('testing');
     });
 
     test('When a function references a function with errors, it throws a ReferencedCellError', () => {
-        const spreadsheet = new Spreadsheet(
-            { A1: '=(', A2: '=A2:A4', A3: '=A1', A4: '=A2' }
-        );
-        expect(() => spreadsheet.value('A3')).toThrow(ReferencedCellError);
-        expect(() => spreadsheet.value('A4')).toThrow(ReferencedCellError);
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: '=(', A2: '=A2:A4', A3: '=A1', A4: '=A2' }
+        });
+        expect(() => spreadsheet.getValue('A3')).toThrow(ReferencedCellError);
+        expect(() => spreadsheet.getValue('A4')).toThrow(ReferencedCellError);
     });
 
     test('Function arguments can be expressions, which are evaluated', () => {
@@ -449,144 +458,141 @@ describe('Spreadsheet functions', () => {
 
 describe('Cell edit', () => {
     test('cells can be edited', () => {
-        const spreadsheet = new Spreadsheet({ A1: '=1' });
-        expect(spreadsheet.value('A1')).toBe(1);
-        spreadsheet.set('A1', '=5');
-        expect(spreadsheet.value('A1')).toBe(5);
+        const spreadsheet = new Spreadsheet({ cells: { A1: '=1' } });
+        expect(spreadsheet.getValue('A1')).toBe(1);
+        spreadsheet.setText('A1', '=5');
+        expect(spreadsheet.getValue('A1')).toBe(5);
     });
 
     test('propagates to referencing cells', () => {
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' }
-        );
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' }
+        });
 
-        expect(spreadsheet.value('A1')).toBe(1);
-        expect(spreadsheet.value('A2')).toBe(2);
-        expect(spreadsheet.value('A3')).toBe(4);
-        expect(spreadsheet.value('A4')).toBe(8);
+        expect(spreadsheet.getValue('A1')).toBe(1);
+        expect(spreadsheet.getValue('A2')).toBe(2);
+        expect(spreadsheet.getValue('A3')).toBe(4);
+        expect(spreadsheet.getValue('A4')).toBe(8);
 
-        spreadsheet.set('A1', '=3+2');
-        expect(spreadsheet.value('A1')).toBe(5);
-        expect(spreadsheet.value('A2')).toBe(10);
-        expect(spreadsheet.value('A3')).toBe(20);
-        expect(spreadsheet.value('A4')).toBe(40);
+        spreadsheet.setText('A1', '=3+2');
+        expect(spreadsheet.getValue('A1')).toBe(5);
+        expect(spreadsheet.getValue('A2')).toBe(10);
+        expect(spreadsheet.getValue('A3')).toBe(20);
+        expect(spreadsheet.getValue('A4')).toBe(40);
     });
 
     test('works properly even without evaluating other cells first', () => {
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' }
-        );
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' }
+        });
 
         // evaluates A3, which depends on A2, but on A1 only indirectly
-        spreadsheet.value('A3');
+        spreadsheet.getValue('A3');
 
         // changes A1, A3 should be invalidated even though A2 was never queried
-        spreadsheet.set('A1', '=3+2');
-        expect(spreadsheet.value('A1')).toBe(5);
-        expect(spreadsheet.value('A2')).toBe(10);
-        expect(spreadsheet.value('A3')).toBe(20);
-        expect(spreadsheet.value('A4')).toBe(40);
+        spreadsheet.setText('A1', '=3+2');
+        expect(spreadsheet.getValue('A1')).toBe(5);
+        expect(spreadsheet.getValue('A2')).toBe(10);
+        expect(spreadsheet.getValue('A3')).toBe(20);
+        expect(spreadsheet.getValue('A4')).toBe(40);
     });
 
     test('propagates with ranges', () => {
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: 2, A3: 4, A4: '=SUM(A1:A3)' }
-            , builtinFunctions
-        );
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: 2, A3: 4, A4: '=SUM(A1:A3)' },
+            functions: builtinFunctions
+        });
 
-        expect(spreadsheet.value('A1')).toBe(1);
-        expect(spreadsheet.value('A2')).toBe(2);
-        expect(spreadsheet.value('A3')).toBe(4);
-        expect(spreadsheet.value('A4')).toBe(7);
+        expect(spreadsheet.getValue('A1')).toBe(1);
+        expect(spreadsheet.getValue('A2')).toBe(2);
+        expect(spreadsheet.getValue('A3')).toBe(4);
+        expect(spreadsheet.getValue('A4')).toBe(7);
 
-        spreadsheet.set('A1', 5);
-        expect(spreadsheet.value('A1')).toBe(5);
-        expect(spreadsheet.value('A2')).toBe(2);
-        expect(spreadsheet.value('A3')).toBe(4);
-        expect(spreadsheet.value('A4')).toBe(11);
+        spreadsheet.setText('A1', 5);
+        expect(spreadsheet.getValue('A1')).toBe(5);
+        expect(spreadsheet.getValue('A2')).toBe(2);
+        expect(spreadsheet.getValue('A3')).toBe(4);
+        expect(spreadsheet.getValue('A4')).toBe(11);
     });
 
     test('propagates with ranges even if not all evaluated', () => {
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: '=SUM(A1:A1)', A3: '=SUM(A2:A2)', A4: '=SUM(A3:A3)' },
-            builtinFunctions
-        );
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: '=SUM(A1:A1)', A3: '=SUM(A2:A2)', A4: '=SUM(A3:A3)' },
+            functions: builtinFunctions
+        });
 
-        spreadsheet.value('A3');
+        spreadsheet.getValue('A3');
 
-        spreadsheet.set('A1', 5);
-        expect(spreadsheet.value('A1')).toBe(5);
-        expect(spreadsheet.value('A2')).toBe(5);
-        expect(spreadsheet.value('A3')).toBe(5);
-        expect(spreadsheet.value('A4')).toBe(5);
+        spreadsheet.setText('A1', 5);
+        expect(spreadsheet.getValue('A1')).toBe(5);
+        expect(spreadsheet.getValue('A2')).toBe(5);
+        expect(spreadsheet.getValue('A3')).toBe(5);
+        expect(spreadsheet.getValue('A4')).toBe(5);
     });
 
     test('Cell changes are reported', () => {
         const changedPositions = [];
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: '=A1' }, {}, changed => changedPositions.push(changed)
-        );
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: '=A1' }, onCellsChanged: changed => changedPositions.push(changed)
+        });
 
-        expect(spreadsheet.value('A1')).toBe(1);
-        expect(spreadsheet.value('A2')).toBe(1);
+        expect(spreadsheet.getValue('A1')).toBe(1);
+        expect(spreadsheet.getValue('A2')).toBe(1);
 
-        spreadsheet.set('A1', 2);
+        spreadsheet.setText('A1', 2);
         expect(changedPositions).toStrictEqual([['A1', 'A2']]);
 
-        expect(spreadsheet.value('A1')).toBe(2);
-        expect(spreadsheet.value('A2')).toBe(2);
+        expect(spreadsheet.getValue('A1')).toBe(2);
+        expect(spreadsheet.getValue('A2')).toBe(2);
     });
 
     test('Cell changes are reported only for already evaluated cells', () => {
         const changedPositions = [];
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' },
-            {},
-            changed => changedPositions.push(changed)
-        );
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' },
+            onCellsChanged: changed => changedPositions.push(changed)
+        });
 
         // evaluates A3, A2 and A1
-        spreadsheet.value('A3');
+        spreadsheet.getValue('A3');
 
         // changes A1, A2, A3 but not A4 since A4 was never evaluated
-        spreadsheet.set('A1', '=3+2');
+        spreadsheet.setText('A1', '=3+2');
         expect(changedPositions).toStrictEqual([['A1', 'A2', 'A3']]);
     });
 
     test('Cell change is not triggered if original cell text remains unchanged', () => {
         const changedPositions = [];
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' },
-            {},
-            changed => changedPositions.push(changed)
-        );
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2' },
+            onCellsChanged: changed => changedPositions.push(changed)
+        });
 
         // evaluates A3, A2 and A1
-        spreadsheet.value('A3');
-        spreadsheet.set('A1', '1');
-        spreadsheet.set('A2', '=A1 * 2');
+        spreadsheet.getValue('A3');
+        spreadsheet.setText('A1', '1');
+        spreadsheet.setText('A2', '=A1 * 2');
 
         expect(changedPositions.length).toBe(0);
     });
 
     test('Cell edits do not trigger a cell change for cells after their reference has changed', () => {
         let changedPositions = [];
-        const spreadsheet = new Spreadsheet(
-            { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2', A5: '=A2', A6: '=A3', A7: '=A4' },
-            {},
-            changed => changedPositions.push(changed)
-        );
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: 1, A2: '=A1 * 2', A3: '=A2 * 2', A4: '= A3 * 2', A5: '=A2', A6: '=A3', A7: '=A4' },
+            onCellsChanged: changed => changedPositions.push(changed)
+        });
         // trigger evaluation of A1-A4
-        spreadsheet.value('A4');
-        
-        spreadsheet.set('A3', '=A1 * 2');
+        spreadsheet.getValue('A4');
+
+        spreadsheet.setText('A3', '=A1 * 2');
         expect(changedPositions).toStrictEqual([['A3', 'A4']]);
-        
+
         changedPositions = [];
         // trigger evaluation of A1-A4
-        spreadsheet.value('A4');
-        spreadsheet.value('A2');
-        spreadsheet.set('A2', 10);
+        spreadsheet.getValue('A4');
+        spreadsheet.getValue('A2');
+        spreadsheet.setText('A2', 10);
         expect(changedPositions).toStrictEqual([['A2']]);
     });
 });
