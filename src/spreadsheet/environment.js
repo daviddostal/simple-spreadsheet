@@ -37,7 +37,7 @@ export class Environment {
         this._expressionsCache.delete(position);
         this._referencesMap.removeReferencesFrom(position);
 
-        this._onCellsChanged([...affectedCells]);
+        this._onCellsChanged([...affectedCells], { originatingCell: position });
     }
 
     getExpression(position) {

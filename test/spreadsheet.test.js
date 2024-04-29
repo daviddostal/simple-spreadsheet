@@ -596,3 +596,128 @@ describe('Cell edit', () => {
         expect(changedPositions).toStrictEqual([['A2']]);
     });
 });
+
+describe('Spreadsheet event listeners', () => {
+    test('unsupported event types throw an error', () => {
+        const spreadsheet = new Spreadsheet();
+        expect(() => spreadsheet.addListener('aiosudfaslkd', () => { })).toThrow();
+        expect(() => spreadsheet.removeListener('aiosudfaslkd', () => { })).toThrow();
+    });
+
+    test('cellsChanged event listener is called on cell change', () => {
+
+    });
+
+    test('event listeners are called in the order they were added', () => {
+        const spreadsheet = new Spreadsheet({ cells: { A1: 1 } });
+        const eventHistory = [];
+        const listener1 = () => eventHistory.push(1);
+        const listener2 = () => eventHistory.push(2);
+        const listener3 = () => eventHistory.push(3);
+
+        spreadsheet.addListener('cellsChanged', listener1);
+        spreadsheet.addListener('cellsChanged', listener2);
+        spreadsheet.addListener('cellsChanged', listener3);
+
+        expect(eventHistory).toEqual([]);
+
+        // Make sure the value is used (else cellsChanged will not be called)
+        spreadsheet.getValue('A1');
+        spreadsheet.setText('A1', '2');
+        expect(eventHistory).toEqual([1, 2, 3]);
+
+        spreadsheet.setText('A1', '3');
+        expect(eventHistory).toEqual([1, 2, 3, 1, 2, 3]);
+    });
+
+    test('the same event listener can be added multiple times', () => {
+        const spreadsheet = new Spreadsheet({ cells: { A1: 1 } });
+        const eventHistory = [];
+        let value1 = 0;
+        const listener1 = () => eventHistory.push(value1++);
+        let value2 = 100;
+        const listener2 = () => eventHistory.push(value2++);
+
+        spreadsheet.addListener('cellsChanged', listener1);
+        spreadsheet.addListener('cellsChanged', listener2);
+        spreadsheet.addListener('cellsChanged', listener1);
+        spreadsheet.addListener('cellsChanged', listener1);
+
+        // Make sure the value is used (else cellsChanged will not be called)
+        spreadsheet.getValue('A1');
+
+        spreadsheet.setText('A1', '2');
+        expect(eventHistory).toEqual([0, 100, 1, 2]);
+    });
+
+    test('event listener is not called after being unregistered', () => {
+        const spreadsheet = new Spreadsheet({ cells: { A1: 1 } });
+        const eventHistory = [];
+        const eventListener = () => eventHistory.push('called');
+        spreadsheet.addListener('cellsChanged', eventListener);
+
+        // Make sure the value is used (else cellsChanged will not be called)
+        spreadsheet.getValue('A1');
+
+        spreadsheet.removeListener('cellsChanged', eventListener);
+        spreadsheet.setText('A1', '2');
+        expect(eventHistory.length).toBe(0);
+    });
+
+    test('removeEventListener removes only listener with same type and callback', () => {
+        const spreadsheet = new Spreadsheet({ cells: { A1: 1 } });
+        const eventHistory = [];
+        const eventListener = () => eventHistory.push('changed');
+        spreadsheet.addListener('cellsChanged', eventListener);
+
+        spreadsheet.removeListener('cellsChanged', () => {});
+
+        // Make sure the value is used (else cellsChanged will not be called)
+        spreadsheet.getValue('A1');
+
+        spreadsheet.setText('A1', '2');
+        expect(eventHistory).toEqual(['changed']);
+        spreadsheet.setText('A1', '3');
+        expect(eventHistory).toEqual(['changed', 'changed']);
+        
+        spreadsheet.removeListener('cellsChanged', eventListener);
+        spreadsheet.setText('A1', '4');
+        expect(eventHistory).toEqual(['changed', 'changed']);
+    });
+
+    test('when an event listener is registered mulitple times, removeEventListener removes only the last one', () => {
+        const spreadsheet = new Spreadsheet({ cells: { A1: 1 } });
+        const eventHistory = [];
+        let value1 = 0;
+        const listener1 = () => eventHistory.push(value1++);
+        let value2 = 100;
+        const listener2 = () => eventHistory.push(value2++);
+
+        spreadsheet.addListener('cellsChanged', listener1);
+        spreadsheet.addListener('cellsChanged', listener2);
+        spreadsheet.addListener('cellsChanged', listener1);
+        spreadsheet.addListener('cellsChanged', listener1);
+
+        // Make sure the value is used (else cellsChanged will not be called)
+        spreadsheet.getValue('A1');
+
+        spreadsheet.removeListener('cellsChanged', listener1);
+        spreadsheet.setText('A1', '2');
+        expect(eventHistory).toEqual([0, 100, 1]);
+
+        spreadsheet.removeListener('cellsChanged', listener1);
+        spreadsheet.setText('A1', '3');
+        expect(eventHistory).toEqual([0, 100, 1, 2, 101]);
+    });
+
+    test('removing an unregistered event listener does not throw', () => {
+        const spreadsheet = new Spreadsheet();
+        const listener = () => { };
+        spreadsheet.removeListener('cellsChanged', listener);
+
+        spreadsheet.addListener('cellsChanged', listener);
+        spreadsheet.removeListener('cellsChanged', () => { });
+        spreadsheet.removeListener('cellsChanged', listener);
+        spreadsheet.removeListener('cellsChanged', listener);
+    });
+})
