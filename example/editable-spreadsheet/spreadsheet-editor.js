@@ -12,7 +12,7 @@ function indicesToPosition(colIndex, rowIndex) {
 function cellAtOffset(position, horizontalOffset, verticalOffset) {
   const [colIndex, rowIndex] = positionToIndices(position);
   const [nextColIndex, nextRowIndex] = [colIndex + horizontalOffset, rowIndex + verticalOffset];
-  return indicesToPosition(nextColIndex, nextRowIndex);
+  return indicesToPosition(Math.max(nextColIndex, 0), Math.max(nextRowIndex, 0));
 }
 
 function onlyAllowedModifiers(event, allowedKeys = []) {
