@@ -31,7 +31,7 @@ export class Tokenizer {
             { pattern: /^$/, type: TokenType.EOF },
         ];
 
-        this._operators = {
+        this._simpleTokens = {
             ' ': TokenType.WHITESPACE,
             '\t': TokenType.WHITESPACE,
             '\r': TokenType.WHITESPACE,
@@ -53,17 +53,18 @@ export class Tokenizer {
         let remaining = text;
         while (remaining.length > 0) {
             const token = this._nextToken(remaining);
-            tokens.push(token);
+            if(token.type !== TokenType.WHITESPACE)
+                tokens.push(token);
             remaining = remaining.slice(token.value.length);
         }
         tokens.push({ type: TokenType.EOF, value: '' });
-        return new TokenStream(tokens.filter(token => token.type !== TokenType.WHITESPACE));
+        return new TokenStream(tokens);
     }
 
     _nextToken(text) {
         const firstChar = text[0];
-        const operator = this._operators[firstChar];
-        if (operator !== undefined) return { type: operator, value: firstChar };
+        const simpleToken = this._simpleTokens[firstChar];
+        if (simpleToken !== undefined) return { type: simpleToken, value: firstChar };
 
         for (let rule of this._rules) {
             const match = text.match(rule.pattern);
