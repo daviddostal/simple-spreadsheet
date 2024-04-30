@@ -34,19 +34,18 @@
       A8: "TOTAL", D8: "=SUM(D2:D6",
     };
 
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
-      initialCellData,
-      SimpleSpreadsheet.builtinFunctions,
-      onCellsUpdated
-    );
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+      cells: initialCellData,
+      functions: SimpleSpreadsheet.builtinFunctions
+    });
 
     const tableRoot = document.querySelector("#table-root");
-    const spreadsheetTable = new SpreadsheetEditor(tableRoot, {
+    const spreadsheetEditor = new SpreadsheetEditor(tableRoot, {
       width: 10, height: 30,
-      getCellText: position => spreadsheet.text(position),
+      getCellText: position => spreadsheet.getText(position),
       getCellValue: position => {
         try {
-          const value = spreadsheet.value(position);
+          const value = spreadsheet.getValue(position);
           return { isError: false, value };
         } catch (err) {
           if (err instanceof SimpleSpreadsheet.Errors.SpreadsheetError) {
@@ -56,17 +55,17 @@
           }
         }
       },
-      onCellEdited: (position, newText) => spreadsheet.set(position, newText),
+      onCellEdited: (position, newText) => spreadsheet.setText(position, newText),
       formatCellValue: value => (typeof (value) === "number")
         ? parseFloat(value.toFixed(4)).toString()
         : value,
     });
 
-    function onCellsUpdated(changedCellPositions) {
+    spreadsheet.addListener("cellsChanged", changedCellPositions => {
       for (let position of changedCellPositions) {
-        spreadsheetTable.invalidateValue(position, { animate: true });
+        spreadsheetEditor.invalidateValue(position, { animate: true });
       }
-    }
+    });
   </script>
 </body>
 

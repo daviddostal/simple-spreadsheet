@@ -16,8 +16,8 @@
     Open the browser's developer tools to show the results of cell evaluation.
   </p>
   <script>
-    const spreadsheet = new SimpleSpreadsheet.Spreadsheet(
-      {
+    const spreadsheet = new SimpleSpreadsheet.Spreadsheet({
+      cells: {
         A1: 'Hello, world!',
         A2: '="Hello,\\nworld" + "!"',
         A3: 2.5,
@@ -34,16 +34,16 @@
         E5: '=D6:F8',
 
       },
-      SimpleSpreadsheet.builtinFunctions
-    );
+      functions: SimpleSpreadsheet.builtinFunctions
+    });
 
-    spreadsheet.cells.forEach((text, position) => {
-      console.log(`${position}: '${spreadsheet.text(position)}'`);
+    [...spreadsheet.cells()].forEach(([position, text]) => {
+      console.log(`${position}: '${spreadsheet.getText(position)}'`);
       try {
         // For demonstration purposes only, do not use _environment or other
         // private properties in production.
-        console.log('    ' + spreadsheet._environment.getExpression(position).toString());
-        console.log(' -> ' + spreadsheet.value(position));
+        console.log(spreadsheet._environment.getExpression(position));
+        console.log(' -> ' + spreadsheet.getValue(position));
       } catch (ex) {
         if (ex instanceof SimpleSpreadsheet.Errors.SpreadsheetError)
           console.error(ex.toString());

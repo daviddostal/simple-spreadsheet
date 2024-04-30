@@ -34,17 +34,17 @@
     }
 
     function profileSpreadsheetEvaluation(label, testData) {
-      const spreadsheet = new SimpleSpreadsheet.Spreadsheet(testData);
+      const spreadsheet = new SimpleSpreadsheet.Spreadsheet({ cells: testData });
       const cellCount = testData.size;
       console.log(`[${label}]:`);
       console.log(`Profiling evaluation of ${cellCount} cells...`);
       const { timeMs, result } = profile(() => {
         let valueSum = 0;
-        spreadsheet.cells.forEach((_, position) => {
+        [...spreadsheet.cells()].forEach(([position, _]) => {
           try {
             // Just to make sure the value is actually used and calculating it
             // can under no circumstances be optimized away;
-            valueSum += spreadsheet.value(position);
+            valueSum += spreadsheet.getValue(position);
           } catch {
             // we don't really care about the error here
           }
