@@ -25,9 +25,6 @@ class SpreadsheetEditor {
     rootElement,
     { width, height, getCellText, getCellValue, onCellEdited = () => { }, formatCellValue = v => v }
   ) {
-    this._rootElement = rootElement;
-    this._width = width;
-    this._height = height;
     this._getCellText = getCellText;
     this._getCellValue = getCellValue;
     this._onCellEdited = onCellEdited;
@@ -36,7 +33,7 @@ class SpreadsheetEditor {
     this._undoStack = [];
     this._redoStack = [];
 
-    this._initializeTable();
+    this._initializeEditor(rootElement, width, height);
   }
 
   _createColHeaders(width) {
@@ -72,9 +69,7 @@ class SpreadsheetEditor {
 
         const cellElement = document.createElement("td");
         cellElement.setAttribute("tabindex", "0");
-        this._addCellEvents(cellElement, cellPosition);
         cellElements.set(cellPosition, cellElement);
-
         rowElement.appendChild(cellElement);
       }
 
@@ -84,14 +79,19 @@ class SpreadsheetEditor {
     return { rowElements, cellElements };
   }
 
-  _addCellEvents(cellElement, cellPosition) {
-    const handleCellNavigation = function handleCellNavigation(horizontalDir, verticalDir) {
-      const nextCellPos = cellAtOffset(cellPosition, horizontalDir, verticalDir);
-      const nextCellElement = this._cellElements.get(nextCellPos);
-      if (nextCellElement === undefined) return;
-      nextCellElement.focus();
-    }.bind(this);
+  _registerEditorEvents(rootElement) {
+    rootElement.addEventListener("keydown", event => {
+      if (event.key === "z" && event.ctrlKey && onlyAllowedModifiers(event, "ctrlKey")) {
+        event.preventDefault();
+        this._undo();
+      } else if (event.key === "y" && event.ctrlKey && onlyAllowedModifiers(event, "ctrlKey")) {
+        event.preventDefault();
+        this._redo();
+      }
+    });
+  }
 
+  _registerCellEvents(cellElement, cellPosition) {
     const arrowDirections = {
       "ArrowRight": [1, 0], "ArrowLeft": [-1, 0], "ArrowDown": [0, 1], "ArrowUp": [0, -1],
     };
@@ -113,15 +113,9 @@ class SpreadsheetEditor {
       } else if (event.key === "Backspace" && onlyAllowedModifiers(event)) {
         event.preventDefault();
         this._editCell(cellPosition, "");
-      } else if (event.key === "z" && event.ctrlKey && onlyAllowedModifiers(event, "ctrlKey")) {
-        event.preventDefault();
-        this._undo();
-      } else if (event.key === "y" && event.ctrlKey && onlyAllowedModifiers(event, "ctrlKey")) {
-        event.preventDefault();
-        this._redo();
       } else if (isArrowKey(event) && onlyAllowedModifiers(event, ["shiftKey", "ctrlKey"])) {
         event.preventDefault();
-        handleCellNavigation(...arrowDirections[event.key]);
+        this._handleCellNavigation(cellPosition, ...arrowDirections[event.key]);
       } else if (isPrintableCharacter(event) && onlyAllowedModifiers(event, ["shiftKey"])) {
         event.preventDefault();
         this._editCell(cellPosition, event.key);
@@ -134,6 +128,13 @@ class SpreadsheetEditor {
         this._editCell(cellPosition)
       }
     });
+  }
+
+  _handleCellNavigation(currentPosition, horizontalDir, verticalDir) {
+    const nextCellPos = cellAtOffset(currentPosition, horizontalDir, verticalDir);
+    const nextCellElement = this._cellElements.get(nextCellPos);
+    if (nextCellElement === undefined) return;
+    nextCellElement.focus();
   }
 
   _createTableElements(width, height) {
@@ -151,17 +152,20 @@ class SpreadsheetEditor {
     return { tableElement, cellElements };
   }
 
-  _initializeTable() {
-    const { tableElement, cellElements } = this._createTableElements(this._width, this._height);
+  _initializeEditor(rootElement, tableWidth, tableHeight) {
+    const { tableElement, cellElements } = this._createTableElements(tableWidth, tableHeight);
     this._cellElements = cellElements;
     this._tableElement = tableElement;
-    this._rootElement.replaceChildren(tableElement);
+    rootElement.replaceChildren(tableElement);
+
+    this._registerEditorEvents(rootElement)
 
     for (let position of cellElements.keys()) {
+      this._registerCellEvents(cellElements.get(position), position);
       this.invalidateValue(position);
     }
 
-    if (this._width > 0 && this._height > 0) {
+    if (tableWidth > 0 && tableHeight > 0) {
       const firstCellElement = this._cellElements.get(indicesToPosition(0, 0));
       firstCellElement.focus();
     }
@@ -241,16 +245,15 @@ class SpreadsheetEditor {
 
       if (event.key === "Enter" && onlyAllowedModifiers(event)) {
         event.preventDefault();
-        event.stopPropagation();
         stopEditing();
         cellElement.focus();
         return false;
       } else if (event.key === "Escape" && onlyAllowedModifiers(event)) {
         event.preventDefault();
-        event.stopPropagation();
         stopEditing(false);
         cellElement.focus();
       }
+      event.stopPropagation();
     }
 
     textareaElement.addEventListener("keydown", handleTextareaKeyDown);
