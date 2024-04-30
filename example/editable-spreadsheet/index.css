@@ -84,6 +84,14 @@ table th {
   border: 1px solid var(--clr-th-border);
 }
 
+table tbody th {
+  width: 4ch;
+}
+
+table thead th {
+  height: 2em;
+}
+
 table td {
   background-color: var(--clr-td-background);
   border: 1px solid var(--clr-td-border);
