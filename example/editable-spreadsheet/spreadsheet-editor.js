@@ -20,6 +20,16 @@ function onlyAllowedModifiers(event, allowedKeys = []) {
   return modifierKeys.every(key => allowedKeys.includes(key) || !event[key]);
 }
 
+function el(type, attributes = {}, children = []) {
+  const element = document.createElement(type);
+  for (let attributeName in attributes) {
+    element.setAttribute(attributeName, attributes[attributeName]);
+  }
+  const childrenArray = Array.isArray(children) ? children : [children]
+  element.replaceChildren(...childrenArray);
+  return element;
+}
+
 class SpreadsheetEditor {
   constructor(
     rootElement,
@@ -35,20 +45,41 @@ class SpreadsheetEditor {
 
     this._initializeEditor(rootElement, width, height);
   }
+  _initializeEditor(rootElement, tableWidth, tableHeight) {
+    const { tableElement, cellElements } = this._createTableElements(tableWidth, tableHeight);
+    this._cellElements = cellElements;
+    this._tableElement = tableElement;
+    rootElement.replaceChildren(tableElement);
+
+    this._registerEditorEvents(rootElement)
+
+    for (let position of cellElements.keys()) {
+      this._registerCellEvents(cellElements.get(position), position);
+      this.invalidateValue(position);
+    }
+
+    if (tableWidth > 0 && tableHeight > 0) {
+      const firstCellElement = this._cellElements.get(indicesToPosition(0, 0));
+      firstCellElement.focus();
+    }
+  }
+
+  _createTableElements(width, height) {
+    const { rowElements, cellElements } = this._createCells(width, height);
+    const tableElement = el("table", { "data-spreadsheet-table": "" }, [
+      el("thead", null, this._createColHeaders(width)),
+      el("tbody", null, rowElements)
+    ]);
+    return { tableElement, cellElements };
+  }
 
   _createColHeaders(width) {
-    const headRowElement = document.createElement("tr");
-    const spacerThElement = document.createElement("th");
-    spacerThElement.setAttribute("data-column-header", "");
-    spacerThElement.setAttribute("data-row-header", "");
-    headRowElement.appendChild(spacerThElement);
-    for (let colNumber = 0; colNumber < width; colNumber++) {
-      const thElement = document.createElement("th");
-      thElement.setAttribute("data-column-header", "");
-      thElement.textContent = colIndexToString(colNumber);
-      headRowElement.appendChild(thElement);
-    }
-    return headRowElement;
+    return el("tr", null, [
+      el("th", { "data-column-header": "", "data-row-header": "" }),
+      ...Array.from({ length: width }, (_, colNumber) =>
+        el("th", { "data-column-header": "" }, colIndexToString(colNumber))
+      )
+    ]);
   }
 
   _createCells(width, height) {
@@ -56,19 +87,14 @@ class SpreadsheetEditor {
     let cellElements = new Map();
 
     for (let rowNo = 0; rowNo < height; rowNo++) {
-      const rowString = rowIndexToString(rowNo);
-      const rowElement = document.createElement("tr");
-      const rowHeaderElement = document.createElement("th");
-      rowHeaderElement.textContent = rowString;
-      rowHeaderElement.setAttribute("data-row-header", "");
-      rowElement.appendChild(rowHeaderElement);
+      const rowName = rowIndexToString(rowNo);
+      const rowElement = el("tr", null, el("th", { "data-row-header": "" }, rowName));
 
       for (let colNo = 0; colNo < width; colNo++) {
-        const colString = colIndexToString(colNo);
-        const cellPosition = makePosition(colString, rowString);
+        const colName = colIndexToString(colNo);
+        const cellPosition = makePosition(colName, rowName);
+        const cellElement = el("td", { "tabindex": "0" });
 
-        const cellElement = document.createElement("td");
-        cellElement.setAttribute("tabindex", "0");
         cellElements.set(cellPosition, cellElement);
         rowElement.appendChild(cellElement);
       }
@@ -137,40 +163,6 @@ class SpreadsheetEditor {
     nextCellElement.focus();
   }
 
-  _createTableElements(width, height) {
-    const tableElement = document.createElement("table");
-    tableElement.setAttribute("data-spreadsheet-table", "");
-
-    const tableHeadElement = tableElement.createTHead();
-    tableHeadElement.appendChild(this._createColHeaders(width));
-
-    const tableBodyElement = tableElement.createTBody();
-    const { rowElements, cellElements } = this._createCells(width, height);
-    for (let rowElement of rowElements)
-      tableBodyElement.appendChild(rowElement);
-
-    return { tableElement, cellElements };
-  }
-
-  _initializeEditor(rootElement, tableWidth, tableHeight) {
-    const { tableElement, cellElements } = this._createTableElements(tableWidth, tableHeight);
-    this._cellElements = cellElements;
-    this._tableElement = tableElement;
-    rootElement.replaceChildren(tableElement);
-
-    this._registerEditorEvents(rootElement)
-
-    for (let position of cellElements.keys()) {
-      this._registerCellEvents(cellElements.get(position), position);
-      this.invalidateValue(position);
-    }
-
-    if (tableWidth > 0 && tableHeight > 0) {
-      const firstCellElement = this._cellElements.get(indicesToPosition(0, 0));
-      firstCellElement.focus();
-    }
-  }
-
   _updateCellValue(position, newText) {
     const previousText = this._getCellText(position);
     if (previousText !== newText) {
@@ -216,13 +208,14 @@ class SpreadsheetEditor {
       throw new Error(`Cannot edit cell at ${position}, because the table cell element does not exist.`);
 
     const originalText = this._getCellText(position)
-    const textareaElement = document.createElement("textarea");
-    textareaElement.setAttribute("data-cell-edit", "");
-    textareaElement.setAttribute("rows", 1);
-    textareaElement.setAttribute("wrap", "off");
-    textareaElement.setAttribute("autocapitalize", "off");
     const currentText = overrideText === undefined ? originalText : overrideText;
-    textareaElement.textContent = currentText;
+
+    const textareaElement = el(
+      "textarea",
+      { "data-cell-edit": "", "rows": 1, "wrap": "off", "autocapitalize": "off" },
+      currentText
+    );
+
     const self = this;
 
     function stopEditing(updateCell = true) {
