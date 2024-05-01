@@ -101,6 +101,17 @@ test('Non-string values yield the given value without parsing', () => {
     expectValue(String, String);
 });
 
+describe('Booleans', () => {
+    test('boolean literals are supported in formulas', () => {
+        expectValue('=TRUE', true);
+        expectValue('=FALSE', false);
+    });
+    test('boolean literals must be uppercase', () => {
+        expectException('=true', ParsingError);
+        expectException('=false', ParsingError);
+    });
+})
+
 describe('Unary operators', () => {
     test('unary minus negates the following number', () => {
         expectValue('=-0.2', -0.2);

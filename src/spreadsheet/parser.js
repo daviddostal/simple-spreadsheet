@@ -105,6 +105,10 @@ export default class Parser {
         if (string !== null)
             return this._parseString(string);
 
+        // boolean
+        const boolean = this._tokens.expect(TokenType.BOOLEAN);
+        if(boolean !== null)
+            return new Value(boolean.value === 'TRUE');
 
         const identifier = this._tokens.expect(TokenType.IDENTIFIER);
         if (identifier !== null) {

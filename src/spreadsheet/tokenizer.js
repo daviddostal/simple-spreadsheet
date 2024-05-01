@@ -16,6 +16,7 @@ export const TokenType = Object.freeze({
     COMMA: Symbol('comma'),
     NUMBER: Symbol('number'),
     STRING: Symbol('string'),
+    BOOLEAN: Symbol('boolean'),
     IDENTIFIER: Symbol('identifier'),
 });
 
@@ -26,6 +27,7 @@ export class Tokenizer {
             // Patterns usually start with ^ so they match the start of the remaining
             // string, not anywhere in the middle.
             { pattern: /^\d+(?:\.\d+)?/, type: TokenType.NUMBER },
+            { pattern: /^(?:TRUE|FALSE)/, type: TokenType.BOOLEAN },
             { pattern: /^[a-zA-Z]\w*/, type: TokenType.IDENTIFIER },
             { pattern: /^"(?:[^"\\]|\\.)*"/, type: TokenType.STRING },
             { pattern: /^$/, type: TokenType.EOF },
