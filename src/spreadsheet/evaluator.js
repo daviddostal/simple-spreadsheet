@@ -118,7 +118,10 @@ export default class Evaluator {
         try {
             return func.function(...argsLazyValues);
         } catch (ex) {
-            throw new FunctionEvaluationError(functionName, ex);
+            // Error thrown while evaluating one of the lazy arguments
+            if (ex instanceof RuntimeError || ex instanceof CircularRefInternal) throw ex;
+            // Error thrown in the spreadsheet function
+            else throw new FunctionEvaluationError(functionName, ex);
         }
     }
 
