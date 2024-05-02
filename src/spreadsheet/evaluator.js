@@ -1,5 +1,5 @@
 import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp } from './expressions.js';
-import { RuntimeError, ParsingError, CircularReferenceError, ReferencedCellError, NotImplementedError, RangeReferenceNotAllowedError, FunctionEvaluationError } from './errors.js';
+import { RuntimeError, ParsingError, CircularReferenceError, ReferencedCellError, NotImplementedError, RangeReferenceNotAllowedError, FunctionEvaluationError, TypeError } from './errors.js';
 import * as Helpers from './helpers.js';
 
 class CircularRefInternal extends Error {
@@ -78,8 +78,12 @@ export default class Evaluator {
     _evaluateUnary(op, expression, environment) {
         const value = this._evaluateCell(expression, environment);
         switch (op) {
-            case '+': return +value;
-            case '-': return -value;
+            case '+':
+                if (typeof (value) === 'number') return +value;
+                throw new TypeError(['number'], typeof (value));
+            case '-':
+                if (typeof (value) === 'number') return -value;
+                throw new TypeError(['number'], typeof (value));
             default: throw new NotImplementedError(`Unknown unary operator: '${op}'`);
         }
     }
@@ -88,12 +92,41 @@ export default class Evaluator {
         const leftValue = this._evaluateCell(left, environment);
         const rightValue = this._evaluateCell(right, environment);
         switch (op) {
-            case '+': return leftValue + rightValue;
-            case '-': return leftValue - rightValue;
-            case '*': return leftValue * rightValue;
-            case '/': return leftValue / rightValue;
+            case '+': return this._evaluateAddition(leftValue, rightValue);
+            case '-': return this._evaluateSubtraction(leftValue, rightValue);
+            case '*': return this._evaluateMultiplication(leftValue, rightValue);
+            case '/': return this._evaluateDivision(leftValue, rightValue);
             default: throw new NotImplementedError(`Unknown binary operator: '${op}'`);
         }
+    }
+
+    _evaluateAddition(leftValue, rightValue) {
+        if ((typeof (leftValue) === 'number' && typeof (rightValue) === 'number') ||
+            (typeof (leftValue) === 'string') && typeof (rightValue) === 'string') {
+            return leftValue + rightValue;
+        }
+        throw new TypeError(['number + number', 'string + string'], `${typeof (leftValue)} + ${typeof (rightValue)}`);
+    }
+
+    _evaluateSubtraction(leftValue, rightValue) {
+        if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
+            return leftValue - rightValue;
+        }
+        throw new TypeError(['number - number'], `${typeof (leftValue)} - ${typeof (rightValue)}`);
+    }
+
+    _evaluateMultiplication(leftValue, rightValue) {
+        if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
+            return leftValue * rightValue;
+        }
+        throw new TypeError(['number * number'], `${typeof (leftValue)} * ${typeof (rightValue)}`);
+    }
+
+    _evaluateDivision(leftValue, rightValue) {
+        if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
+            return leftValue / rightValue;
+        }
+        throw new TypeError(['number / number'], `${typeof (leftValue)} / ${typeof (rightValue)}`);
     }
 
     _evaluateFunction(functionName, args, environment) {

@@ -96,29 +96,41 @@ describe('IF function', () => {
     });
 
     test('Returns value of first branch if the condition is true', () => {
-        expect(spreadsheet.evaluateQuery('=IF(1, 2, 3)')).toBe(2);
+        expect(spreadsheet.evaluateQuery('=IF(TRUE, 2, 3)')).toBe(2);
     });
 
     test('Returns value of second branch if the condition is false', () => {
-        expect(spreadsheet.evaluateQuery('=IF(0, 2, 3)')).toBe(3);
+        expect(spreadsheet.evaluateQuery('=IF(FALSE, 2, 3)')).toBe(3);
     });
 
     test('Evaluates only one branch of the function', () => {
         evaluatedBranches = [];
-        spreadsheet.evaluateQuery('=IF(1, TEST(2), TEST(3))');
+        spreadsheet.evaluateQuery('=IF(TRUE, TEST(2), TEST(3))');
         expect(evaluatedBranches).toEqual([2]);
 
         evaluatedBranches = [];
-        spreadsheet.evaluateQuery('=IF(0, TEST(2), TEST(3))');
+        spreadsheet.evaluateQuery('=IF(FALSE, TEST(2), TEST(3))');
         expect(evaluatedBranches).toEqual([3]);
     });
 
     test('Exception in function causes FunctionEvaluationError', () => {
-        expect(() => spreadsheet.evaluateQuery('=IF(1, THROW(), 3)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=IF(0, THROW(), 3)')).not.toThrow();
+        expect(() => spreadsheet.evaluateQuery('=IF(TRUE, THROW(), 3)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(FALSE, THROW(), 3)')).not.toThrow();
         expect(() => spreadsheet.evaluateQuery('=IF(THROW(), 2, 3)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=IF(0, 2, THROW())')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(FALSE, 2, THROW())')).toThrow(FunctionEvaluationError);
     });
+
+    test('throws when condition is not a boolean', () => {
+        expect(() => spreadsheet.evaluateQuery('=IF(1, 2, 3)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF("", 2, 3)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(A1:A10, 2, 3)')).toThrow(FunctionEvaluationError);
+    });
+
+    test('throws when argument count is not 3', () => {
+        expect(() => spreadsheet.evaluateQuery('=IF()')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(TRUE)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(TRUE, 2)')).toThrow(FunctionEvaluationError);
+    })
 });
 
 describe('NOT function', () => {
@@ -131,17 +143,10 @@ describe('NOT function', () => {
         expect(spreadsheet.evaluateQuery('=NOT(NOT(NOT(FALSE)))')).toBe(true);
     });
 
-    // TODO: Add proper type checking to functions and operators
-    // and do not coerce types like JavaScript does
-    test('converts non-booleans to booleans like JavaScript', () => {
-        expect(spreadsheet.evaluateQuery('=NOT(1)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(0)')).toBe(true);
-        expect(spreadsheet.evaluateQuery('=NOT(-1)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(24)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT("")')).toBe(true);
-        expect(spreadsheet.evaluateQuery('=NOT("a")')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(A1:A2)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(A1)')).toBe(true);
+    test('throws when the argument is not a boolean', () => {
+        expect(() => spreadsheet.evaluateQuery('=NOT(1)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NOT("")')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NOT(A1:A10)')).toThrow(FunctionEvaluationError);
     });
 });
 
@@ -168,15 +173,10 @@ describe('AND function', () => {
             .toThrow(FunctionEvaluationError);
     });
 
-    test('converts non-booleans to booleans like JavaScript', () => {
-        expect(spreadsheet.evaluateQuery('=NOT(1)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(0)')).toBe(true);
-        expect(spreadsheet.evaluateQuery('=NOT(-1)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(24)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT("")')).toBe(true);
-        expect(spreadsheet.evaluateQuery('=NOT("a")')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(A1:A2)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(A1)')).toBe(true);
+    test('throws when some argument is not a boolean', () => {
+        expect(() => spreadsheet.evaluateQuery('=AND(1)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=AND("")')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=AND(A1:A10)')).toThrow(FunctionEvaluationError);
     });
 });
 
@@ -203,14 +203,9 @@ describe('OR function', () => {
             .toThrow(FunctionEvaluationError);
     });
 
-    test('converts non-booleans to booleans like JavaScript', () => {
-        expect(spreadsheet.evaluateQuery('=NOT(1)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(0)')).toBe(true);
-        expect(spreadsheet.evaluateQuery('=NOT(-1)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(24)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT("")')).toBe(true);
-        expect(spreadsheet.evaluateQuery('=NOT("a")')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(A1:A2)')).toBe(false);
-        expect(spreadsheet.evaluateQuery('=NOT(A1)')).toBe(true);
+    test('throws when some argument is not boolean', () => {
+        expect(() => spreadsheet.evaluateQuery('=OR(1)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=OR("")')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=OR(A1:A10)')).toThrow(FunctionEvaluationError);
     });
 });

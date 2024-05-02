@@ -61,3 +61,11 @@ export class UnknownFunctionError extends RuntimeError {
         this.functionName = functionName;
     }
 }
+
+export class TypeError extends RuntimeError {
+    shortName = '#TYPE!';
+    constructor(allowedTypes, actualType) {
+        super(`TypeError: expected ${allowedTypes.join(' or ')}, got ${actualType}`);
+        this.expe
+    }
+}

@@ -27,6 +27,10 @@ export const builtinFunctions = {
     IF: {
         isLazy: true,
         function: function IF(condition, trueBranch, falseBranch) {
+            if(arguments.length !== 3) throw new Error(`IF() function requires 3 arguments.`);
+            const conditionResult = condition();
+            if (typeof (conditionResult) !== 'boolean')
+                throw new Error(`Condition must be a boolean, got ${typeof (conditionResult)}`);
             return condition() ? trueBranch() : falseBranch()
         }
     },
@@ -35,7 +39,14 @@ export const builtinFunctions = {
         isLazy: true,
         function: function OR(...conditions) {
             if (conditions.length === 0) throw new Error(`OR() expects at least 1 argument.`);
-            return conditions.some(condition => condition());
+            for (let i = 0; i < conditions.length; i++) {
+                const condition = conditions[i];
+                const conditionResult = condition();
+                if (typeof (conditionResult) !== 'boolean')
+                    throw new Error(`All arguments of OR() must be booleans, but argument ${i + 1} has type ${typeof (conditionResult)}.`);
+                if(conditionResult === true) return true;
+            }
+            return false;
         }
     },
 
@@ -43,12 +54,21 @@ export const builtinFunctions = {
         isLazy: true,
         function: function AND(...conditions) {
             if (conditions.length === 0) throw new Error(`AND() expects at least 1 argument.`);
-            return conditions.every(condition => condition());
+            for (let i = 0; i < conditions.length; i++) {
+                const condition = conditions[i];
+                const conditionResult = condition();
+                if (typeof (conditionResult) !== 'boolean')
+                    throw new Error(`All arguments of AND() must be booleans, but argument ${i + 1} has type ${typeof (conditionResult)}.`);
+                if(conditionResult === false) return false;
+            }
+            return true;
         }
     },
 
     NOT: function NOT(boolean, ...rest) {
         if (rest.length !== 0) throw new Error(`NOT() expects exactly 1 argument.`);
+        if(typeof(boolean) !== 'boolean')
+            throw new Error(`NOT() expects a boolean, got ${typeof(boolean)}`);
         return !boolean;
     },
 

@@ -1,5 +1,5 @@
 import { Spreadsheet } from '../src/spreadsheet';
-import { ParsingError, CircularReferenceError, FunctionEvaluationError, ReferencedCellError, RangeReferenceNotAllowedError, UnknownFunctionError } from '../src/spreadsheet/errors';
+import { ParsingError, CircularReferenceError, FunctionEvaluationError, ReferencedCellError, RangeReferenceNotAllowedError, UnknownFunctionError, TypeError } from '../src/spreadsheet/errors';
 import { builtinFunctions } from '../src/functions';
 
 function expectValue(formula, expected) {
@@ -121,11 +121,14 @@ describe('Unary operators', () => {
         expectValue('=+0.2', 0.2);
     });
 
-    test('unary + and - convert strings to numbers', () => {
-        expectValue('=+"abc"', NaN);
-        expectValue('=+"10"', 10);
-        expectValue('=-"abc"', NaN);
-        expectValue('=-"10"', -10);
+    test('unary + and - throw when operand is not a number', () => {
+        expectException('=+"abc"', TypeError);
+        expectException('=+"10"', TypeError);
+        expectException('=-"abc"', TypeError);
+        expectException('=-TRUE', TypeError);
+        expectException('=+TRUE', TypeError);
+        expectException('=-FALSE', TypeError);
+        expectException('=+FALSE', TypeError);
     });
 
     test('sequences of multiple unary operators work as expected', () => {
@@ -257,6 +260,51 @@ describe('Binary operators', () => {
         // Not left distributive
         expectValue('=3 / (4 + 5)', 1 / 3);
         expectValue('=(3/4) + (3/5)', 1.35);
+    });
+
+    test('+ throws when both operands are not a string or number', () => {
+        expectException('=1 + "s"', TypeError);
+        expectException('="s" + 1', TypeError);
+        expectException('=TRUE + 1', TypeError);
+        expectException('=TRUE + "s"', TypeError);
+        expectException('=1 + FALSE', TypeError);
+        expectException('="s" + FALSE', TypeError);
+    });
+
+    test('- throws when both operands are not a number', () => {
+        expectException('="s" - "s"', TypeError);
+        expectException('=1 - "s"', TypeError);
+        expectException('="s" - 1', TypeError);
+        expectException('=TRUE - 1', TypeError);
+        expectException('=TRUE - "s"', TypeError);
+        expectException('=1 - FALSE', TypeError);
+        expectException('="s" - FALSE', TypeError);
+    });
+
+    test('* throws when both operands are not numbers', () => {
+        expectException('="s" * 1', TypeError);
+        expectException('=1 * "s"', TypeError);
+        expectException('="s" * "s"', TypeError);
+        expectException('=TRUE * 1', TypeError);
+        expectException('=TRUE * "s"', TypeError);
+        expectException('=1 * FALSE', TypeError);
+        expectException('="s" * FALSE', TypeError);
+        
+    });
+
+    test('/ throws when both operands are not a number', () => {
+        expectException('="s" / "s"', TypeError);
+        expectException('=1 / "s"', TypeError);
+        expectException('="s" / 1', TypeError);
+        expectException('=TRUE / 1', TypeError);
+        expectException('=TRUE / "s"', TypeError);
+        expectException('=1 / FALSE', TypeError);
+        expectException('="s" / FALSE', TypeError);
+    });
+
+    test('+ concatenates strings', () => {
+        expectValue('="abc" + "def"', 'abcdef');
+        expectValue('="abc" + "def" + "ghi"', 'abcdefghi');
     });
 });
 
