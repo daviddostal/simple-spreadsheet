@@ -31,6 +31,27 @@ export const builtinFunctions = {
         }
     },
 
+    OR: {
+        isLazy: true,
+        function: function(...conditions) {
+            if (conditions.length === 0) throw new Error(`OR() expects at least 1 argument.`);
+            return conditions.some(condition => condition());
+        }
+    },
+
+    AND: {
+        isLazy: true,
+        function: function(...conditions) {
+            if (conditions.length === 0) throw new Error(`AND() expects at least 1 argument.`);
+            return conditions.every(condition => condition());
+        }
+    },
+
+    NOT: function(boolean, ...rest) {
+        if (rest.length !== 0) throw new Error(`NOT() expects exactly 1 argument.`);
+        return !boolean;
+    },
+
     PI: function () {
         if (arguments.length > 0)
             throw new Error(`PI() expects 0 arguments, got ${arguments.length} arguments.`);
