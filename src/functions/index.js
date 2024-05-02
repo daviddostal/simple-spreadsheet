@@ -1,4 +1,38 @@
+function isRange(value) {
+    return Array.isArray(value);
+}
+
 export const builtinFunctions = {
+    STRING: function STRING(...args) {
+        if (args.length !== 1) throw new Error(`STRING() expects exactly 1 argument.`);
+        const value = args[0];
+        if (typeof (value) === 'string') return value;
+        if (typeof (value) === 'number') return value.toString();
+        if (typeof (value) === 'boolean') return value ? 'TRUE' : 'FALSE';
+        if (isRange(value)) throw new Error(`Ranges cannot be converted to a string.`);
+        throw new Error(`Unsupported type ${typeof (value)} in STRING().`);
+    },
+
+    NUMBER: function NUMBER(...args) {
+        if (args.length !== 1) throw new Error(`NUMBER() expects exactly 1 argument.`);
+        const value = args[0];
+        if (typeof (value) === 'string') return parseFloat(value);
+        if (typeof (value) === 'number') return value;
+        if (typeof (value) === 'boolean') return value ? 1 : 0;
+        if (isRange(value)) throw new Error(`Ranges cannot be converted to a number.`);
+        throw new Error(`Unsupported type ${typeof (value)} in NUMBER().`);
+    },
+
+    BOOLEAN: function BOOLEAN(...args) {
+        if (args.length !== 1) throw new Error(`BOOLEAN() expects exactly 1 argument.`);
+        const value = args[0];
+        if (typeof (value) === 'string') return !!value;
+        if (typeof (value) === 'number') return !!value;
+        if (typeof (value) === 'boolean') return value;
+        if (isRange(value)) throw new Error(`Ranges cannot be converted to a boolean.`);
+        throw new Error(`Unsupported type ${typeof (value)} in BOOLEAN().`);
+    },
+
     SUM: function SUM(...args) {
         let sum = 0;
         for (let arg of args.flat()) {

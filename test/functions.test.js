@@ -1,6 +1,140 @@
 import { Spreadsheet, FunctionEvaluationError } from '../src/spreadsheet';
 import { builtinFunctions } from '../src/functions';
 
+describe('STRING function', () => {
+    const spreadsheet = new Spreadsheet({
+        functions: builtinFunctions,
+        cells: {
+            A1: 1, A2: 1,
+            B1: {}, B2: null, B3: undefined
+        }
+    });
+
+    test('converts strings to strings', () => {
+        expect(spreadsheet.evaluateQuery('=STRING("abc")')).toBe('abc');
+        expect(spreadsheet.evaluateQuery('=STRING("")')).toBe('');
+    });
+
+    test('converts numbers to strings', () => {
+        expect(spreadsheet.evaluateQuery('=STRING(2)')).toBe('2');
+        expect(spreadsheet.evaluateQuery('=STRING(2.5)')).toBe('2.5');
+        expect(spreadsheet.evaluateQuery('=STRING(1/3)')).toBe('0.3333333333333333');
+        expect(spreadsheet.evaluateQuery('=STRING(0.1 + 0.2)')).toBe('0.30000000000000004'); // Because of floating point imprecisions
+    });
+
+    test('converts booleans to strings', () => {
+        expect(spreadsheet.evaluateQuery('=STRING(TRUE)')).toBe('TRUE');
+        expect(spreadsheet.evaluateQuery('=STRING(FALSE)')).toBe('FALSE');
+    });
+
+    test('throws when given a range', () => {
+        expect(() => spreadsheet.evaluateQuery('=STRING(A1:A2)')).toThrow(FunctionEvaluationError);
+    });
+
+    test('throws when given an unknown type', () => {
+        expect(() => spreadsheet.evaluateQuery('=STRING(B1)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=STRING(B2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=STRING(B3)')).toThrow(FunctionEvaluationError);
+    });
+
+    test('throws when not given exactly 1 agrument', () => {
+        expect(() => spreadsheet.evaluateQuery('=STRING()')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=STRING(1, 2)')).toThrow(FunctionEvaluationError);
+    });
+});
+
+describe('NUMBER function', () => {
+    const spreadsheet = new Spreadsheet({
+        functions: builtinFunctions,
+        cells: {
+            A1: 1, A2: 1,
+            B1: {}, B2: null, B3: undefined
+        }
+    });
+
+    test('converts numbers to numbers', () => {
+        expect(spreadsheet.evaluateQuery('=NUMBER(2)')).toBe(2);
+        expect(spreadsheet.evaluateQuery('=NUMBER(3.5)')).toBe(3.5);
+        expect(spreadsheet.evaluateQuery('=NUMBER(-10)')).toBe(-10);
+    });
+
+    test('converts strings to numbers', () => {
+        expect(spreadsheet.evaluateQuery('=NUMBER("2")')).toBe(2);
+        expect(spreadsheet.evaluateQuery('=NUMBER("2.5")')).toBe(2.5);
+        expect(spreadsheet.evaluateQuery('=NUMBER("asdf")')).toBe(NaN);
+        expect(spreadsheet.evaluateQuery('=NUMBER("-5")')).toBe(-5);
+    });
+
+    test('converts booleans to numbers', () => {
+        expect(spreadsheet.evaluateQuery('=NUMBER(TRUE)')).toBe(1);
+        expect(spreadsheet.evaluateQuery('=NUMBER(FALSE)')).toBe(0);
+    });
+
+    test('throws when given a range', () => {
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(A1:A2)')).toThrow(FunctionEvaluationError);
+    });
+
+    test('throws when given an unknown type', () => {
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(B1)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(B2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(B3)')).toThrow(FunctionEvaluationError);
+    });
+
+    test('throws when not given exactly 1 agrument', () => {
+        expect(() => spreadsheet.evaluateQuery('=NUMBER()')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(1, 2)')).toThrow(FunctionEvaluationError);
+    });
+});
+
+describe('BOOLEAN function', () => {
+    const spreadsheet = new Spreadsheet({
+        functions: builtinFunctions,
+        cells: {
+            A1: 1, A2: 1,
+            B1: {}, B2: null, B3: undefined
+        }
+    });
+
+    test('converts booleans to booleans', () => {
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(TRUE)')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(FALSE)')).toBe(false);
+    });
+
+    test('converts strings to booleans', () => {
+        expect(spreadsheet.evaluateQuery('=BOOLEAN("2")')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN("FALSE")')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN("0")')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN("sdf")')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN("")')).toBe(false);
+    });
+
+    test('converts numbers to booleans', () => {
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(0)')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(-0)')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(+0)')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(1)')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(1/0)')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(5)')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(-5)')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=BOOLEAN(-5.4)')).toBe(true);
+    });
+
+    test('throws when given a range', () => {
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(A1:A2)')).toThrow(FunctionEvaluationError);
+    });
+
+    test('throws when given an unknown type', () => {
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(B1)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(B2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(B3)')).toThrow(FunctionEvaluationError);
+    });
+
+    test('throws when not given exactly 1 agrument', () => {
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN()')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(1, 2)')).toThrow(FunctionEvaluationError);
+    });
+});
+
 describe('SUM function', () => {
     test('returns 0 for empty array', () => {
         const spreadsheet = new Spreadsheet({ cells: { A1: [] }, functions: builtinFunctions });
