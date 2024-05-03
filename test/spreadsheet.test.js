@@ -366,6 +366,328 @@ describe('Division operator', () => {
     });
 });
 
+describe('Equals operator', () => {
+    test('compares strings', () => {
+        expectValue('="abc" = "abc"', true);
+        expectValue('="abc" = "abcd"', false);
+        expectValue('="" = ""', true);
+        expectValue('="ab" = "a" + "b"', true);
+        expectValue('="¨úů¨dúsa\\nfžüěκόσμεたれホヘ๏ เป็นมนุ🇨🇿😊❤✔░" = "¨úů¨dúsa\\nfžüěκόσμεたれホヘ๏ เป็นมนุ🇨🇿😊❤✔░"', true);
+        expectValue('="1"=1', false);
+        expectValue('=""=0', false);
+        expectValue('=""=FALSE', false);
+        expectValue('="TRUE"=TRUE', false);
+        // ID is needed to get around ranges being allowed only as function arguments
+        const spreadsheet = new Spreadsheet({ cells: { A1: 'a' }, functions: { ID: x => x } });
+        expect(spreadsheet.evaluateQuery('=ID(A1:A1)="a"')).toBe(false);
+    });
+
+    test('compares numbers', () => {
+        expectValue('=10 = 10', true);
+        expectValue('=-10 = -10', true);
+        expectValue('=10 = 11', false);
+        expectValue('=-10 = 10', false);
+        expectValue('=-0 = 0', true);
+        expectValue('=(1/0) = (1/0)', true);
+        expectValue('=(-1/0) = (-1/0)', true);
+        expectValue('=(-1/0) = (1/0)', false);
+        expectValue('=((1/0) - (1/0)) = ((1/0) - (1/0))', false);
+        expectValue('=10 = "10"', false);
+        expectValue('=0 = ""', false);
+        expectValue('=0 = FALSE', false);
+        expectValue('=1 = TRUE', false);
+        // ID is needed to get around ranges being allowed only as function arguments
+        const spreadsheet = new Spreadsheet({ cells: { A1: 1 }, functions: { ID: x => x } });
+        expect(spreadsheet.evaluateQuery('=ID(A1:A1)=1')).toBe(false);
+    });
+
+    test('compares booleans', () => {
+        expectValue('=TRUE = TRUE', true);
+        expectValue('=FALSE = FALSE', true);
+        expectValue('=FALSE = TRUE', false);
+        expectValue('=FALSE = 0', false);
+        expectValue('=FALSE = ""', false);
+        expectValue('=TRUE = 1', false);
+        expectValue('=TRUE = "1"', false);
+        // ID is needed to get around ranges being allowed only as function arguments
+        const spreadsheet = new Spreadsheet({ cells: { A1: false }, functions: { ID: x => x } });
+        expect(spreadsheet.evaluateQuery('=ID(A1:A1)=FALSE')).toBe(false);
+    });
+
+    test('compares null and undefined', () => {
+        // ID is needed to get around ranges being allowed only as function arguments
+        const spreadsheet = new Spreadsheet({ cells: { A1: null, A2: undefined }, functions: { ID: x => x } });
+        expect(spreadsheet.evaluateQuery('=A1=A1')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=A2=A2')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=A1=A2')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=A1=0')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=A2=0')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=A1=FALSE')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=A2=FALSE')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=A1=""')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=A2=""')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=ID(A1:A1)=A1')).toBe(false);
+    });
+
+    test('compares ranges', () => {
+        const spreadsheet = new Spreadsheet({
+            cells: {
+                A1: 1, A2: '2', A3: true,
+                B1: 1, B2: '=1+1', B3: '=TRUE',
+                C1: '2', C2: 1, C3: true,
+            },
+            // ID is needed to get around ranges being allowed only as function arguments
+            functions: { ID: x => x }
+        });
+        expect(spreadsheet.evaluateQuery('=ID(A1:A3)=ID(B1:B3)')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=ID(A1:A2)=ID(A1:A3)')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=ID(A1:A3)=ID(A1:A2)')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=ID(A1:A3)=ID(C1:C3)')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=ID(A1:B2)=ID(A1:B2)')).toBe(true);
+    });
+
+    test('compares other types through ===', () => {
+        let obj1 = {};
+        let fn1 = () => { };
+        let symbol1 = Symbol('test');
+        const spreadsheet = new Spreadsheet({
+            cells: {
+                A1: obj1, A2: obj1, A3: {},
+                B1: fn1, B2: fn1, B3: () => { },
+                C1: symbol1, C2: symbol1, C3: Symbol('test')
+            }
+        });
+
+        expect(spreadsheet.evaluateQuery('=A1=A2')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=A1=A3')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=B1=B2')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=B1=B3')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=C1=C2')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=C1=C3')).toBe(false);
+    });
+});
+
+describe('Not equal operator', () => {
+    test('compares strings', () => {
+        expectValue('="abc" <> "abc"', false);
+        expectValue('="abc" <> "abcd"', true);
+        expectValue('="" <> ""', false);
+        expectValue('="ab" <> "a" + "b"', false);
+        expectValue('="¨úů¨dúsa\\nfžüěκόσμεたれホヘ๏ เป็นมนุ🇨🇿😊❤✔░" <> "¨úů¨dúsa\\nfžüěκόσμεたれホヘ๏ เป็นมนุ🇨🇿😊❤✔░"', false);
+        expectValue('="1"<>1', true);
+        expectValue('=""<>0', true);
+        expectValue('=""<>FALSE', true);
+        expectValue('="TRUE"<>TRUE', true);
+        // ID is needed to get around ranges being allowed only as function arguments
+        const spreadsheet = new Spreadsheet({ cells: { A1: 'a' }, functions: { ID: x => x } });
+        expect(spreadsheet.evaluateQuery('=ID(A1:A1)<>"a"')).toBe(true);
+    });
+
+    test('compares numbers', () => {
+        expectValue('=10 <> 10', false);
+        expectValue('=-10 <> -10', false);
+        expectValue('=10 <> 11', true);
+        expectValue('=-10 <> 10', true);
+        expectValue('=-0 <> 0', false);
+        expectValue('=(1/0) <> (1/0)', false);
+        expectValue('=(-1/0) <> (-1/0)', false);
+        expectValue('=(-1/0) <> (1/0)', true);
+        expectValue('=((1/0) - (1/0)) <> ((1/0) - (1/0))', true);
+        expectValue('=10 <> "10"', true);
+        expectValue('=0 <> ""', true);
+        expectValue('=0 <> FALSE', true);
+        expectValue('=1 <> TRUE', true);
+        // ID is needed to get around ranges being allowed only as function arguments
+        const spreadsheet = new Spreadsheet({ cells: { A1: 1 }, functions: { ID: x => x } });
+        expect(spreadsheet.evaluateQuery('=ID(A1:A1) <> 1')).toBe(true);
+    });
+
+    test('compares booleans', () => {
+        expectValue('=TRUE <> TRUE', false);
+        expectValue('=FALSE <> FALSE', false);
+        expectValue('=FALSE <> TRUE', true);
+        expectValue('=FALSE <> 0', true);
+        expectValue('=FALSE <> ""', true);
+        expectValue('=TRUE <> 1', true);
+        expectValue('=TRUE <> "1"', true);
+        // ID is needed to get around ranges being allowed only as function arguments
+        const spreadsheet = new Spreadsheet({ cells: { A1: false }, functions: { ID: x => x } });
+        expect(spreadsheet.evaluateQuery('=ID(A1:A1)<>FALSE')).toBe(true);
+    });
+
+    test('compares null and undefined', () => {
+        // ID is needed to get around ranges being allowed only as function arguments
+        const spreadsheet = new Spreadsheet({ cells: { A1: null, A2: undefined }, functions: { ID: x => x } });
+        expect(spreadsheet.evaluateQuery('=A1<>A1')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=A2<>A2')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=A1<>A2')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=A1<>0')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=A2<>0')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=A1<>FALSE')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=A2<>FALSE')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=A1<>""')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=A2<>""')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=ID(A1:A1)<>A1')).toBe(true);
+    });
+
+    test('compares ranges', () => {
+        const spreadsheet = new Spreadsheet({
+            cells: {
+                A1: 1, A2: '2', A3: true,
+                B1: 1, B2: '=1+1', B3: '=TRUE',
+                C1: '2', C2: 1, C3: true,
+            },
+            // ID is needed to get around ranges being allowed only as function arguments
+            functions: { ID: x => x }
+        });
+        expect(spreadsheet.evaluateQuery('=ID(A1:A3)<>ID(B1:B3)')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=ID(A1:A2)<>ID(A1:A3)')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=ID(A1:A3)<>ID(A1:A2)')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=ID(A1:A3)<>ID(C1:C3)')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=ID(A1:B2)<>ID(A1:B2)')).toBe(false);
+    });
+
+    test('compares other types through ===', () => {
+        let obj1 = {};
+        let fn1 = () => { };
+        let symbol1 = Symbol('test');
+        const spreadsheet = new Spreadsheet({
+            cells: {
+                A1: obj1, A2: obj1, A3: {},
+                B1: fn1, B2: fn1, B3: () => { },
+                C1: symbol1, C2: symbol1, C3: Symbol('test')
+            }
+        });
+
+        expect(spreadsheet.evaluateQuery('=A1<>A2')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=A1<>A3')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=B1<>B2')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=B1<>B3')).toBe(true);
+        expect(spreadsheet.evaluateQuery('=C1<>C2')).toBe(false);
+        expect(spreadsheet.evaluateQuery('=C1<>C3')).toBe(true);
+    });
+});
+
+describe('Greater than operator', () => {
+    test('compares numbers', () => {
+        expectValue('=1 > 1', false);
+        expectValue('=1 > 2', false);
+        expectValue('=2 > 1', true);
+        expectValue('=-1 > 2', false);
+        expectValue('=2 > -1', true);
+        expectValue('=1 > -2', true);
+        expectValue('=-2 > 1', false);
+        expectValue('=-1 > -2', true);
+        expectValue('=-2 > -1', false);
+        expectValue('=(1/0) > (1/0)', false);
+        expectValue('=-999 > (-1/0)', true);
+        expectValue('=(1/0) > (-1/0)', true);
+        expectValue('=(-1/0) > (1/0)', false);
+        expectValue('=(1/0 - 1/0) > (1/0 - 1/0)', false);
+        expectValue('=(1/0 - 1/0) > 0', false);
+        expectValue('=(1/0 - 1/0) > (-1/0)', false);
+    });
+
+    test('throws when operands are not numbers', () => {
+        expectException('=1 > "a"', TypeError);
+        expectException('="a" > 1', TypeError);
+        expectException('=TRUE > 0', TypeError);
+        expectException('=1 > FALSE', TypeError);
+        expectException('=1 > Z99', TypeError);
+    });
+});
+
+describe('Less than operator', () => {
+    test('compares numbers', () => {
+        expectValue('=1 < 1', false);
+        expectValue('=1 < 2', true);
+        expectValue('=2 < 1', false);
+        expectValue('=-1 < 2', true);
+        expectValue('=2 < -1', false);
+        expectValue('=1 < -2', false);
+        expectValue('=-2 < 1', true);
+        expectValue('=-1 < -2', false);
+        expectValue('=-2 < -1', true);
+        expectValue('=(1/0) < (1/0)', false);
+        expectValue('=999 < (1/0)', true);
+        expectValue('=(-1/0) < (1/0)', true);
+        expectValue('=(1/0) < (-1/0)', false);
+        expectValue('=(1/0 - 1/0) < (1/0 - 1/0)', false);
+        expectValue('=(1/0 - 1/0) < 0', false);
+        expectValue('=(1/0 - 1/0) < (-1/0)', false);
+    });
+
+    test('throws when operands are not numbers', () => {
+        expectException('=1 < "a"', TypeError);
+        expectException('="a" < 1', TypeError);
+        expectException('=TRUE < 0', TypeError);
+        expectException('=1 < FALSE', TypeError);
+        expectException('=1 < Z99', TypeError);
+    });
+});
+
+describe('Greater or equal operator', () => {
+    test('compares numbers', () => {
+        expectValue('=1 >= 1', true);
+        expectValue('=-0 >= +0', true);
+        expectValue('=1 >= 2', false);
+        expectValue('=2 >= 1', true);
+        expectValue('=-1 >= 2', false);
+        expectValue('=2 >= -1', true);
+        expectValue('=1 >= -2', true);
+        expectValue('=-2 >= 1', false);
+        expectValue('=-1 >= -2', true);
+        expectValue('=-2 >= -1', false);
+        expectValue('=(1/0) >= (1/0)', true);
+        expectValue('=(-1/0) >= (-1/0)', true);
+        expectValue('=-999 >= (-1/0)', true);
+        expectValue('=(1/0) >= (-1/0)', true);
+        expectValue('=(-1/0) >= (1/0)', false);
+        expectValue('=(1/0 - 1/0) >= (1/0 - 1/0)', false);
+        expectValue('=(1/0 - 1/0) >= 0', false);
+        expectValue('=(1/0 - 1/0) >= (-1/0)', false);
+    });
+
+    test('throws when operands are not numbers', () => {
+        expectException('=1 >= "a"', TypeError);
+        expectException('="a" >= 1', TypeError);
+        expectException('=TRUE >= 0', TypeError);
+        expectException('=1 >= FALSE', TypeError);
+        expectException('=1 >= Z99', TypeError);
+    });
+});
+
+describe('Less or equal operator', () => {
+    test('compares numbers', () => {
+        expectValue('=1 <= 1', true);
+        expectValue('=+0 <= -0', true);
+        expectValue('=1 <= 2', true);
+        expectValue('=2 <= 1', false);
+        expectValue('=-1 <= 2', true);
+        expectValue('=2 <= -1', false);
+        expectValue('=1 <= -2', false);
+        expectValue('=-2 <= 1', true);
+        expectValue('=-1 <= -2', false);
+        expectValue('=-2 <= -1', true);
+        expectValue('=(1/0) <= (1/0)', true);
+        expectValue('=(-1/0) <= (-1/0)', true);
+        expectValue('=(-1/0) <= -999', true);
+        expectValue('=(-1/0) <= (1/0)', true);
+        expectValue('=(1/0) <= (-1/0)', false);
+        expectValue('=(1/0 - 1/0) <= (1/0 - 1/0)', false);
+        expectValue('=(1/0 - 1/0) <= 0', false);
+        expectValue('=(1/0 - 1/0) <= (-1/0)', false);
+    });
+
+    test('throws when operands are not numbers', () => {
+        expectException('=1 <= "a"', TypeError);
+        expectException('="a" <= 1', TypeError);
+        expectException('=TRUE <= 0', TypeError);
+        expectException('=1 <= FALSE', TypeError);
+        expectException('=1 <= Z99', TypeError);
+    });
+});
+
 describe('Operator precendence', () => {
     test('Multiplication and division has precedence over addition and subtraction', () => {
         expectValue('=2 + 3 * 4 + 5', 19);
@@ -387,6 +709,101 @@ describe('Operator precendence', () => {
         expectValue('=2 * 4 - 8 * 16', -120);
         expectValue('=2 * 3 - 4', 2);
         expectValue('=2 - 3 * 4', -10);
+    });
+
+    test('Mathematical operators have precedence over comparison operators', () => {
+        expectValue('= 2 * 3 + 4 = 5 + 5', true);
+        expectValue('= 5 = 2 + 3', true);
+        expectValue('= 10 / 2 = 5', true);
+        expectValue('= 2 * 3 + 4 >= 5 + 5', true);
+        expectValue('= 5 = 2 + 3', true);
+        expectValue('= 5 * 2 = 10', true);
+
+        expectValue('= 2 + 3 = 1 + 4', true);
+        expectValue('= 2 - 3 = 3 - 4', true);
+        expectValue('= 2 * 6 = 3 * 4', true);
+        expectValue('= 6 / 2 = 9 / 3', true);
+
+        expectValue('= 2 + 3 <> 1 + 4', false);
+        expectValue('= 2 - 3 <> 3 - 4', false);
+        expectValue('= 2 * 6 <> 3 * 4', false);
+        expectValue('= 6 / 2 <> 9 / 3', false);
+
+        expectValue('= 2 + 3 > 1 + 4', false);
+        expectValue('= 2 - 3 > 3 - 4', false);
+        expectValue('= 2 * 6 > 3 * 4', false);
+        expectValue('= 6 / 2 > 9 / 3', false);
+
+        expectValue('= 2 + 3 < 1 + 4', false);
+        expectValue('= 2 - 3 < 3 - 4', false);
+        expectValue('= 2 * 6 < 3 * 4', false);
+        expectValue('= 6 / 2 < 9 / 3', false);
+
+        expectValue('= 2 + 3 <= 1 + 4', true);
+        expectValue('= 2 - 3 <= 3 - 4', true);
+        expectValue('= 2 * 6 <= 3 * 4', true);
+        expectValue('= 6 / 2 <= 9 / 3', true);
+
+        expectValue('= 2 + 3 >= 1 + 4', true);
+        expectValue('= 2 - 3 >= 3 - 4', true);
+        expectValue('= 2 * 6 >= 3 * 4', true);
+        expectValue('= 6 / 2 >= 9 / 3', true);
+    });
+
+    test('Comparision operators have the same precedence', () => {
+        // Because equality is transitive (P(a) = P(b) and P(b) = P(c) means that P(a) = P(c)),
+        // we don't have to test the precedence of all combinations of operations
+        // is the same, but just have to make sure, they are 'connected' to each
+        // other through having the same precedence as another operation, which we
+        // have already compared.
+
+        // <> and >
+        expectValue('= 1 > 2 <> FALSE', false);
+        expectException('= FALSE <> 1 > 2', TypeError);
+
+        // = and >
+        expectValue('= 1 > 2 = TRUE', false);
+        expectException('= TRUE = 1 > 2', TypeError);
+        
+        // = and <
+        expectValue('= 2 < 1 = TRUE', false);
+        expectException('= TRUE = 2 < 1', TypeError);
+        
+        // = and >=
+        expectValue('= 1 >= 2 = TRUE', false);
+        expectException('= TRUE = 1 >= 2', TypeError);
+
+        // = and <=
+        expectValue('= 2 <= 1 = TRUE', false);
+        expectException('= TRUE = 2 <= 1', TypeError);
+
+        // = and <=
+        expectValue('= 2 <= 1 = TRUE', false);
+        expectException('= TRUE = 2 <= 1', TypeError);
+    });
+
+    test('Comparison operator chaining evaluates each operator individually from left to right', () => {
+        expectValue('= 2 = 2 = 2', false);
+        expectValue('= 2 = 2 = TRUE', true);
+        expectValue('= 2 = 2 = 2 = FALSE', true);
+
+        expectValue('= 2 <> 2 = TRUE', false);
+
+        expectException('= 1 < 2 < 3', TypeError);
+        expectValue('= 1 < 2 = TRUE', true);
+
+        expectException('= 1 > 2 > 3', TypeError);
+        expectValue('= 1 > 2 = FALSE', true);
+
+        expectException('= 1 <= 2 <= 3', TypeError);
+        expectException('= 1 <= 1 <= 1', TypeError);
+        expectValue('= 1 <= 2 = TRUE', true);
+        expectValue('= 1 <= 1 = TRUE', true);
+
+        expectException('= 1 >= 2 >= 3', TypeError);
+        expectException('= 1 >= 1 >= 1', TypeError);
+        expectValue('= 1 >= 2 = FALSE', true);
+        expectValue('= 1 >= 1 = TRUE', true);
     });
 });
 
@@ -872,4 +1289,4 @@ describe('Spreadsheet event listeners', () => {
         spreadsheet.removeListener('cellsChanged', listener);
         spreadsheet.removeListener('cellsChanged', listener);
     });
-})
+});

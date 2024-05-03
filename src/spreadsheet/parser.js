@@ -46,29 +46,37 @@ export default class Parser {
         return { parsed: new Value(text), references: [] };
     }
 
-    // expression => term
+    // expression => comparison
     _parseExpression() {
-        return this._parseTerm();
+        return this._parseComparison();
+    }
+
+    // comparison => term (('+'|'-') term)*
+    _parseComparison() {
+        return this._parseBinaryOperation(
+            [
+                TokenType.EQUALS, TokenType.NOT_EQUAL,
+                TokenType.GREATER_THAN, TokenType.LESS_THAN,
+                TokenType.GREATER_OR_EQUAL, TokenType.LESS_OR_EQUAL
+            ],
+            () => this._parseTerm(),
+        )
     }
 
     // term => factor (('+'|'-') factor)*
     _parseTerm() {
-        let left = this._parseFactor();
-        let operation;
-        while ((operation = this._tokens.expect(TokenType.PLUS, TokenType.MINUS)) !== null) {
-            left = new BinaryOp(left, operation.value, this._parseFactor());
-        }
-        return left;
+        return this._parseBinaryOperation(
+            [TokenType.PLUS, TokenType.MINUS],
+            () => this._parseFactor(),
+        );
     }
 
     // factor => unary (('*'|'/') unary)*
     _parseFactor() {
-        let left = this._parseRange();
-        let operation;
-        while ((operation = this._tokens.expect(TokenType.STAR, TokenType.SLASH)) !== null) {
-            left = new BinaryOp(left, operation.value, this._parseRange());
-        }
-        return left;
+        return this._parseBinaryOperation(
+            [TokenType.STAR, TokenType.SLASH],
+            () => this._parseRange(),
+        );
     }
 
     // range => unary
@@ -204,6 +212,15 @@ export default class Parser {
             args.push(this._parseExpression());
         }
         return args;
+    }
+
+    _parseBinaryOperation(operators, parseHigherPrecedence) {
+        let left = parseHigherPrecedence();
+        let operation;
+        while ((operation = this._tokens.expect(...operators)) !== null) {
+            left = new BinaryOp(left, operation.value, parseHigherPrecedence());
+        }
+        return left;
     }
 
     _referencesIn(expression) {

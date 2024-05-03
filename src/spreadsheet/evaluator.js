@@ -96,6 +96,12 @@ export default class Evaluator {
             case '-': return this._evaluateSubtraction(leftValue, rightValue);
             case '*': return this._evaluateMultiplication(leftValue, rightValue);
             case '/': return this._evaluateDivision(leftValue, rightValue);
+            case '=': return this._evaluateEquals(leftValue, rightValue);
+            case '<>': return this._evaluateNotEqual(leftValue, rightValue);
+            case '>': return this._evaluateGreaterThan(leftValue, rightValue);
+            case '<': return this._evaluateLessThan(leftValue, rightValue);
+            case '>=': return this._evaluateGreaterOrEqual(leftValue, rightValue);
+            case '<=': return this._evaluateLessOrEqual(leftValue, rightValue);
             default: throw new NotImplementedError(`Unknown binary operator: '${op}'`);
         }
     }
@@ -127,6 +133,53 @@ export default class Evaluator {
             return leftValue / rightValue;
         }
         throw new TypeError(['number / number'], `${typeof (leftValue)} / ${typeof (rightValue)}`);
+    }
+
+    _evaluateEquals(leftValue, rightValue) {
+        if (Array.isArray(leftValue) || Array.isArray(rightValue)) {
+            if (!(Array.isArray(leftValue) && Array.isArray(rightValue)))
+                return false;
+            if (leftValue.length !== rightValue.length)
+                return false;
+            for (let i = 0; i < leftValue.length; i++) {
+                if (leftValue[i] !== rightValue[i])
+                    return false;
+            }
+            return true;
+        }
+        return leftValue === rightValue;
+    }
+
+    _evaluateNotEqual(leftValue, rightValue) {
+        return !this._evaluateEquals(leftValue, rightValue);
+    }
+
+    _evaluateGreaterThan(leftValue, rightValue) {
+        if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
+            return leftValue > rightValue;
+        }
+        throw new TypeError(['number > number'], `${typeof (leftValue)} > ${typeof (rightValue)}`);
+    }
+
+    _evaluateLessThan(leftValue, rightValue) {
+        if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
+            return leftValue < rightValue;
+        }
+        throw new TypeError(['number < number'], `${typeof (leftValue)} < ${typeof (rightValue)}`);
+    }
+
+    _evaluateGreaterOrEqual(leftValue, rightValue) {
+        if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
+            return leftValue >= rightValue;
+        }
+        throw new TypeError(['number >= number'], `${typeof (leftValue)} >= ${typeof (rightValue)}`);
+    }
+
+    _evaluateLessOrEqual(leftValue, rightValue) {
+        if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
+            return leftValue <= rightValue;
+        }
+        throw new TypeError(['number <= number'], `${typeof (leftValue)} <= ${typeof (rightValue)}`);
     }
 
     _evaluateFunction(functionName, args, environment) {
