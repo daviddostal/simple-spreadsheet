@@ -116,6 +116,13 @@ describe('Unary operators', () => {
         expectValue('=+0.2', 0.2);
     });
 
+    test('infinity and NaN are handled correctly', () => {
+        expectValue('=-(1/0)', -Infinity);
+        expectValue('=+(1/0)', Infinity);
+        expectValue('=-((1/0) - (1/0))', NaN);
+        expectValue('=+((1/0) - (1/0))', NaN);
+    });
+
     test('unary + and - throw when operand is not a number', () => {
         expectException('=+"abc"', TypeError);
         expectException('=+"10"', TypeError);
@@ -149,6 +156,16 @@ describe('Addition operator', () => {
         expectValue('= -1 + -3', -4);
         expectValue('= 1 + -3', -2);
         expectValue('=0.1 + 0.2', 0.1 + 0.2); // 0.30000000000000004 because of binary floating point numbers
+    });
+
+    test('correctly handles Infinity and NaN', () => {
+        expectValue('= (1/0) + 3', Infinity);
+        expectValue('= (1/0) + -3', Infinity);
+        expectValue('= (1/0) + (1/0)', Infinity);
+        expectValue('= (-1/0) + (-1/0)', -Infinity);
+        expectValue('= (-1/0) + (1/0)', NaN);
+        expectValue('= (1/0) + -(1/0)', NaN);
+        expectValue('= ((-1/0) + (1/0)) + ((-1/0) + (1/0))', NaN);
     });
 
     test('concatenates two strings', () => {
@@ -191,6 +208,16 @@ describe('Subtraction operator', () => {
         expectValue('=0.3 - 0.1', 0.3 - 0.1); // 0.19999999999999998 because of binary floating point numbers
     });
 
+    test('correctly handles Infinity and NaN', () => {
+        expectValue('= (1/0) - 3', Infinity);
+        expectValue('= (1/0) - -3', Infinity);
+        expectValue('= (1/0) - (1/0)', NaN);
+        expectValue('= (-1/0) - (-1/0)', NaN);
+        expectValue('= (-1/0) - (1/0)', -Infinity);
+        expectValue('= (1/0) - (-1/0)', Infinity);
+        expectValue('= ((1/0) - (1/0)) - ((1/0) - (1/0))', NaN);
+    });
+
     test('throws TypeError when both operands are not numbers', () => {
         expectException('="s" - "s"', TypeError);
         expectException('=1 - "s"', TypeError);
@@ -222,6 +249,20 @@ describe('Multiplication operator', () => {
         expectValue('=-2*-3', 6);
         expectValue('=0.3*3', 0.3 * 3); // 0.8999999999999999 because of floating point numbers
         expectValue('=3*0.3', 0.3 * 3); // 0.8999999999999999 because of floating point numbers
+    });
+
+    test('correctly handles Infinity and NaN', () => {
+        expectValue('= (1/0) * 3', Infinity);
+        expectValue('= (1/0) * -3', -Infinity);
+        expectValue('= (1/0) * (1/0)', Infinity);
+        expectValue('= (-1/0) * (-1/0)', Infinity);
+        expectValue('= (-1/0) * (1/0)', -Infinity);
+        expectValue('= (1/0) * -(1/0)', -Infinity);
+        expectValue('= 0 * (1/0)', NaN);
+        expectValue('= (1/0) * 0', NaN);
+        expectValue('= 0 * (-1/0)', NaN);
+        expectValue('= (-1/0) * 0', NaN);
+        expectValue('= (0 * (1/0)) * (0 * (1/0))', NaN);
     });
 
     test('throws TypeError when operands are not numbers', () => {
@@ -276,6 +317,23 @@ describe('Division operator', () => {
         expectValue('=6/-2', -3);
         expectValue('=-6/-2', 3);
         expectValue('=0.3/0.1', 0.3 / 0.1); // 2.9999999999999996 because of floating point numbers
+    });
+
+    test('correctly handles Infinity and NaN', () => {
+        expectValue('= (1/0) / 3', Infinity);
+        expectValue('= (1/0) / -3', -Infinity);
+        expectValue('= (1/0) / (1/0)', NaN);
+        expectValue('= (-1/0) / (-1/0)', NaN);
+        expectValue('= (-1/0) / (1/0)', NaN);
+        expectValue('= (1/0) / -(1/0)', NaN);
+        expectValue('= 1/0', Infinity);
+        expectValue('= -1/0', -Infinity);
+        expectValue('= 0/0', NaN);
+        expectValue('= 0 / (1/0)', 0);
+        expectValue('= (1/0) / 0', Infinity);
+        expectValue('= 0 / (-1/0)', -0);
+        expectValue('= (-1/0) / 0', -Infinity);
+        expectValue('= ((1/0) / (1/0)) / ((1/0) / (1/0))', NaN);
     });
 
     test('throws TypeError when both operands are not numbers', () => {
