@@ -15,90 +15,85 @@ function expectException(formula, exceptionType) {
         .toThrow(exceptionType);
 }
 
-test('Non-formula cells are text by default', () => {
-    expectValue('', '');
-    expectValue('asdf as', 'asdf as');
-    expectValue(' ', ' ');
-    expectValue('20.12.2018', '20.12.2018');
-    expectValue('12 df', '12 df');
-    expectValue('12.2 3', '12.2 3');
-});
-
-test('Empty cells contain null values', () => {
-    const spreadsheet = new Spreadsheet();
-    expect(spreadsheet.getValue('A1')).toBe(null);
-});
-
-test('Numeric cells are parsed as numbers', () => {
-    expectValue('0', 0);
-    expectValue('-31', -31);
-    expectValue('23.2', 23.2);
-    expectValue('-23.2', -23.2);
-    expectValue('+23.2', 23.2);
-});
-
-test('Number literals are evaluated in formulas', () => {
-    expectValue('=2', 2);
-    expectValue('=-2.5', -2.5);
-    expectValue('=+2.5', 2.5);
-    expectValue('=0.908098', 0.908098);
-    expectValue('=10000000.000000', 10000000);
-});
-
-test('Formulas must begin with "="', () => {
-    expectValue('=1', 1);
-    expectValue(' =1 ', ' =1 ');
-    expectValue('=  1  ', 1);
-});
-
-test('String literals are evaluated in formulas', () => {
-    expectValue('="hello, world"', 'hello, world');
-    expectValue('="0.908098"', '0.908098');
-    expectValue('="¨úů¨dúsafžüěκόσμεたれホヘ๏ เป็นมนุ"', '¨úů¨dúsafžüěκόσμεたれホヘ๏ เป็นมนุ');
-    expectValue('="🇨🇿😊❤✔░"', '🇨🇿😊❤✔░');
-
-});
-
-test('Backslash escapes supported escape sequences', () => {
-    expectValue('="\\""', '"');       //  \"  =>  "
-    expectValue('="\\\\\\""', '\\"'); //  \\\"  =>  \"
-    expectValue('="\\\\"', '\\');     //  \\  =>  \
-    expectValue('="\\\\"', '\\'); // \\ => \
-    expectValue('="\\""', '"'); // \"" => "
-    expectValue('="\n"', '\n'); // \n => newline
-
-    expectException('="\\j"', ParsingError); // \j => unknown escape sequence
-    expectException('="\\\\\\"', ParsingError);   //  ="\\\"  =>  last quote is escaped
-});
-
-test('Range references are allowed only as function arguments', () => {
-    expectException('=A2:A4', RangeReferenceNotAllowedError);
-    expectException('=3 + A2:A4', RangeReferenceNotAllowedError);
-    expectException('=-A2:A4', RangeReferenceNotAllowedError);
-    const spreadsheet = new Spreadsheet({
-        cells: { A1: '1', A2: '2', A3: '=SUM(A1:A2)' },
-        functions: builtinFunctions
+describe('Cells and formulas', () => {
+    test('Non-formula cells are text by default', () => {
+        expectValue('', '');
+        expectValue('asdf as', 'asdf as');
+        expectValue(' ', ' ');
+        expectValue('20.12.2018', '20.12.2018');
+        expectValue('12 df', '12 df');
+        expectValue('12.2 3', '12.2 3');
     });
-    expect(spreadsheet.getValue('A3')).toBe(3);
+
+    test('Empty cells contain null values', () => {
+        const spreadsheet = new Spreadsheet();
+        expect(spreadsheet.getValue('A1')).toBe(null);
+    });
+
+    test('Numeric cells are parsed as numbers', () => {
+        expectValue('0', 0);
+        expectValue('-31', -31);
+        expectValue('23.2', 23.2);
+        expectValue('-23.2', -23.2);
+        expectValue('+23.2', 23.2);
+    });
+
+    test('Formulas must begin with "="', () => {
+        expectValue('=1', 1);
+        expectValue(' =1 ', ' =1 ');
+        expectValue('=  1  ', 1);
+    });
+
+    test('Non-string values yield the given value without parsing', () => {
+        // compared to using strings for formulas
+        // expectValue('2134.5', '2134.5');
+        expectValue(2134.5, 2134.5);
+        expectValue(2 + 3, 2 + 3);
+        expectValue(null, null);
+        expectValue(undefined, undefined);
+        expectValue(NaN, NaN);
+        expectValue(Infinity, Infinity);
+        expectValue(-Infinity, -Infinity);
+        const arr = [1, 'A', 23.4];
+        expectValue(arr, arr);
+        const obj = { a: 'a', b: 3 }
+        expectValue(obj, obj);
+        let a = () => 1;
+        expectValue(a, a);
+        expectValue(String, String);
+    });
 });
 
-test('Non-string values yield the given value without parsing', () => {
-    // compared to using strings for formulas
-    // expectValue('2134.5', '2134.5');
-    expectValue(2134.5, 2134.5);
-    expectValue(2 + 3, 2 + 3);
-    expectValue(null, null);
-    expectValue(undefined, undefined);
-    expectValue(NaN, NaN);
-    expectValue(Infinity, Infinity);
-    expectValue(-Infinity, -Infinity);
-    const arr = [1, 'A', 23.4];
-    expectValue(arr, arr);
-    const obj = { a: 'a', b: 3 }
-    expectValue(obj, obj);
-    let a = () => 1;
-    expectValue(a, a);
-    expectValue(String, String);
+describe('Numbers', () => {
+    test('Number literals are evaluated in formulas', () => {
+        expectValue('=2', 2);
+        expectValue('=-2.5', -2.5);
+        expectValue('=+2.5', 2.5);
+        expectValue('=0.908098', 0.908098);
+        expectValue('=10000000.000000', 10000000);
+    });
+});
+
+describe('Strings', () => {
+    test('String literals are evaluated in formulas', () => {
+        expectValue('="hello, world"', 'hello, world');
+        expectValue('="0.908098"', '0.908098');
+        expectValue('="¨úů¨dúsafžüěκόσμεたれホヘ๏ เป็นมนุ"', '¨úů¨dúsafžüěκόσμεたれホヘ๏ เป็นมนุ');
+        expectValue('="🇨🇿😊❤✔░"', '🇨🇿😊❤✔░');
+
+    });
+
+    test('Backslash escapes supported escape sequences', () => {
+        expectValue('="\\""', '"');       //  \"  =>  "
+        expectValue('="\\\\\\""', '\\"'); //  \\\"  =>  \"
+        expectValue('="\\\\"', '\\');     //  \\  =>  \
+        expectValue('="\\\\"', '\\'); // \\ => \
+        expectValue('="\\""', '"'); // \"" => "
+        expectValue('="\n"', '\n'); // \n => newline
+
+        expectException('="\\j"', ParsingError); // \j => unknown escape sequence
+        expectException('="\\\\\\"', ParsingError);   //  ="\\\"  =>  last quote is escaped
+    });
 });
 
 describe('Booleans', () => {
@@ -147,42 +142,30 @@ describe('Unary operators', () => {
     });
 });
 
-describe('Binary operators', () => {
-
-    test('Binary operators work properly', () => {
+describe('Addition operator', () => {
+    test('adds two numbers', () => {
         expectValue('= 1 + 3', 4);
-        expectValue('=2*3.4', 6.8);
-        expectValue('=3.4/2', 1.7);
-        expectValue('=6/2.5', 2.4);
-        expectValue('=20-40', -20);
+        expectValue('= -1 + 3', 2);
+        expectValue('= -1 + -3', -4);
+        expectValue('= 1 + -3', -2);
         expectValue('=0.1 + 0.2', 0.1 + 0.2); // 0.30000000000000004 because of binary floating point numbers
-        expectValue('=0.1 + 0.2', 0.1 + 0.2);
-        expectValue('=0.1 - 0.2', 0.1 - 0.2);
     });
 
-    test('Multiplication and division has precedence over addition and subtraction', () => {
-        expectValue('=2 + 3 * 4 + 5', 19);
-        expectValue('=2 * 3 + 4 * 5', 26);
-        expectValue('=2 * 3 + 4', 10);
-        expectValue('=2 + 3 * 4', 14);
-
-        expectValue('=2 - 4 / 8 - 16', -14.5);
-        expectValue('=2 / 4 - 8 / 16', 0);
-        expectValue('=1 / 2 - 4', -3.5);
-        expectValue('=1 - 2 / 4', 0.5);
-
-        expectValue('=2 + 4 / 8 + 16', 18.5);
-        expectValue('=2 / 4 + 8 / 16', 1);
-        expectValue('=1 / 2 + 4', 4.5);
-        expectValue('=1 + 2 / 4', 1.5);
-
-        expectValue('=2 - 4 * 8 - 16', -46);
-        expectValue('=2 * 4 - 8 * 16', -120);
-        expectValue('=2 * 3 - 4', 2);
-        expectValue('=2 - 3 * 4', -10);
+    test('concatenates two strings', () => {
+        expectValue('="abc" + "def"', 'abcdef');
+        expectValue('="abc" + "def" + "ghi"', 'abcdefghi');
     });
 
-    test('Mathematical properties of addition are true', () => {
+    test('throws TypeError when both operands are not strings or numbers', () => {
+        expectException('=1 + "s"', TypeError);
+        expectException('="s" + 1', TypeError);
+        expectException('=TRUE + 1', TypeError);
+        expectException('=TRUE + "s"', TypeError);
+        expectException('=1 + FALSE', TypeError);
+        expectException('="s" + FALSE', TypeError);
+    });
+
+    test('mathematical properties of addition are true', () => {
         // Commutativity
         expectValue('=4 + 7', 11);
         expectValue('=7 + 4', 11);
@@ -197,6 +180,26 @@ describe('Binary operators', () => {
         expectValue('=0 + 7', 7);
         expectValue('=7', 7);
     });
+});
+
+describe('Subtraction operator', () => {
+    test('subtracts two numbers', () => {
+        expectValue('=20-40', -20);
+        expectValue('=-20-40', -60);
+        expectValue('=-20 - -40', 20);
+        expectValue('=20 - -40', 60);
+        expectValue('=0.3 - 0.1', 0.3 - 0.1); // 0.19999999999999998 because of binary floating point numbers
+    });
+
+    test('throws TypeError when both operands are not numbers', () => {
+        expectException('="s" - "s"', TypeError);
+        expectException('=1 - "s"', TypeError);
+        expectException('="s" - 1', TypeError);
+        expectException('=TRUE - 1', TypeError);
+        expectException('=TRUE - "s"', TypeError);
+        expectException('=1 - FALSE', TypeError);
+        expectException('="s" - FALSE', TypeError);
+    });
 
     test('Matematical properties of subtraction are true', () => {
         // Anticommutativity
@@ -208,6 +211,27 @@ describe('Binary operators', () => {
         expectValue('=2 - 3 - 4', -5);
         expectValue('=(2 - 3) - 4', -5);
         expectValue('=2 - (3 - 4)', 3);
+    });
+});
+
+describe('Multiplication operator', () => {
+    test('multiplies two numbers', () => {
+        expectValue('=2*3.4', 6.8);
+        expectValue('=2*-3', -6);
+        expectValue('=-2*3', -6);
+        expectValue('=-2*-3', 6);
+        expectValue('=0.3*3', 0.3 * 3); // 0.8999999999999999 because of floating point numbers
+        expectValue('=3*0.3', 0.3 * 3); // 0.8999999999999999 because of floating point numbers
+    });
+
+    test('throws TypeError when operands are not numbers', () => {
+        expectException('="s" * 1', TypeError);
+        expectException('=1 * "s"', TypeError);
+        expectException('="s" * "s"', TypeError);
+        expectException('=TRUE * 1', TypeError);
+        expectException('=TRUE * "s"', TypeError);
+        expectException('=1 * FALSE', TypeError);
+        expectException('="s" * FALSE', TypeError);
     });
 
     test('Mathematical properties of multiplication are true', () => {
@@ -242,6 +266,27 @@ describe('Binary operators', () => {
         expectValue('=23.3 * (1/23.3)', 1);
         expectValue('=1', 1);
     });
+});
+
+describe('Division operator', () => {
+    test('divides two numbers', () => {
+        expectValue('=3.4/2', 1.7);
+        expectValue('=6/2.5', 2.4);
+        expectValue('=-6/2', -3);
+        expectValue('=6/-2', -3);
+        expectValue('=-6/-2', 3);
+        expectValue('=0.3/0.1', 0.3 / 0.1); // 2.9999999999999996 because of floating point numbers
+    });
+
+    test('throws TypeError when both operands are not numbers', () => {
+        expectException('="s" / "s"', TypeError);
+        expectException('=1 / "s"', TypeError);
+        expectException('="s" / 1', TypeError);
+        expectException('=TRUE / 1', TypeError);
+        expectException('=TRUE / "s"', TypeError);
+        expectException('=1 / FALSE', TypeError);
+        expectException('="s" / FALSE', TypeError);
+    });
 
     test('Mathematical properties of division are true', () => {
         // Not commutative
@@ -261,50 +306,29 @@ describe('Binary operators', () => {
         expectValue('=3 / (4 + 5)', 1 / 3);
         expectValue('=(3/4) + (3/5)', 1.35);
     });
+});
 
-    test('+ throws when both operands are not a string or number', () => {
-        expectException('=1 + "s"', TypeError);
-        expectException('="s" + 1', TypeError);
-        expectException('=TRUE + 1', TypeError);
-        expectException('=TRUE + "s"', TypeError);
-        expectException('=1 + FALSE', TypeError);
-        expectException('="s" + FALSE', TypeError);
-    });
+describe('Operator precendence', () => {
+    test('Multiplication and division has precedence over addition and subtraction', () => {
+        expectValue('=2 + 3 * 4 + 5', 19);
+        expectValue('=2 * 3 + 4 * 5', 26);
+        expectValue('=2 * 3 + 4', 10);
+        expectValue('=2 + 3 * 4', 14);
 
-    test('- throws when both operands are not a number', () => {
-        expectException('="s" - "s"', TypeError);
-        expectException('=1 - "s"', TypeError);
-        expectException('="s" - 1', TypeError);
-        expectException('=TRUE - 1', TypeError);
-        expectException('=TRUE - "s"', TypeError);
-        expectException('=1 - FALSE', TypeError);
-        expectException('="s" - FALSE', TypeError);
-    });
+        expectValue('=2 - 4 / 8 - 16', -14.5);
+        expectValue('=2 / 4 - 8 / 16', 0);
+        expectValue('=1 / 2 - 4', -3.5);
+        expectValue('=1 - 2 / 4', 0.5);
 
-    test('* throws when both operands are not numbers', () => {
-        expectException('="s" * 1', TypeError);
-        expectException('=1 * "s"', TypeError);
-        expectException('="s" * "s"', TypeError);
-        expectException('=TRUE * 1', TypeError);
-        expectException('=TRUE * "s"', TypeError);
-        expectException('=1 * FALSE', TypeError);
-        expectException('="s" * FALSE', TypeError);
-        
-    });
+        expectValue('=2 + 4 / 8 + 16', 18.5);
+        expectValue('=2 / 4 + 8 / 16', 1);
+        expectValue('=1 / 2 + 4', 4.5);
+        expectValue('=1 + 2 / 4', 1.5);
 
-    test('/ throws when both operands are not a number', () => {
-        expectException('="s" / "s"', TypeError);
-        expectException('=1 / "s"', TypeError);
-        expectException('="s" / 1', TypeError);
-        expectException('=TRUE / 1', TypeError);
-        expectException('=TRUE / "s"', TypeError);
-        expectException('=1 / FALSE', TypeError);
-        expectException('="s" / FALSE', TypeError);
-    });
-
-    test('+ concatenates strings', () => {
-        expectValue('="abc" + "def"', 'abcdef');
-        expectValue('="abc" + "def" + "ghi"', 'abcdefghi');
+        expectValue('=2 - 4 * 8 - 16', -46);
+        expectValue('=2 * 4 - 8 * 16', -120);
+        expectValue('=2 * 3 - 4', 2);
+        expectValue('=2 - 3 * 4', -10);
     });
 });
 
@@ -399,7 +423,18 @@ describe('Range references', () => {
         expect(spreadsheet.evaluateQuery('=SUM(D1:A1)')).toBe(10);
         expect(spreadsheet.evaluateQuery('=SUM(A1:A5)')).toBe(45);
         expect(spreadsheet.evaluateQuery('=SUM(A5:A1)')).toBe(45);
-    })
+    });
+
+    test('Range references are allowed only as function arguments', () => {
+        expectException('=A2:A4', RangeReferenceNotAllowedError);
+        expectException('=3 + A2:A4', RangeReferenceNotAllowedError);
+        expectException('=-A2:A4', RangeReferenceNotAllowedError);
+        const spreadsheet = new Spreadsheet({
+            cells: { A1: '1', A2: '2', A3: '=SUM(A1:A2)' },
+            functions: builtinFunctions
+        });
+        expect(spreadsheet.getValue('A3')).toBe(3);
+    });
 });
 
 describe('Spreadsheet functions', () => {
@@ -729,7 +764,7 @@ describe('Spreadsheet event listeners', () => {
         const eventListener = () => eventHistory.push('changed');
         spreadsheet.addListener('cellsChanged', eventListener);
 
-        spreadsheet.removeListener('cellsChanged', () => {});
+        spreadsheet.removeListener('cellsChanged', () => { });
 
         // Make sure the value is used (else cellsChanged will not be called)
         spreadsheet.getValue('A1');
@@ -738,7 +773,7 @@ describe('Spreadsheet event listeners', () => {
         expect(eventHistory).toEqual(['changed']);
         spreadsheet.setText('A1', '3');
         expect(eventHistory).toEqual(['changed', 'changed']);
-        
+
         spreadsheet.removeListener('cellsChanged', eventListener);
         spreadsheet.setText('A1', '4');
         expect(eventHistory).toEqual(['changed', 'changed']);
