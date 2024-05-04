@@ -16,7 +16,7 @@ function createConfig(input, output, format, extend) {
         output: {
             file: output + '.min.js',
             format: format,
-            name: extend ? 'SimpleSpreadsheet': undefined,
+            name: extend ? 'SimpleSpreadsheet' : undefined,
             sourcemap: true,
             extend: extend,
         },

@@ -27,7 +27,7 @@ export const builtinFunctions = {
     IF: {
         isLazy: true,
         function: function IF(condition, trueBranch, falseBranch) {
-            if(arguments.length !== 3) throw new Error(`IF() function requires 3 arguments.`);
+            if (arguments.length !== 3) throw new Error(`IF() function requires 3 arguments.`);
             const conditionResult = condition();
             if (typeof (conditionResult) !== 'boolean')
                 throw new Error(`Condition must be a boolean, got ${typeof (conditionResult)}`);
@@ -44,7 +44,7 @@ export const builtinFunctions = {
                 const conditionResult = condition();
                 if (typeof (conditionResult) !== 'boolean')
                     throw new Error(`All arguments of OR() must be booleans, but argument ${i + 1} has type ${typeof (conditionResult)}.`);
-                if(conditionResult === true) return true;
+                if (conditionResult === true) return true;
             }
             return false;
         }
@@ -59,7 +59,7 @@ export const builtinFunctions = {
                 const conditionResult = condition();
                 if (typeof (conditionResult) !== 'boolean')
                     throw new Error(`All arguments of AND() must be booleans, but argument ${i + 1} has type ${typeof (conditionResult)}.`);
-                if(conditionResult === false) return false;
+                if (conditionResult === false) return false;
             }
             return true;
         }
@@ -67,8 +67,8 @@ export const builtinFunctions = {
 
     NOT: function NOT(boolean, ...rest) {
         if (rest.length !== 0) throw new Error(`NOT() expects exactly 1 argument.`);
-        if(typeof(boolean) !== 'boolean')
-            throw new Error(`NOT() expects a boolean, got ${typeof(boolean)}`);
+        if (typeof (boolean) !== 'boolean')
+            throw new Error(`NOT() expects a boolean, got ${typeof (boolean)}`);
         return !boolean;
     },
 

@@ -5,7 +5,7 @@ import { UnknownFunctionError, RuntimeError, ParsingError } from './errors.js';
 import ReferencesMap from './referencesMap.js';
 
 export class Environment {
-    constructor({ cells = new Map(), functions = new Map(), onCellsChanged = () => {} }) {
+    constructor({ cells = new Map(), functions = new Map(), onCellsChanged = () => { } }) {
         this._cells = cells; // { position => formula text }
         this._functions = functions; // { name => function or lazy function }
         this._onCellsChanged = onCellsChanged;

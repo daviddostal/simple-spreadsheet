@@ -25,7 +25,7 @@ export default class Parser {
         // empty cell or non-string value
         // TODO: should arbitrary JS values be allowed here or should we just make exceptions for
         // whitelisted types (numbers, strings)?
-        if (typeof(text) !== 'string')
+        if (typeof (text) !== 'string')
             return { parsed: new Value(text), references: [] };
 
         // formula
@@ -107,7 +107,7 @@ export default class Parser {
 
         // boolean
         const boolean = this._tokens.expect(TokenType.BOOLEAN);
-        if(boolean !== null)
+        if (boolean !== null)
             return new Value(boolean.value === 'TRUE');
 
         const identifier = this._tokens.expect(TokenType.IDENTIFIER);
