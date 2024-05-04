@@ -1,5 +1,4 @@
-import { Spreadsheet } from '../../src/spreadsheet';
-import { ParsingError, CircularReferenceError, RangeReferenceNotAllowedError } from '../../src/spreadsheet/errors';
+import { Spreadsheet, Errors } from '../../src/spreadsheet';
 import { builtinFunctions } from '../../src/functions';
 import { expectException } from '../test-helpers';
 
@@ -36,7 +35,7 @@ describe('Cell references', () => {
     });
     expect(spreadsheet.evaluateQuery('=AA10')).toBe(3);
     expect(spreadsheet.evaluateQuery('=SUM(Y10:AB10)')).toBe(10);
-    expect(() => spreadsheet.evaluateQuery('=AŽ10')).toThrow(ParsingError);
+    expect(() => spreadsheet.evaluateQuery('=AŽ10')).toThrow(Errors.ParsingError);
   });
 
   test('cyclic references cause runtime exception', () => {
@@ -44,19 +43,19 @@ describe('Cell references', () => {
       cells: { A1: '=A2', A2: '=A1' }, functions: builtinFunctions
     });
 
-    expect(() => spreadsheet.getValue('A1')).toThrow(CircularReferenceError);
+    expect(() => spreadsheet.getValue('A1')).toThrow(Errors.CircularReferenceError);
 
     const spreadsheet2 = new Spreadsheet({
       cells: { A1: '=2 * A1' }, functions: builtinFunctions
     });
 
-    expect(() => spreadsheet2.getValue('A1')).toThrow(CircularReferenceError);
+    expect(() => spreadsheet2.getValue('A1')).toThrow(Errors.CircularReferenceError);
 
     const spreadsheet3 = new Spreadsheet({
       cells: { B2: '=SUM(A1:C3)' }, functions: builtinFunctions
     });
 
-    expect(() => spreadsheet3.getValue('B2')).toThrow(CircularReferenceError);
+    expect(() => spreadsheet3.getValue('B2')).toThrow(Errors.CircularReferenceError);
   });
 });
 
@@ -82,9 +81,9 @@ describe('Range references', () => {
   });
 
   test('range references are allowed only as function arguments', () => {
-    expectException('=A2:A4', RangeReferenceNotAllowedError);
-    expectException('=3 + A2:A4', RangeReferenceNotAllowedError);
-    expectException('=-A2:A4', RangeReferenceNotAllowedError);
+    expectException('=A2:A4', Errors.RangeReferenceNotAllowedError);
+    expectException('=3 + A2:A4', Errors.RangeReferenceNotAllowedError);
+    expectException('=-A2:A4', Errors.RangeReferenceNotAllowedError);
     const spreadsheet = new Spreadsheet({
       cells: { A1: '1', A2: '2', A3: '=SUM(A1:A2)' },
       functions: builtinFunctions

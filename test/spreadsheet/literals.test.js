@@ -1,4 +1,4 @@
-import { ParsingError } from '../../src/spreadsheet/errors';
+import { Errors } from '../../src/spreadsheet';
 import { expectValue, expectException } from '../test-helpers';
 
 describe('Numbers', () => {
@@ -28,8 +28,8 @@ describe('Strings', () => {
     expectValue('="\\""', '"'); // \"" => "
     expectValue('="\n"', '\n'); // \n => newline
 
-    expectException('="\\j"', ParsingError); // \j => unknown escape sequence
-    expectException('="\\\\\\"', ParsingError);   //  ="\\\"  =>  last quote is escaped
+    expectException('="\\j"', Errors.ParsingError); // \j => unknown escape sequence
+    expectException('="\\\\\\"', Errors.ParsingError);   //  ="\\\"  =>  last quote is escaped
   });
 });
 
@@ -40,7 +40,7 @@ describe('Booleans', () => {
   });
 
   test('boolean literals must be uppercase', () => {
-    expectException('=true', ParsingError);
-    expectException('=false', ParsingError);
+    expectException('=true', Errors.ParsingError);
+    expectException('=false', Errors.ParsingError);
   });
 });

@@ -1,4 +1,5 @@
-import { colIndexToString, positionsInRange, stringToColIndex } from '../src/spreadsheet/helpers';
+import { Helpers } from '../src/spreadsheet';
+const { colIndexToString, positionsInRange, stringToColIndex } = Helpers;
 
 describe('Spreadsheet helpers', () => {
   test('colIndexToString', () => {

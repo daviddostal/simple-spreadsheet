@@ -1,5 +1,4 @@
-import { Spreadsheet } from '../../src/spreadsheet';
-import { TypeError } from '../../src/spreadsheet/errors';
+import { Spreadsheet, Errors } from '../../src/spreadsheet';
 import { expectValue, expectException } from '../test-helpers';
 
 describe('Unary operators', () => {
@@ -19,13 +18,13 @@ describe('Unary operators', () => {
   });
 
   test('unary + and - throw when operand is not a number', () => {
-    expectException('=+"abc"', TypeError);
-    expectException('=+"10"', TypeError);
-    expectException('=-"abc"', TypeError);
-    expectException('=-TRUE', TypeError);
-    expectException('=+TRUE', TypeError);
-    expectException('=-FALSE', TypeError);
-    expectException('=+FALSE', TypeError);
+    expectException('=+"abc"', Errors.TypeError);
+    expectException('=+"10"', Errors.TypeError);
+    expectException('=-"abc"', Errors.TypeError);
+    expectException('=-TRUE', Errors.TypeError);
+    expectException('=+TRUE', Errors.TypeError);
+    expectException('=-FALSE', Errors.TypeError);
+    expectException('=+FALSE', Errors.TypeError);
   });
 
   test('sequences of multiple unary operators work as expected', () => {
@@ -69,12 +68,12 @@ describe('Addition operator', () => {
   });
 
   test('throws TypeError when both operands are not strings or numbers', () => {
-    expectException('=1 + "s"', TypeError);
-    expectException('="s" + 1', TypeError);
-    expectException('=TRUE + 1', TypeError);
-    expectException('=TRUE + "s"', TypeError);
-    expectException('=1 + FALSE', TypeError);
-    expectException('="s" + FALSE', TypeError);
+    expectException('=1 + "s"', Errors.TypeError);
+    expectException('="s" + 1', Errors.TypeError);
+    expectException('=TRUE + 1', Errors.TypeError);
+    expectException('=TRUE + "s"', Errors.TypeError);
+    expectException('=1 + FALSE', Errors.TypeError);
+    expectException('="s" + FALSE', Errors.TypeError);
   });
 
   test('mathematical properties of addition are true', () => {
@@ -114,13 +113,13 @@ describe('Subtraction operator', () => {
   });
 
   test('throws TypeError when both operands are not numbers', () => {
-    expectException('="s" - "s"', TypeError);
-    expectException('=1 - "s"', TypeError);
-    expectException('="s" - 1', TypeError);
-    expectException('=TRUE - 1', TypeError);
-    expectException('=TRUE - "s"', TypeError);
-    expectException('=1 - FALSE', TypeError);
-    expectException('="s" - FALSE', TypeError);
+    expectException('="s" - "s"', Errors.TypeError);
+    expectException('=1 - "s"', Errors.TypeError);
+    expectException('="s" - 1', Errors.TypeError);
+    expectException('=TRUE - 1', Errors.TypeError);
+    expectException('=TRUE - "s"', Errors.TypeError);
+    expectException('=1 - FALSE', Errors.TypeError);
+    expectException('="s" - FALSE', Errors.TypeError);
   });
 
   test('matematical properties of subtraction are true', () => {
@@ -161,13 +160,13 @@ describe('Multiplication operator', () => {
   });
 
   test('throws TypeError when operands are not numbers', () => {
-    expectException('="s" * 1', TypeError);
-    expectException('=1 * "s"', TypeError);
-    expectException('="s" * "s"', TypeError);
-    expectException('=TRUE * 1', TypeError);
-    expectException('=TRUE * "s"', TypeError);
-    expectException('=1 * FALSE', TypeError);
-    expectException('="s" * FALSE', TypeError);
+    expectException('="s" * 1', Errors.TypeError);
+    expectException('=1 * "s"', Errors.TypeError);
+    expectException('="s" * "s"', Errors.TypeError);
+    expectException('=TRUE * 1', Errors.TypeError);
+    expectException('=TRUE * "s"', Errors.TypeError);
+    expectException('=1 * FALSE', Errors.TypeError);
+    expectException('="s" * FALSE', Errors.TypeError);
   });
 
   test('mathematical properties of multiplication are true', () => {
@@ -232,13 +231,13 @@ describe('Division operator', () => {
   });
 
   test('throws TypeError when both operands are not numbers', () => {
-    expectException('="s" / "s"', TypeError);
-    expectException('=1 / "s"', TypeError);
-    expectException('="s" / 1', TypeError);
-    expectException('=TRUE / 1', TypeError);
-    expectException('=TRUE / "s"', TypeError);
-    expectException('=1 / FALSE', TypeError);
-    expectException('="s" / FALSE', TypeError);
+    expectException('="s" / "s"', Errors.TypeError);
+    expectException('=1 / "s"', Errors.TypeError);
+    expectException('="s" / 1', Errors.TypeError);
+    expectException('=TRUE / 1', Errors.TypeError);
+    expectException('=TRUE / "s"', Errors.TypeError);
+    expectException('=1 / FALSE', Errors.TypeError);
+    expectException('="s" / FALSE', Errors.TypeError);
   });
 
   test('mathematical properties of division are true', () => {
@@ -484,11 +483,11 @@ describe('Greater than operator', () => {
   });
 
   test('throws when operands are not numbers', () => {
-    expectException('=1 > "a"', TypeError);
-    expectException('="a" > 1', TypeError);
-    expectException('=TRUE > 0', TypeError);
-    expectException('=1 > FALSE', TypeError);
-    expectException('=1 > Z99', TypeError);
+    expectException('=1 > "a"', Errors.TypeError);
+    expectException('="a" > 1', Errors.TypeError);
+    expectException('=TRUE > 0', Errors.TypeError);
+    expectException('=1 > FALSE', Errors.TypeError);
+    expectException('=1 > Z99', Errors.TypeError);
   });
 });
 
@@ -513,11 +512,11 @@ describe('Less than operator', () => {
   });
 
   test('throws when operands are not numbers', () => {
-    expectException('=1 < "a"', TypeError);
-    expectException('="a" < 1', TypeError);
-    expectException('=TRUE < 0', TypeError);
-    expectException('=1 < FALSE', TypeError);
-    expectException('=1 < Z99', TypeError);
+    expectException('=1 < "a"', Errors.TypeError);
+    expectException('="a" < 1', Errors.TypeError);
+    expectException('=TRUE < 0', Errors.TypeError);
+    expectException('=1 < FALSE', Errors.TypeError);
+    expectException('=1 < Z99', Errors.TypeError);
   });
 });
 
@@ -544,11 +543,11 @@ describe('Greater or equal operator', () => {
   });
 
   test('throws when operands are not numbers', () => {
-    expectException('=1 >= "a"', TypeError);
-    expectException('="a" >= 1', TypeError);
-    expectException('=TRUE >= 0', TypeError);
-    expectException('=1 >= FALSE', TypeError);
-    expectException('=1 >= Z99', TypeError);
+    expectException('=1 >= "a"', Errors.TypeError);
+    expectException('="a" >= 1', Errors.TypeError);
+    expectException('=TRUE >= 0', Errors.TypeError);
+    expectException('=1 >= FALSE', Errors.TypeError);
+    expectException('=1 >= Z99', Errors.TypeError);
   });
 });
 
@@ -575,11 +574,11 @@ describe('Less or equal operator', () => {
   });
 
   test('throws when operands are not numbers', () => {
-    expectException('=1 <= "a"', TypeError);
-    expectException('="a" <= 1', TypeError);
-    expectException('=TRUE <= 0', TypeError);
-    expectException('=1 <= FALSE', TypeError);
-    expectException('=1 <= Z99', TypeError);
+    expectException('=1 <= "a"', Errors.TypeError);
+    expectException('="a" <= 1', Errors.TypeError);
+    expectException('=TRUE <= 0', Errors.TypeError);
+    expectException('=1 <= FALSE', Errors.TypeError);
+    expectException('=1 <= Z99', Errors.TypeError);
   });
 });
 
@@ -654,27 +653,27 @@ describe('Operator precendence', () => {
 
     // <> and >
     expectValue('= 1 > 2 <> FALSE', false);
-    expectException('= FALSE <> 1 > 2', TypeError);
+    expectException('= FALSE <> 1 > 2', Errors.TypeError);
 
     // = and >
     expectValue('= 1 > 2 = TRUE', false);
-    expectException('= TRUE = 1 > 2', TypeError);
+    expectException('= TRUE = 1 > 2', Errors.TypeError);
 
     // = and <
     expectValue('= 2 < 1 = TRUE', false);
-    expectException('= TRUE = 2 < 1', TypeError);
+    expectException('= TRUE = 2 < 1', Errors.TypeError);
 
     // = and >=
     expectValue('= 1 >= 2 = TRUE', false);
-    expectException('= TRUE = 1 >= 2', TypeError);
+    expectException('= TRUE = 1 >= 2', Errors.TypeError);
 
     // = and <=
     expectValue('= 2 <= 1 = TRUE', false);
-    expectException('= TRUE = 2 <= 1', TypeError);
+    expectException('= TRUE = 2 <= 1', Errors.TypeError);
 
     // = and <=
     expectValue('= 2 <= 1 = TRUE', false);
-    expectException('= TRUE = 2 <= 1', TypeError);
+    expectException('= TRUE = 2 <= 1', Errors.TypeError);
   });
 
   test('comparison operator chaining evaluates each operator individually from left to right', () => {
@@ -684,19 +683,19 @@ describe('Operator precendence', () => {
 
     expectValue('= 2 <> 2 = TRUE', false);
 
-    expectException('= 1 < 2 < 3', TypeError);
+    expectException('= 1 < 2 < 3', Errors.TypeError);
     expectValue('= 1 < 2 = TRUE', true);
 
-    expectException('= 1 > 2 > 3', TypeError);
+    expectException('= 1 > 2 > 3', Errors.TypeError);
     expectValue('= 1 > 2 = FALSE', true);
 
-    expectException('= 1 <= 2 <= 3', TypeError);
-    expectException('= 1 <= 1 <= 1', TypeError);
+    expectException('= 1 <= 2 <= 3', Errors.TypeError);
+    expectException('= 1 <= 1 <= 1', Errors.TypeError);
     expectValue('= 1 <= 2 = TRUE', true);
     expectValue('= 1 <= 1 = TRUE', true);
 
-    expectException('= 1 >= 2 >= 3', TypeError);
-    expectException('= 1 >= 1 >= 1', TypeError);
+    expectException('= 1 >= 2 >= 3', Errors.TypeError);
+    expectException('= 1 >= 1 >= 1', Errors.TypeError);
     expectValue('= 1 >= 2 = FALSE', true);
     expectValue('= 1 >= 1 = TRUE', true);
   });

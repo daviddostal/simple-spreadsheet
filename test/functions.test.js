@@ -1,4 +1,4 @@
-import { Spreadsheet, FunctionEvaluationError } from '../src/spreadsheet';
+import { Spreadsheet, Errors } from '../src/spreadsheet';
 import { builtinFunctions } from '../src/functions';
 
 describe('STRING function', () => {
@@ -28,18 +28,18 @@ describe('STRING function', () => {
     });
 
     test('throws when given a range', () => {
-        expect(() => spreadsheet.evaluateQuery('=STRING(A1:A2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=STRING(A1:A2)')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when given an unknown type', () => {
-        expect(() => spreadsheet.evaluateQuery('=STRING(B1)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=STRING(B2)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=STRING(B3)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=STRING(B1)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=STRING(B2)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=STRING(B3)')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when not given exactly 1 agrument', () => {
-        expect(() => spreadsheet.evaluateQuery('=STRING()')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=STRING(1, 2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=STRING()')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=STRING(1, 2)')).toThrow(Errors.FunctionEvaluationError);
     });
 });
 
@@ -71,18 +71,18 @@ describe('NUMBER function', () => {
     });
 
     test('throws when given a range', () => {
-        expect(() => spreadsheet.evaluateQuery('=NUMBER(A1:A2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(A1:A2)')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when given an unknown type', () => {
-        expect(() => spreadsheet.evaluateQuery('=NUMBER(B1)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=NUMBER(B2)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=NUMBER(B3)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(B1)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(B2)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(B3)')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when not given exactly 1 agrument', () => {
-        expect(() => spreadsheet.evaluateQuery('=NUMBER()')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=NUMBER(1, 2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NUMBER()')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NUMBER(1, 2)')).toThrow(Errors.FunctionEvaluationError);
     });
 });
 
@@ -120,18 +120,18 @@ describe('BOOLEAN function', () => {
     });
 
     test('throws when given a range', () => {
-        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(A1:A2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(A1:A2)')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when given an unknown type', () => {
-        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(B1)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(B2)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(B3)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(B1)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(B2)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(B3)')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when not given exactly 1 agrument', () => {
-        expect(() => spreadsheet.evaluateQuery('=BOOLEAN()')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(1, 2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN()')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=BOOLEAN(1, 2)')).toThrow(Errors.FunctionEvaluationError);
     });
 });
 
@@ -165,8 +165,8 @@ describe('SUM function', () => {
 
     test('throws when arguments are not numbers', () => {
         const spreadsheet = new Spreadsheet({ cells: { A1: 'abc' }, functions: builtinFunctions });
-        expect(() => spreadsheet.evaluateQuery('=SUM(2, "hello")')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=SUM(2, A1)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=SUM(2, "hello")')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=SUM(2, A1)')).toThrow(Errors.FunctionEvaluationError);
     });
 });
 
@@ -200,8 +200,8 @@ describe('AVERAGE function', () => {
 
     test('throws when arguments are not numbers', () => {
         const spreadsheet = new Spreadsheet({ cells: { A1: 'abc' }, functions: builtinFunctions });
-        expect(() => spreadsheet.evaluateQuery('=AVERAGE(2, "hello")')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=AVERAGE(2, A1)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=AVERAGE(2, "hello")')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=AVERAGE(2, A1)')).toThrow(Errors.FunctionEvaluationError);
     });
 });
 
@@ -214,8 +214,8 @@ describe('PI function', () => {
     });
 
     test('throws when there are too many arguments', () => {
-        expect(() => spreadsheet.evaluateQuery('=PI(1)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=PI(1, 2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=PI(1)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=PI(1, 2)')).toThrow(Errors.FunctionEvaluationError);
     });
 });
 
@@ -248,22 +248,22 @@ describe('IF function', () => {
     });
 
     test('Exception in function causes FunctionEvaluationError', () => {
-        expect(() => spreadsheet.evaluateQuery('=IF(TRUE, THROW(), 3)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(TRUE, THROW(), 3)')).toThrow(Errors.FunctionEvaluationError);
         expect(() => spreadsheet.evaluateQuery('=IF(FALSE, THROW(), 3)')).not.toThrow();
-        expect(() => spreadsheet.evaluateQuery('=IF(THROW(), 2, 3)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=IF(FALSE, 2, THROW())')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(THROW(), 2, 3)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(FALSE, 2, THROW())')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when condition is not a boolean', () => {
-        expect(() => spreadsheet.evaluateQuery('=IF(1, 2, 3)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=IF("", 2, 3)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=IF(A1:A10, 2, 3)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(1, 2, 3)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF("", 2, 3)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(A1:A10, 2, 3)')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when argument count is not 3', () => {
-        expect(() => spreadsheet.evaluateQuery('=IF()')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=IF(TRUE)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=IF(TRUE, 2)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF()')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(TRUE)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=IF(TRUE, 2)')).toThrow(Errors.FunctionEvaluationError);
     })
 });
 
@@ -278,9 +278,9 @@ describe('NOT function', () => {
     });
 
     test('throws when the argument is not a boolean', () => {
-        expect(() => spreadsheet.evaluateQuery('=NOT(1)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=NOT("")')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=NOT(A1:A10)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NOT(1)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NOT("")')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=NOT(A1:A10)')).toThrow(Errors.FunctionEvaluationError);
     });
 });
 
@@ -298,19 +298,19 @@ describe('AND function', () => {
     });
 
     test('throws when no arguments are present', () => {
-        expect(() => spreadsheet.evaluateQuery('=AND()')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=AND()')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('evaluates arguments lazily (short-circuiting)', () => {
         expect(() => spreadsheet.evaluateQuery('=AND(FALSE, THROW())')).not.toThrow();
         expect(() => spreadsheet.evaluateQuery('=AND(TRUE, THROW())'))
-            .toThrow(FunctionEvaluationError);
+            .toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when some argument is not a boolean', () => {
-        expect(() => spreadsheet.evaluateQuery('=AND(1)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=AND("")')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=AND(A1:A10)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=AND(1)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=AND("")')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=AND(A1:A10)')).toThrow(Errors.FunctionEvaluationError);
     });
 });
 
@@ -328,18 +328,18 @@ describe('OR function', () => {
     });
 
     test('throws when no arguments are present', () => {
-        expect(() => spreadsheet.evaluateQuery('=OR()')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=OR()')).toThrow(Errors.FunctionEvaluationError);
     });
 
     test('evaluates arguments lazily (short-circuiting)', () => {
         expect(() => spreadsheet.evaluateQuery('=OR(TRUE, THROW())')).not.toThrow();
         expect(() => spreadsheet.evaluateQuery('=OR(FALSE, THROW())'))
-            .toThrow(FunctionEvaluationError);
+            .toThrow(Errors.FunctionEvaluationError);
     });
 
     test('throws when some argument is not boolean', () => {
-        expect(() => spreadsheet.evaluateQuery('=OR(1)')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=OR("")')).toThrow(FunctionEvaluationError);
-        expect(() => spreadsheet.evaluateQuery('=OR(A1:A10)')).toThrow(FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=OR(1)')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=OR("")')).toThrow(Errors.FunctionEvaluationError);
+        expect(() => spreadsheet.evaluateQuery('=OR(A1:A10)')).toThrow(Errors.FunctionEvaluationError);
     });
 });

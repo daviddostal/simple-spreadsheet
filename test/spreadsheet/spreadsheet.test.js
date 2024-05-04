@@ -1,5 +1,4 @@
-import { Spreadsheet } from '../../src/spreadsheet';
-import { ParsingError, FunctionEvaluationError, ReferencedCellError, UnknownFunctionError } from '../../src/spreadsheet/errors';
+import { Spreadsheet, Errors } from '../../src/spreadsheet';
 import { builtinFunctions } from '../../src/functions';
 import { expectValue, expectException } from '../test-helpers';
 
@@ -56,14 +55,14 @@ describe('Parentheses', () => {
   test('work properly', () => {
     expectValue('=3*(2+4)', 18);
     expectValue('=(((3))*(((((2)+((4)))))))', 18);
-    expectException('=3*(2+4', ParsingError);
-    expectException('=3*(2+4))', ParsingError);
-    expectException('=3*((2+4)', ParsingError);
-    expectException('=3*(2+4())', ParsingError);
-    expectException('=((((3))*(((((2)+((4)))))))', ParsingError);
-    expectException('=((3))*(((((2)+((4)))))))', ParsingError);
-    expectException('=A2()', UnknownFunctionError);
-    expectException('=3*()2', ParsingError);
+    expectException('=3*(2+4', Errors.ParsingError);
+    expectException('=3*(2+4))', Errors.ParsingError);
+    expectException('=3*((2+4)', Errors.ParsingError);
+    expectException('=3*(2+4())', Errors.ParsingError);
+    expectException('=((((3))*(((((2)+((4)))))))', Errors.ParsingError);
+    expectException('=((3))*(((((2)+((4)))))))', Errors.ParsingError);
+    expectException('=A2()', Errors.UnknownFunctionError);
+    expectException('=3*()2', Errors.ParsingError);
   });
 });
 
@@ -137,14 +136,14 @@ describe('Spreadsheet functions', () => {
   });
 
   test('cannot call result of a function', () => {
-    expectException('=SUM(2, 3)()', ParsingError);
+    expectException('=SUM(2, 3)()', Errors.ParsingError);
   });
 
   test('fxceptions in functions cause FunctionEvaluationErrors when evaluated', () => {
     const spreadsheet = new Spreadsheet({
       functions: { THROW: () => { throw new Error('Testing...'); } }
     });
-    expect(() => spreadsheet.evaluateQuery('=THROW()')).toThrow(FunctionEvaluationError);
+    expect(() => spreadsheet.evaluateQuery('=THROW()')).toThrow(Errors.FunctionEvaluationError);
   });
 
   test('function throws when argument throws', () => {
@@ -158,8 +157,8 @@ describe('Spreadsheet functions', () => {
     const spreadsheet = new Spreadsheet({
       cells: { A1: '=(', A2: '=A2:A4', A3: '=A1', A4: '=A2' }
     });
-    expect(() => spreadsheet.getValue('A3')).toThrow(ReferencedCellError);
-    expect(() => spreadsheet.getValue('A4')).toThrow(ReferencedCellError);
+    expect(() => spreadsheet.getValue('A3')).toThrow(Errors.ReferencedCellError);
+    expect(() => spreadsheet.getValue('A4')).toThrow(Errors.ReferencedCellError);
   });
 
   test('function arguments can be expressions, which are evaluated', () => {
@@ -167,15 +166,15 @@ describe('Spreadsheet functions', () => {
   });
 
   test('function names can be any valid identifier', () => {
-    expectException('=A(', ParsingError);
-    expectException('=1A()', ParsingError);
-    expectException('=_A()', ParsingError);
-    expectException('=A()', UnknownFunctionError);
-    expectException('=AB()', UnknownFunctionError);
-    expectException('=A_B()', UnknownFunctionError);
-    expectException('=A1()', UnknownFunctionError);
-    expectException('=A-()', ParsingError);
-    expectException('=A:()', ParsingError);
-    expectException('=A1:A3()', ParsingError);
+    expectException('=A(', Errors.ParsingError);
+    expectException('=1A()', Errors.ParsingError);
+    expectException('=_A()', Errors.ParsingError);
+    expectException('=A()', Errors.UnknownFunctionError);
+    expectException('=AB()', Errors.UnknownFunctionError);
+    expectException('=A_B()', Errors.UnknownFunctionError);
+    expectException('=A1()', Errors.UnknownFunctionError);
+    expectException('=A-()', Errors.ParsingError);
+    expectException('=A:()', Errors.ParsingError);
+    expectException('=A1:A3()', Errors.ParsingError);
   });
 });
