@@ -8,6 +8,7 @@
   <title>Editable spreadsheet demo</title>
   <script src="../../dist/browser/simple-spreadsheet.js"></script>
   <script src="../../dist/browser/simple-spreadsheet-functions.js"></script>
+  <script src="./helpers.js"></script>
   <script src="./spreadsheet-editor.js"></script>
   <link rel="stylesheet" href="index.css">
 </head>
@@ -56,9 +57,15 @@
         }
       },
       onCellEdited: (position, newText) => spreadsheet.setText(position, newText),
-      formatCellValue: value => (typeof (value) === "number")
-        ? parseFloat(value.toFixed(4)).toString()
-        : value,
+      formatCellValue: value => {
+        if (typeof (value) === "number")
+          return parseFloat(value.toFixed(4)).toString();
+        if (typeof (value) === "boolean")
+          return value ? "TRUE" : "FALSE";
+        if (value === null || value === undefined)
+          return "";
+        return value.toString();
+      },
     });
 
     spreadsheet.addListener("cellsChanged", changedCellPositions => {
