@@ -285,7 +285,7 @@ Below is an example, on how error handling can be implemented for the `Spreadshe
 method:
 
 ```js
-import { Spreadsheet, Errors } from "simple-spreadsheet/functions";
+import { Spreadsheet, Errors } from "simple-spreadsheet";
 
 const spreadsheet = new Spreadsheet({ cells: { A1: '= 1 +', A2: '=A1 * 2' } });
 
@@ -366,6 +366,37 @@ For a cell to be evaluated as a formula, it must start with a `=`.
 For example, if a cell has the text `= 1 + 2`, it will be evaluated as a formula and result in the value `3`, but without the equal sign at the beginning, `1 + 2` would just result in the literal string `"1 + 2"`.
 
 You can also group expressions in formulas using parentheses, which work as you may expect from mathematics or other programming languages.
+
+## Quick overview
+
+- **Data type literals**:
+  - **strings**: `"i am a string"`, `"i can contain some \" \\ \n escaped characters"`
+  - **numbers**: for example `1.25`, `94`, etc.
+  - **booleans**: `TRUE` or `FALSE` (both uppercase)
+- **Mathematical operators**:
+  - **unary `-`** (negates a number) and **`+`** (does nothing)
+  - **`+`**, **`-`**, **`*`**, **`/`**: work as you'd expect, including operator precedence; `+` can also concatenate two strings
+  - **parentheses** `(` and `)` can also be used
+- **Equality operators**:
+  - **`=`**: checks for equality
+  - **`<>`**: checks if both sides are *not* equal
+- **Comparison operators**:
+  - `>`, `<`, `>=`, `<=`
+- **Built-in spreadsheet functions**:
+  - `STRING()`, `NUMBER()`, `BOOLEAN()`: convert the argument to the given type (for example strings to numbers)
+  - `SUM()`, `AVERAGE()`
+  - `IF(condition, ifTrue, ifFalse)`
+  - `AND()`, `OR()`
+- **Cell references**: reference other cells by their name, such as `A1`, `C5`, etc.
+- **Range references**: for example `A2:C4` or `D12:AB5`; selects all cells between two cells; can only be used inside functions
+
+**Examples of formulas**:
+- `= -(1 + 2) * -3.5`
+- `= A2 * A3`
+- `= AVERAGE(A5:C8)`
+- `= IF(A1 = 0, "zero", "nonzero")`
+- `= OR(3 - 2 >= 4, "a" <> FALSE)`
+- `= IF(SUM(A1:A7) >= 10, "high", "low")`
 
 ## Literals
 
