@@ -3,18 +3,26 @@ const { stringToColIndex, colIndexToString, stringToRowIndex, rowIndexToString, 
 class SpreadsheetEditor {
   constructor(
     rootElement,
-    { width, height, getCellText, getCellValue, onCellEdited = () => { }, formatCellValue = v => v }
+    {
+      width, height,
+      getCellText, getCellValue,
+      onCellEdited = () => { },
+      formatCellValue = v => v,
+      isStandalone = false
+    }
   ) {
     this._getCellText = getCellText;
     this._getCellValue = getCellValue;
     this._onCellEdited = onCellEdited;
     this._formatCellValue = formatCellValue;
+    this._isStandalone = isStandalone;
 
     this._undoStack = [];
     this._redoStack = [];
 
     this._initializeEditor(rootElement, width, height);
   }
+
   _initializeEditor(rootElement, tableWidth, tableHeight) {
     const { tableElement, cellElements } = this._createTableElements(tableWidth, tableHeight);
     this._cellElements = cellElements;
@@ -28,7 +36,7 @@ class SpreadsheetEditor {
       this.invalidateValue(position);
     }
 
-    if (tableWidth > 0 && tableHeight > 0) {
+    if (this._isStandalone && tableWidth > 0 && tableHeight > 0) {
       const firstCellElement = this._cellElements.get(indicesToPosition(0, 0));
       firstCellElement.focus();
     }
