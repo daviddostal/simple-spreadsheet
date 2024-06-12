@@ -1,6 +1,6 @@
 # SimpleSpreadsheet
 
-A library for evaluating simple Excel-like spreadsheet functions.
+A library for evaluating simple Excel-like spreadsheet formulas.
 
 The goal of this library isn't to be fully compatible with formulas from Excel or other spreadsheet editors (there already are solutions for that), but to strike a good balance
 between familiar formula syntax and easy extensibility thanks to the
@@ -11,11 +11,19 @@ ability to add custom spreadsheet functions in the form of simple JavaScript fun
 
 # Table of contents
 
+- [Demo](#demo)
 - [Installation](#installation)
 - [Usage example](#usage-example)
 - [Library API](#library-api)
 - [Formula syntax](#formula-syntax)
 - [Built-in spreadsheet functions](#built-in-spreadsheet-functions)
+
+# Demo
+
+For the purposes of demonstrating the capabilities of the formula evaluation library, I build a simple demo in the form of an editable spreadsheet. The code for the demo can be found inside the `/example/spreadsheet-editor/` directory of this repo.
+
+[Open spreadsheet editor demo](https://daviddostal.net/demos/simple-spreadsheet/index.html?spreadsheetFile=/content/projects/simple-spreadsheet/example-spreadsheet-en.json)
+
 
 # Installation
 
