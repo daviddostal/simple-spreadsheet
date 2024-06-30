@@ -1,20 +1,24 @@
 {
-    "extends": "eslint:recommended",
+    "root": true,
+    "extends": ["eslint:recommended",  "plugin:@typescript-eslint/recommended"],
     "env": {
         "es2022": true,
         "jest": true
     },
+    "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "sourceType": "module"
     },
     "plugins": [
-        "@stylistic/js"
+        "@stylistic/js",
+        "@typescript-eslint"
     ],
     "ignorePatterns":[
-        "example/**"
+        "example/**",
+        "dist/**"
     ],
     "rules": {
-        "no-unused-vars": [
+        "@typescript-eslint/no-unused-vars": [
             "error",
             {
                 "varsIgnorePattern": "^_",

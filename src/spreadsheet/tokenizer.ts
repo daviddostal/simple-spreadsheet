@@ -1,29 +1,30 @@
-import { ParsingError } from './errors.js';
-import TokenStream from './tokenStream.js';
+import { ParsingError } from './errors';
+import TokenStream from './tokenStream';
 
-export const TokenType = Object.freeze({
-    // Note: strings must be unique, because they are used for comparison
-    EOF: Symbol('end of formula'),
-    WHITESPACE: Symbol('whitespace'),
-    PLUS: Symbol('+'),
-    MINUS: Symbol('-'),
-    STAR: Symbol('*'),
-    SLASH: Symbol('/'),
-    LPAREN: Symbol('opening parenthesis'),
-    RPAREN: Symbol('closing parenthesis'),
-    COLON: Symbol(':'),
-    EQUALS: Symbol('='),
-    COMMA: Symbol('comma'),
-    NUMBER: Symbol('number'),
-    STRING: Symbol('string'),
-    BOOLEAN: Symbol('boolean'),
-    IDENTIFIER: Symbol('identifier'),
-    GREATER_THAN: Symbol('>'),
-    LESS_THAN: Symbol('<'),
-    GREATER_OR_EQUAL: Symbol('>='),
-    LESS_OR_EQUAL: Symbol('<='),
-    NOT_EQUAL: Symbol('<>'),
-});
+export type Token = { type: TokenType, value: string };
+
+export enum TokenType {
+    EOF = 'end of formula',
+    WHITESPACE = 'whitespace',
+    PLUS = '+',
+    MINUS = '-',
+    STAR = '*',
+    SLASH = '/',
+    LPAREN = 'opening parenthesis',
+    RPAREN = 'closing parenthesis',
+    COLON = ':',
+    EQUALS = '=',
+    COMMA = 'comma',
+    NUMBER = 'number',
+    STRING = 'string',
+    BOOLEAN = 'boolean',
+    IDENTIFIER = 'identifier',
+    GREATER_THAN = '>',
+    LESS_THAN = '<',
+    GREATER_OR_EQUAL = '>=',
+    LESS_OR_EQUAL = '<=',
+    NOT_EQUAL = '<>',
+}
 
 export class Tokenizer {
     // Lookup table to speed up parsing of some one-character tokens.
@@ -31,7 +32,7 @@ export class Tokenizer {
     //
     // IMPORTANT: none of these tokens should be a prefix of another token type!
     // For example, '<' cannot be a simple token, because it is a prefix of '<='.
-    static _simpleTokens = {
+    private static _simpleTokens: Record<string, TokenType> = {
         ' ': TokenType.WHITESPACE,
         '\t': TokenType.WHITESPACE,
         '\r': TokenType.WHITESPACE,
@@ -50,7 +51,7 @@ export class Tokenizer {
     // Tokens, which match exactly one specific string.
     // The order of rules matters when one token can be a prefix of another,
     // such as '<=' and '<'. Longer rules should generally come first in such cases.
-    static _stringTokens = [
+    private static _stringTokens: { string: string, type: TokenType }[] = [
         { string: 'TRUE', type: TokenType.BOOLEAN },
         { string: 'FALSE', type: TokenType.BOOLEAN },
         { string: '>=', type: TokenType.GREATER_OR_EQUAL },
@@ -62,8 +63,9 @@ export class Tokenizer {
 
     // Rules for more complex tokens, where one token type can match multiple different strings.
     // The order of rules matters in cases where one token can be a prefix of another.
-    static _patternTokens = [
-        // NUMBER and IDENTIFIER are used the most so keep them at the top (for performance reasons - it makes a difference, I measured it)
+    private static _patternTokens: { pattern: RegExp, type: TokenType }[] = [
+        // NUMBER and IDENTIFIER are used the most so keep them at the top (for performance
+        // reasons - it makes a difference, I measured it).
         // Patterns usually start with ^ so they match the start of the remaining
         // string, not anywhere in the middle.
         { pattern: /^\d+(?:\.\d+)?/, type: TokenType.NUMBER },
@@ -71,7 +73,7 @@ export class Tokenizer {
         { pattern: /^"(?:[^"\\]|\\.)*"/, type: TokenType.STRING },
     ];
 
-    tokenize(text) {
+    tokenize(text: string): TokenStream {
         const tokens = [];
         let remaining = text;
         while (remaining.length > 0) {
@@ -84,19 +86,19 @@ export class Tokenizer {
         return new TokenStream(tokens);
     }
 
-    _nextToken(text) {
+    private _nextToken(text: string): Token {
         if (text.length === 0) return { type: TokenType.EOF, value: '' };
 
         const firstChar = text[0];
         const simpleToken = Tokenizer._simpleTokens[firstChar];
         if (simpleToken !== undefined) return { type: simpleToken, value: firstChar };
 
-        for (let { string, type } of Tokenizer._stringTokens) {
+        for (const { string, type } of Tokenizer._stringTokens) {
             if (text.startsWith(string))
                 return { type, value: string };
         }
 
-        for (let { pattern, type } of Tokenizer._patternTokens) {
+        for (const { pattern, type } of Tokenizer._patternTokens) {
             const match = text.match(pattern);
             if (match !== null)
                 return { type, value: match[0] };

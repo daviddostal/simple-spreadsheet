@@ -1,27 +1,41 @@
-import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp } from './expressions.js';
-import { RuntimeError, ParsingError, CircularReferenceError, ReferencedCellError, NotImplementedError, RangeReferenceNotAllowedError, FunctionEvaluationError, TypeError } from './errors.js';
-import * as Helpers from './helpers.js';
+import { Value, Reference, BinaryOp, FunctionCall, Range, UnaryOp, Expression } from './expressions';
+import {
+    RuntimeError, ParsingError, CircularReferenceError, ReferencedCellError, NotImplementedError,
+    RangeReferenceNotAllowedError, FunctionEvaluationError, TypeError
+} from './errors';
+import { positionsInRange } from './helpers';
+import { Environment } from './environment';
+import { BasicSpreadsheetFunction, CellPosition, CellValue, LazySpreadsheetFunction } from './types';
 
 class CircularRefInternal extends Error {
-    constructor(position, circlePositions) { super(); this.position = position; this.circlePositions = circlePositions; }
+    position: CellPosition;
+    circlePositions: CellPosition[];
+
+    constructor(position: CellPosition, circlePositions: CellPosition[]) {
+        super();
+        this.position = position;
+        this.circlePositions = circlePositions;
+    }
 }
 
 export default class Evaluator {
+    private _visitedCellStack: string[];
+
     constructor() {
-        this.visitedCellStack = [];
+        this._visitedCellStack = [];
     }
 
-    evaluateCellAt(position, expression, environment) {
-        if (this.visitedCellStack.includes(position))
-            throw new CircularRefInternal(position, [...this.visitedCellStack, position]);
+    evaluateCellAt(position: string, expression: Expression, environment: Environment): CellValue {
+        if (this._visitedCellStack.includes(position))
+            throw new CircularRefInternal(position, [...this._visitedCellStack, position]);
 
-        this.visitedCellStack.push(position);
+        this._visitedCellStack.push(position);
         try {
             const result = this._evaluateCell(expression, environment);
-            this.visitedCellStack.pop();
+            this._visitedCellStack.pop();
             return result;
         } catch (ex) {
-            this.visitedCellStack.pop()
+            this._visitedCellStack.pop()
             // Normal errors propagate as usual, but CircularRefInternal is used
             // only to propagate the exception to the originating cell internally
             // (so it doesn't get reported just as an error in a referenced cell).
@@ -35,30 +49,28 @@ export default class Evaluator {
         }
     }
 
-    evaluateQuery(expression, environment) {
+    evaluateQuery(expression: Expression, environment: Environment): CellValue {
         return this._evaluateCell(expression, environment);
     }
 
-    _evaluateCell(expression, environment) {
-        switch (expression.constructor) {
-            case Value:
-                return expression.value;
-            case Reference:
-                return this._evaluateReference(expression.position, environment);
-            case UnaryOp:
-                return this._evaluateUnary(expression.op, expression.value, environment);
-            case BinaryOp:
-                return this._evaluateBinary(expression.left, expression.op, expression.right, environment);
-            case FunctionCall:
-                return this._evaluateFunction(expression.functionName, expression.args, environment);
-            case Range:
-                throw new RangeReferenceNotAllowedError();
-            default:
-                throw new NotImplementedError(`Unknown expression type: ${typeof expression}`);
-        }
+    private _evaluateCell(expression: Expression, environment: Environment): CellValue {
+        if (expression instanceof Value)
+            return expression.value;
+        else if (expression instanceof Reference)
+            return this._evaluateReference(expression.position, environment);
+        else if (expression instanceof UnaryOp)
+            return this._evaluateUnary(expression.op, expression.value, environment);
+        else if (expression instanceof BinaryOp)
+            return this._evaluateBinary(expression.left, expression.op, expression.right, environment);
+        else if (expression instanceof FunctionCall)
+            return this._evaluateFunction(expression.functionName, expression.args, environment);
+        else if (expression instanceof Range)
+            throw new RangeReferenceNotAllowedError();
+        else
+            throw new NotImplementedError(`Unknown expression type: ${typeof expression}`);
     }
 
-    _evaluateReference(position, environment) {
+    private _evaluateReference(position: CellPosition, environment: Environment): CellValue {
         try {
             return environment.getValue(position);
         } catch (ex) {
@@ -68,14 +80,14 @@ export default class Evaluator {
         }
     }
 
-    _evaluateExpression(value, environment) {
-        switch (value.constructor) {
-            case Range: return this._evaluateRange(value.from, value.to, environment);
-            default: return this._evaluateCell(value, environment);
-        }
+    private _evaluateExpression(value: Expression, environment: Environment): CellValue {
+        if (value instanceof Range)
+            return this._evaluateRange(value.from, value.to, environment);
+        else
+            return this._evaluateCell(value, environment);
     }
 
-    _evaluateUnary(op, expression, environment) {
+    private _evaluateUnary(op: string, expression: Expression, environment: Environment): CellValue {
         const value = this._evaluateCell(expression, environment);
         switch (op) {
             case '+':
@@ -88,7 +100,7 @@ export default class Evaluator {
         }
     }
 
-    _evaluateBinary(left, op, right, environment) {
+    private _evaluateBinary(left: Expression, op: string, right: Expression, environment: Environment): CellValue {
         const leftValue = this._evaluateCell(left, environment);
         const rightValue = this._evaluateCell(right, environment);
         switch (op) {
@@ -106,36 +118,36 @@ export default class Evaluator {
         }
     }
 
-    _evaluateAddition(leftValue, rightValue) {
-        if ((typeof (leftValue) === 'number' && typeof (rightValue) === 'number') ||
-            (typeof (leftValue) === 'string') && typeof (rightValue) === 'string') {
+    private _evaluateAddition(leftValue: CellValue, rightValue: CellValue): CellValue {
+        if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number')
             return leftValue + rightValue;
-        }
+        if (typeof (leftValue) === 'string' && typeof (rightValue) === 'string')
+            return leftValue + rightValue;
         throw new TypeError(['number + number', 'string + string'], `${typeof (leftValue)} + ${typeof (rightValue)}`);
     }
 
-    _evaluateSubtraction(leftValue, rightValue) {
+    private _evaluateSubtraction(leftValue: CellValue, rightValue: CellValue): CellValue {
         if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
             return leftValue - rightValue;
         }
         throw new TypeError(['number - number'], `${typeof (leftValue)} - ${typeof (rightValue)}`);
     }
 
-    _evaluateMultiplication(leftValue, rightValue) {
+    private _evaluateMultiplication(leftValue: CellValue, rightValue: CellValue): CellValue {
         if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
             return leftValue * rightValue;
         }
         throw new TypeError(['number * number'], `${typeof (leftValue)} * ${typeof (rightValue)}`);
     }
 
-    _evaluateDivision(leftValue, rightValue) {
+    private _evaluateDivision(leftValue: CellValue, rightValue: CellValue): CellValue {
         if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
             return leftValue / rightValue;
         }
         throw new TypeError(['number / number'], `${typeof (leftValue)} / ${typeof (rightValue)}`);
     }
 
-    _evaluateEquals(leftValue, rightValue) {
+    private _evaluateEquals(leftValue: CellValue, rightValue: CellValue): CellValue {
         if (Array.isArray(leftValue) || Array.isArray(rightValue)) {
             if (!(Array.isArray(leftValue) && Array.isArray(rightValue)))
                 return false;
@@ -150,59 +162,67 @@ export default class Evaluator {
         return leftValue === rightValue;
     }
 
-    _evaluateNotEqual(leftValue, rightValue) {
+    private _evaluateNotEqual(leftValue: CellValue, rightValue: CellValue): CellValue {
         return !this._evaluateEquals(leftValue, rightValue);
     }
 
-    _evaluateGreaterThan(leftValue, rightValue) {
+    private _evaluateGreaterThan(leftValue: CellValue, rightValue: CellValue): CellValue {
         if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
             return leftValue > rightValue;
         }
         throw new TypeError(['number > number'], `${typeof (leftValue)} > ${typeof (rightValue)}`);
     }
 
-    _evaluateLessThan(leftValue, rightValue) {
+    private _evaluateLessThan(leftValue: CellValue, rightValue: CellValue): CellValue {
         if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
             return leftValue < rightValue;
         }
         throw new TypeError(['number < number'], `${typeof (leftValue)} < ${typeof (rightValue)}`);
     }
 
-    _evaluateGreaterOrEqual(leftValue, rightValue) {
+    private _evaluateGreaterOrEqual(leftValue: CellValue, rightValue: CellValue): CellValue {
         if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
             return leftValue >= rightValue;
         }
         throw new TypeError(['number >= number'], `${typeof (leftValue)} >= ${typeof (rightValue)}`);
     }
 
-    _evaluateLessOrEqual(leftValue, rightValue) {
+    private _evaluateLessOrEqual(leftValue: CellValue, rightValue: CellValue): CellValue {
         if (typeof (leftValue) === 'number' && typeof (rightValue) === 'number') {
             return leftValue <= rightValue;
         }
         throw new TypeError(['number <= number'], `${typeof (leftValue)} <= ${typeof (rightValue)}`);
     }
 
-    _evaluateFunction(functionName, args, environment) {
-        let func = environment.getFunction(functionName);
-        func = func instanceof Function ? { isLazy: false, function: func } : func;
-        return (func.isLazy === true) ?
-            this._evaluateLazySpreadsheetFunction(functionName, func, args, environment) :
-            this._evaluateSpreadsheetFunction(functionName, func, args, environment);
+    private _evaluateFunction(functionName: string, args: Expression[], environment: Environment): CellValue {
+        const func = environment.getFunction(functionName);
+
+        if (!func.isLazy) {
+            return this._evaluateSpreadsheetFunction(functionName, func.function, args, environment);
+        } else {
+            return this._evaluateLazySpreadsheetFunction(functionName, func.function, args, environment);
+        }
     }
 
-    _evaluateSpreadsheetFunction(functionName, func, args, environment) {
+    private _evaluateSpreadsheetFunction(
+        functionName: string, func: BasicSpreadsheetFunction, args: Expression[],
+        environment: Environment
+    ): CellValue {
         const argumentValues = args.map(arg => this._evaluateExpression(arg, environment));
         try {
-            return func.function(...argumentValues);
+            return func(...argumentValues);
         } catch (ex) {
             throw new FunctionEvaluationError(functionName, ex);
         }
     }
 
-    _evaluateLazySpreadsheetFunction(functionName, func, args, environment) {
+    private _evaluateLazySpreadsheetFunction(
+        functionName: string, func: LazySpreadsheetFunction, args: Expression[],
+        environment: Environment
+    ): CellValue {
         const argsLazyValues = args.map(arg => () => this._evaluateExpression(arg, environment));
         try {
-            return func.function(...argsLazyValues);
+            return func(...argsLazyValues);
         } catch (ex) {
             // Error thrown while evaluating one of the lazy arguments
             if (ex instanceof RuntimeError || ex instanceof CircularRefInternal) throw ex;
@@ -211,8 +231,8 @@ export default class Evaluator {
         }
     }
 
-    _evaluateRange(from, to, environment) {
-        return Helpers.positionsInRange(from.position, to.position)
+    private _evaluateRange(from: Reference, to: Reference, environment: Environment): CellValue {
+        return positionsInRange(from.position, to.position)
             .map(pos => this._evaluateReference(pos, environment));
     }
 }

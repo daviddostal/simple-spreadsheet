@@ -1,7 +1,9 @@
-import { TokenType } from './tokenizer.js';
-import { ParsingError, NotImplementedError } from './errors.js';
-import { Value, Reference, BinaryOp, UnaryOp, Range, FunctionCall } from './expressions.js';
-import * as Helpers from './helpers.js';
+import { Token, TokenType, Tokenizer } from './tokenizer';
+import { ParsingError, NotImplementedError } from './errors';
+import { Value, Reference, BinaryOp, UnaryOp, Range, FunctionCall, Expression } from './expressions';
+import * as Helpers from './helpers';
+import TokenStream from './tokenStream';
+import { CellContent, CellPosition } from './types';
 
 // NOTE: Above most parser functions, there are comments describing the grammar rules of the syntax
 // being parsed. It uses the following notation:
@@ -15,13 +17,14 @@ import * as Helpers from './helpers.js';
 //   (* meaning 0 or more, + meaning 1 or more, \d matching digits etc.)
 
 export default class Parser {
-    constructor(tokenizer) {
+    private _tokenizer: Tokenizer;
+
+    constructor(tokenizer: Tokenizer) {
         this._tokenizer = tokenizer;
-        this._tokens = null;
     }
 
     // cell => empty | '=' expression EOF | number | string
-    parse(text) {
+    parse(text: CellContent): { parsed: Expression, references: CellPosition[] } {
         // empty cell or non-string value
         // TODO: should arbitrary JS values be allowed here or should we just make exceptions for
         // whitelisted types (numbers, strings)?
@@ -30,10 +33,10 @@ export default class Parser {
 
         // formula
         if (text[0] === '=') {
-            this._tokens = this._tokenizer.tokenize(text);
-            this._tokens.require(TokenType.EQUALS);
-            const parsed = this._parseExpression();
-            this._tokens.require(TokenType.EOF);
+            const tokens = this._tokenizer.tokenize(text);
+            tokens.require(TokenType.EQUALS);
+            const parsed = this._parseExpression(tokens);
+            tokens.require(TokenType.EOF);
             const references = this._referencesIn(parsed);
             return { parsed, references };
         }
@@ -47,110 +50,113 @@ export default class Parser {
     }
 
     // expression => comparison
-    _parseExpression() {
-        return this._parseComparison();
+    private _parseExpression(tokens: TokenStream): Expression {
+        return this._parseComparison(tokens);
     }
 
     // comparison => term (('+'|'-') term)*
-    _parseComparison() {
+    private _parseComparison(tokens: TokenStream): Expression {
         return this._parseBinaryOperation(
+            tokens,
             [
                 TokenType.EQUALS, TokenType.NOT_EQUAL,
                 TokenType.GREATER_THAN, TokenType.LESS_THAN,
                 TokenType.GREATER_OR_EQUAL, TokenType.LESS_OR_EQUAL
             ],
-            () => this._parseTerm(),
+            () => this._parseTerm(tokens),
         )
     }
 
     // term => factor (('+'|'-') factor)*
-    _parseTerm() {
+    private _parseTerm(tokens: TokenStream): Expression {
         return this._parseBinaryOperation(
+            tokens,
             [TokenType.PLUS, TokenType.MINUS],
-            () => this._parseFactor(),
+            () => this._parseFactor(tokens),
         );
     }
 
     // factor => unary (('*'|'/') unary)*
-    _parseFactor() {
+    private _parseFactor(tokens: TokenStream): Expression {
         return this._parseBinaryOperation(
+            tokens,
             [TokenType.STAR, TokenType.SLASH],
-            () => this._parseRange(),
+            () => this._parseRange(tokens),
         );
     }
 
     // range => unary
-    _parseRange() {
+    private _parseRange(tokens: TokenStream): Expression {
         // NOTE:
         // Currently ranges are allowed only inside function calls, so this function does nothing.
         // In the future, we could make ':' a proper binary operator instead of just part of a range
         // reference, but this would require support for array data types inside cells or for
         // "spilling" cell values into neighboring cells.
-        return this._parseUnary();
+        return this._parseUnary(tokens);
     }
 
     // unary => ('+'|'-') unary | value
-    _parseUnary() {
-        const operation = this._tokens.expect(TokenType.PLUS, TokenType.MINUS);
+    private _parseUnary(tokens: TokenStream): Expression {
+        const operation = tokens.expect(TokenType.PLUS, TokenType.MINUS);
         return operation !== null
-            ? new UnaryOp(operation.value, this._parseUnary())
-            : this._parseValue();
+            ? new UnaryOp(operation.value, this._parseUnary(tokens))
+            : this._parseValue(tokens);
     }
 
     // value => parenthesized | number | string | rangeReference | functionCall | reference
-    _parseValue() {
+    private _parseValue(tokens: TokenStream): Expression {
         // parenthesized expression
-        if (this._tokens.expect(TokenType.LPAREN))
-            return this._finishParenthesized();
+        if (tokens.expect(TokenType.LPAREN))
+            return this._finishParenthesized(tokens);
 
         // number
-        const number = this._tokens.expect(TokenType.NUMBER)
+        const number = tokens.expect(TokenType.NUMBER)
         if (number !== null)
             return new Value(parseFloat(number.value));
 
         // string
-        const string = this._tokens.expect(TokenType.STRING);
+        const string = tokens.expect(TokenType.STRING);
         if (string !== null)
             return this._parseString(string);
 
         // boolean
-        const boolean = this._tokens.expect(TokenType.BOOLEAN);
+        const boolean = tokens.expect(TokenType.BOOLEAN);
         if (boolean !== null)
             return new Value(boolean.value === 'TRUE');
 
-        const identifier = this._tokens.expect(TokenType.IDENTIFIER);
+        const identifier = tokens.expect(TokenType.IDENTIFIER);
         if (identifier !== null) {
             // range reference
-            if (this._tokens.expect(TokenType.COLON))
-                return this._finishRangeReference(identifier);
+            if (tokens.expect(TokenType.COLON))
+                return this._finishRangeReference(tokens, identifier);
 
             // function call
-            if (this._tokens.expect(TokenType.LPAREN))
-                return this._finishFunctionCall(identifier);
+            if (tokens.expect(TokenType.LPAREN))
+                return this._finishFunctionCall(tokens, identifier);
 
             // reference
             return this._parseReference(identifier.value);
         }
-        throw new ParsingError(`Unexpected ${this._tokens.peek().type.description}, expected an expression or value`)
+        throw new ParsingError(`Unexpected ${tokens.peek().type}, expected an expression or value`)
     }
 
     // parenthesized => '(' expression ')'
-    _finishParenthesized() {
-        const contents = this._parseExpression();
-        this._tokens.require(TokenType.RPAREN);
+    private _finishParenthesized(tokens: TokenStream): Expression {
+        const contents = this._parseExpression(tokens);
+        tokens.require(TokenType.RPAREN);
         return contents;
     }
 
-    _parseString(string) {
+    private _parseString(string: Token): Expression {
         const withoutQuotes = string.value.substring(1, string.value.length - 1);
         return new Value(this._parseStringEscapes(withoutQuotes));
     }
 
-    _parseStringEscapes(string) {
+    private _parseStringEscapes(string: string): string {
         let result = '';
         let isEscaped = false;
 
-        for (let char of string) {
+        for (const char of string) {
             if (!isEscaped) {
                 if (char !== '\\') result += char;
                 else isEscaped = true;
@@ -175,70 +181,68 @@ export default class Parser {
     }
 
     // rangeReference => IDENTIFIER ':' IDENTIFIER
-    _finishRangeReference(start) {
+    private _finishRangeReference(tokens: TokenStream, start: Token): Range {
         // start identifier and : are already parsed
-        const end = this._tokens.require(TokenType.IDENTIFIER);
+        const end = tokens.require(TokenType.IDENTIFIER);
         const from = this._parseReference(start.value);
         const to = this._parseReference(end.value);
         return new Range(from, to);
     }
 
     // functionCall => IDENTIFIER '(' arguments ')'
-    _finishFunctionCall(identifier) {
+    private _finishFunctionCall(tokens: TokenStream, identifier: Token): FunctionCall {
         // NOTE: Currently nested function calls such as FOO()() are not supported.
         // If they were to be added in the future, this would require support for first-class
         // functions as cell values with all the consequences that this includes, such as
         // not knowing what is a function and what not until runtime and making it harder
         // to distinguish cell references from function names.
-        const args = this._parseArguments();
-        this._tokens.expect(TokenType.RPAREN);
+        const args = this._parseArguments(tokens);
+        tokens.expect(TokenType.RPAREN);
         return new FunctionCall(identifier.value, args);
     }
 
     // reference => [A-Za-z]+\d+
-    _parseReference(reference) {
-        const position = Helpers.parsePosition(reference);
+    private _parseReference(reference: string): Reference {
+        const position = Helpers.tryParsePosition(reference);
         if (position === null)
             throw new ParsingError(`Invalid format of cell reference: ${reference}`);
         return new Reference(Helpers.makePosition(position.col, position.row));
     }
 
     // arguments => (expression (',' expression)* )?
-    _parseArguments() {
+    private _parseArguments(tokens: TokenStream): Expression[] {
         const args = [];
-        while (this._tokens.peek().type !== TokenType.RPAREN) {
+        while (tokens.peek().type !== TokenType.RPAREN) {
             if (args.length != 0)
-                this._tokens.require(TokenType.COMMA);
-            args.push(this._parseExpression());
+                tokens.require(TokenType.COMMA);
+            args.push(this._parseExpression(tokens));
         }
         return args;
     }
 
-    _parseBinaryOperation(operators, parseHigherPrecedence) {
+    private _parseBinaryOperation(tokens: TokenStream, operators: TokenType[], parseHigherPrecedence: () => Expression): Expression {
         let left = parseHigherPrecedence();
         let operation;
-        while ((operation = this._tokens.expect(...operators)) !== null) {
+        while ((operation = tokens.expect(...operators)) !== null) {
             left = new BinaryOp(left, operation.value, parseHigherPrecedence());
         }
         return left;
     }
 
-    _referencesIn(expression) {
-        switch (expression.constructor) {
-            case Value:
-                return [];
-            case Reference:
-                return [expression.position];
-            case UnaryOp:
-                return this._referencesIn(expression.value);
-            case BinaryOp:
-                return [...this._referencesIn(expression.left), ...this._referencesIn(expression.right)];
-            case FunctionCall:
-                return expression.args.flatMap(arg => this._referencesIn(arg));
-            case Range:
-                return Helpers.positionsInRange(expression.from.position, expression.to.position)
-            default:
-                throw new NotImplementedError(`Unknown expression type: ${typeof expression}`);
-        }
+    private _referencesIn(expression: Expression): CellPosition[] {
+        if (expression instanceof Value)
+            return [];
+        else if (expression instanceof Reference)
+            return [expression.position];
+        else if (expression instanceof UnaryOp)
+            return this._referencesIn(expression.value);
+        else if (expression instanceof BinaryOp)
+            return [...this._referencesIn(expression.left), ...this._referencesIn(expression.right)];
+        else if (expression instanceof FunctionCall)
+            return expression.args.flatMap(arg => this._referencesIn(arg));
+        else if (expression instanceof Range)
+            return Helpers.positionsInRange(expression.from.position, expression.to.position);
+        else
+            throw new NotImplementedError(`Unknown expression type: ${typeof expression}`);
     }
 }

@@ -1,0 +1,23 @@
+{
+  "rootDir": "../",
+  "testEnvironment": "node",
+  "collectCoverage": true,
+  "collectCoverageFrom": [
+    "src/spreadsheet/*.js",
+    "src/functions/*.js"
+  ],
+  "coverageDirectory": "./.coverage",
+  "coverageReporters": [
+    "json",
+    "lcov",
+    "clover"
+  ],
+  "transform": {
+    "\\.[jt]sx?$": [
+      "babel-jest",
+      {
+        "configFile": "./configs/babel.config.testing.json"
+      }
+    ]
+  }
+}

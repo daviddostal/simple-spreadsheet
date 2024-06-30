@@ -1,7 +1,11 @@
-import { ParsingError } from './errors.js';
+import { ParsingError } from './errors';
+import { Token, TokenType } from './tokenizer';
 
 export default class TokenStream {
-    constructor(tokens) {
+    private _tokens: Token[];
+    private _currentPos: number;
+
+    constructor(tokens: Token[]) {
         this._tokens = tokens;
         this._currentPos = 0;
     }
@@ -10,7 +14,7 @@ export default class TokenStream {
         return this._tokens[this._currentPos] || null;
     }
 
-    expect(...types) {
+    expect(...types: TokenType[]): Token | null {
         const token = this.peek();
         if (token !== null && types.includes(token.type)) {
             this._currentPos++;
@@ -19,10 +23,10 @@ export default class TokenStream {
         return null;
     }
 
-    require(...types) {
+    require(...types: TokenType[]): Token {
         const token = this.expect(...types);
         if (token === null)
-            throw new ParsingError(`Unexpected ${this.peek().type.description}, expected ${types.map(sym => sym.description).join(' or ')}`);
+            throw new ParsingError(`Unexpected ${this.peek().type}, expected ${types.join(' or ')}`);
         return token;
     }
 }
